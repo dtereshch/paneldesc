@@ -15,7 +15,7 @@
 #' @param cex.axis Axis text size (default: 0.8)
 #' @param cex.lab Label text size (default: 1)
 #' @param cex.pattern Pattern label text size (default: 0.7)
-#' @param mar Plot margins (default: c(5, 8, 8, 2) + 0.1)  # Increased left margin for pattern labels
+#' @param mar Plot margins (default: c(5, 8, 4, 2) + 0.1)  # Reduced top margin for legend
 #'
 #' @return Invisible list containing the cross-tabulation matrix and summary statistics
 #'
@@ -45,7 +45,7 @@ plot_participation <- function(
   cex.axis = 0.8,
   cex.lab = 1,
   cex.pattern = 0.7,
-  mar = c(5, 8, 8, 2) + 0.1
+  mar = c(5, 8, 4, 2) + 0.1 # Reduced top margin to make space for bottom legend
 ) {
   # Input validation
   if (missing(data)) {
@@ -92,6 +92,20 @@ plot_participation <- function(
       "' not found in data. Available variables: ",
       paste(names(data_df), collapse = ", ")
     )
+  }
+
+  # Filter out rows that have NAs in all columns except group and time variables
+  other_vars <- setdiff(names(data_df), c(group_name, time_name))
+  if (length(other_vars) > 0) {
+    # Keep rows that have at least one non-NA value in the other variables
+    has_data <- apply(data_df[other_vars], 1, function(x) any(!is.na(x)))
+    data_df <- data_df[has_data, ]
+    group_var <- data_df[[group_name]]
+    time_var <- data_df[[time_name]]
+
+    if (nrow(data_df) == 0) {
+      stop("No observations with valid data after removing rows with all NAs")
+    }
   }
 
   # Convert to character to handle different classes uniformly
@@ -205,32 +219,40 @@ plot_participation <- function(
   on.exit(par(mar = old_mar)) # Ensure parameters are reset even on error
   par(mar = mar)
 
-  # Create color palette
+  # Create color palette - CRITICAL FIX: Ensure correct mapping
+  # The image() function maps the lowest value to the first color and highest to the last
+  # Since we have 0 (missing) and 1 (present), we need:
+  # 0 -> colors[2] (missing), 1 -> colors[1] (present)
   col_palette <- colors
+
+  # Reverse the matrix for plotting so most common pattern is at top
+  reversed_matrix <- ordered_matrix[nrow(ordered_matrix):1, , drop = FALSE]
 
   # Create heatmap without axis labels initially
   image(
-    1:ncol(ordered_matrix),
-    1:nrow(ordered_matrix),
-    t(ordered_matrix),
+    1:ncol(reversed_matrix),
+    1:nrow(reversed_matrix),
+    t(reversed_matrix),
     col = col_palette,
     xlab = "",
     ylab = "",
-    main = main, # Empty labels initially
+    main = main,
     axes = FALSE,
-    cex.lab = cex.lab
+    cex.lab = cex.lab,
+    breaks = c(-0.5, 0.5, 1.5), # Explicit breaks to ensure correct color mapping
+    useRaster = TRUE
   )
 
   # Add x-axis
   axis(
     1,
-    at = 1:ncol(ordered_matrix),
-    labels = colnames(ordered_matrix),
+    at = 1:ncol(reversed_matrix),
+    labels = colnames(reversed_matrix),
     las = 2,
     cex.axis = cex.axis
   )
 
-  # Add y-axis with pattern labels - ensure they fit within plot boundaries
+  # Add y-axis with pattern labels - use original order for labels but reversed positions
   pattern_labels <- sprintf(
     "Pattern %d (n=%d, %.1f%%)",
     seq_len(nrow(ordered_matrix)),
@@ -240,8 +262,8 @@ plot_participation <- function(
 
   axis(
     2,
-    at = nrow(ordered_matrix):1, # Reverse y-axis so most common pattern is at top
-    labels = pattern_labels,
+    at = 1:nrow(reversed_matrix),
+    labels = pattern_labels[nrow(reversed_matrix):1], # Reverse labels to match reversed matrix
     las = 1,
     cex.axis = cex.pattern
   )
@@ -250,17 +272,21 @@ plot_participation <- function(
   title(xlab = xlab, cex.lab = cex.lab, line = 3.5)
 
   # Add grid
-  abline(h = 1:nrow(ordered_matrix) - 0.5, col = "gray80", lty = 3)
-  abline(v = 1:ncol(ordered_matrix) - 0.5, col = "gray80", lty = 3)
+  abline(h = 1:nrow(reversed_matrix) - 0.5, col = "gray80", lty = 3)
+  abline(v = 1:ncol(reversed_matrix) - 0.5, col = "gray80", lty = 3)
 
-  # Add legend with clear labels
+  # Add horizontal legend at the bottom - CRITICAL FIX: Ensure correct color mapping
+  # The image uses: 0 -> colors[2] (missing), 1 -> colors[1] (present)
   legend(
-    "topright",
+    "bottom",
     legend = c("Present", "Missing"),
-    fill = c(colors[1], colors[2]),
+    fill = c(colors[1], colors[2]), # Present first, then Missing
     bty = "n",
     cex = 0.8,
-    title = "Observation Status"
+    title = "Observation Status",
+    horiz = TRUE,
+    inset = c(0, -0.15), # Adjust position to be below the plot
+    xpd = TRUE # Allow plotting outside plot area
   )
 
   # Add summary statistics if requested
@@ -295,6 +321,7 @@ plot_participation <- function(
     ),
     statistics = stats,
     group_var = group_name,
-    time_var = time_name
+    time_var = time_name,
+    color_mapping = c("1" = colors[1], "0" = colors[2]) # Document the color mapping
   ))
 }

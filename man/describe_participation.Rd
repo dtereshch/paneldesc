@@ -34,18 +34,9 @@ of entities in panel data over time.
 data(production)
 
 # Basic usage with all patterns shown
-result <- describe_participation(production, "firm", "year")
-print(result)
+describe_participation(production, group = "firm", time = "year")
 
 # Show simplified version without time period columns
-result_simple <- describe_participation(production, "firm", "year", detailed = FALSE)
-print(result_simple)
-
-# Example with unbalanced panel (introducing NAs)
-production_unbalanced <- production
-# Remove some observations to create unbalanced panel
-production_unbalanced <- production_unbalanced[-c(5, 15, 25), ]
-result_unbalanced <- describe_participation(production_unbalanced, "firm", "year")
-print(result_unbalanced)
+describe_participation(production, group = "firm", time = "year", detailed = FALSE)
 
 }

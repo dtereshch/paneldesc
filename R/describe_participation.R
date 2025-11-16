@@ -22,19 +22,10 @@
 #' data(production)
 #'
 #' # Basic usage with all patterns shown
-#' result <- describe_participation(production, "firm", "year")
-#' print(result)
+#' describe_participation(production, group = "firm", time = "year")
 #'
 #' # Show simplified version without time period columns
-#' result_simple <- describe_participation(production, "firm", "year", detailed = FALSE)
-#' print(result_simple)
-#'
-#' # Example with unbalanced panel (introducing NAs)
-#' production_unbalanced <- production
-#' # Remove some observations to create unbalanced panel
-#' production_unbalanced <- production_unbalanced[-c(5, 15, 25), ]
-#' result_unbalanced <- describe_participation(production_unbalanced, "firm", "year")
-#' print(result_unbalanced)
+#' describe_participation(production, group = "firm", time = "year", detailed = FALSE)
 #'
 #' @export
 describe_participation <- function(
@@ -68,9 +59,27 @@ describe_participation <- function(
     stop("Time variable '", time, "' not found in data")
   }
 
+  # Identify data columns (excluding group and time)
+  data_cols <- setdiff(names(data), c(group, time))
+
+  if (length(data_cols) == 0) {
+    stop("No data columns found (excluding group and time variables)")
+  }
+
+  # Filter data: remove rows where ALL data columns are NA
+  # This preserves the group-time structure while removing completely empty observations
+  data_filtered <- data
+  if (nrow(data_filtered) > 0) {
+    # Create a logical vector indicating rows where at least one data column is not NA
+    has_data <- apply(data_filtered[data_cols], 1, function(row) {
+      !all(is.na(row))
+    })
+    data_filtered <- data_filtered[has_data, ]
+  }
+
   # Convert group and time to character to handle different classes
-  group_vec <- as.character(data[[group]])
-  time_vec <- as.character(data[[time]])
+  group_vec <- as.character(data_filtered[[group]])
+  time_vec <- as.character(data_filtered[[time]])
 
   # Create unique combinations of group and time
   unique_combinations <- unique(data.frame(group = group_vec, time = time_vec))

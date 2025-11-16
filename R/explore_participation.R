@@ -79,6 +79,21 @@ explore_participation <- function(
     )
   }
 
+  # Filter out rows with NAs in all substantive variables (excluding group and time)
+  substantive_vars <- setdiff(names(data_df), c(group_name, time_name))
+
+  if (length(substantive_vars) == 0) {
+    stop("No substantive variables found (besides group and time variables)")
+  }
+
+  # Identify rows that have at least one non-NA value in substantive variables
+  has_data <- apply(data_df[substantive_vars], 1, function(x) any(!is.na(x)))
+  filtered_data <- data_df[has_data, ]
+
+  # Update variables after filtering
+  group_var <- filtered_data[[group_name]]
+  time_var <- filtered_data[[time_name]]
+
   # Convert to character to handle different classes uniformly
   group_var <- as.character(group_var)
   time_var <- as.character(time_var)
@@ -171,7 +186,8 @@ explore_participation <- function(
     ) /
       nrow(presence_matrix)) *
       100,
-    n_patterns = length(pattern_groups)
+    n_patterns = length(pattern_groups),
+    filtered_obs = nrow(data_df) - nrow(filtered_data)
   )
 
   # Order time periods
@@ -201,7 +217,11 @@ explore_participation <- function(
     stats$entities_with_gaps,
     stats$pct_entities_with_gaps
   ))
-  cat(sprintf("  Number of participation patterns: %d\n\n", stats$n_patterns))
+  cat(sprintf("  Number of participation patterns: %d\n", stats$n_patterns))
+  if (stats$filtered_obs > 0) {
+    cat(sprintf("  Rows filtered (all NAs): %d\n", stats$filtered_obs))
+  }
+  cat("\n")
 
   # Print time period coverage FIRST (as requested)
   period_coverage <- colSums(presence_matrix)
@@ -310,6 +330,7 @@ explore_participation <- function(
       percent_coverage = period_coverage_pct
     ),
     group_var = group_name,
-    time_var = time_name
+    time_var = time_name,
+    filtered_data = filtered_data
   ))
 }
