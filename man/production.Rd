@@ -9,19 +9,18 @@ A data frame with 180 rows (30 firms × 6 years) and 6 variables:
 \describe{
   \item{firm}{integer variable representing firm identifier (1 to 30)}
   \item{year}{integer variable representing year identifier (1 to 6)}
-  \item{status}{factor variable representing firm status with three levels:
-                "Pre-entry" (firms not yet entered),
-                "Market participation" (active firms),
-                "Out of market" (firms that have exited)}
+  \item{industry}{factor variable representing industry affiliation with three levels:
+                  "Industry 1", "Industry 2", "Industry 3". Some firms change
+                  industry over time.}
   \item{sales}{numeric variable representing firm sales/output, generated from
-               Cobb-Douglas production function with technology shocks.
-               Only available for firms with "Market participation" status}
+               Cobb-Douglas production function with industry-specific parameters
+               and technology shocks}
   \item{capital}{numeric variable representing capital input, following log-normal
-                 distribution with firm-specific effects and time trend.
-                 Only available for firms with "Market participation" status}
+                 distribution with firm-specific effects and industry-specific
+                 time trends}
   \item{labor}{numeric variable representing labor input, following log-normal
-               distribution with firm-specific effects and time trend.
-               Only available for firms with "Market participation" status}
+               distribution with firm-specific effects and industry-specific
+               time trends}
 }
 }
 \source{
@@ -31,20 +30,25 @@ Simulated data for econometric analysis and demonstration purposes
 production
 }
 \description{
-A simulated dataset containing firm-level panel data with firm status tracking,
+A simulated dataset containing firm-level panel data with industry affiliation,
 entry, exit, and random missing values for estimating Cobb-Douglas production functions.
-The data follows the structure: Sales = A × Capital^α × Labor^β × exp(technology_shock),
-where α = 0.3 and β = 0.6.
+The data follows industry-specific production structures with occasional industry changes.
 }
 \details{
 The dataset exhibits several realistic features of firm-level panel data:
 \itemize{
-  \item 50\% of firms (15 firms) have complete data for all 6 years with "Market participation" status
+  \item 50\% of firms (15 firms) have complete data for all 6 years
   \item 50\% of firms (15 firms) have entry and exit patterns with different start and end years
-  \item Status variable tracks firm lifecycle: Pre-entry → Market participation → Out of market
-  \item Economic variables (sales, capital, labor) are only available during market participation
+  \item Three industry categories with different production function parameters
+  \item About 20\% of firms change industry affiliation at least once during the observation period
+  \item Industry-specific Cobb-Douglas parameters:
+    \itemize{
+      \item Industry 1: α = 0.25, β = 0.65, A = 2.0 (labor-intensive)
+      \item Industry 2: α = 0.35, β = 0.55, A = 2.2 (balanced with high productivity)
+      \item Industry 3: α = 0.30, β = 0.60, A = 1.8 (standard parameters)
+    }
   \item Additional random missing values (approx. 2\%) in sales, capital, and labor variables
-  \item Firm-specific effects and time trends in capital and labor inputs
+  \item Firm-specific effects and industry-specific time trends in capital and labor inputs
   \item Technology shocks affecting production output
 }
 }
