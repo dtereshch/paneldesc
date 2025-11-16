@@ -15,7 +15,7 @@
 #' @param cex.axis Axis text size (default: 0.8)
 #' @param cex.lab Label text size (default: 1)
 #' @param cex.pattern Pattern label text size (default: 0.7)
-#' @param mar Plot margins (default: c(8, 8, 4, 2) + 0.1)  # Increased bottom margin for legend
+#' @param mar Plot margins (default: c(5, 8, 4, 6) + 0.1)  # Increased right margin for legend
 #'
 #' @return Invisible list containing the cross-tabulation matrix and summary statistics
 #'
@@ -45,7 +45,7 @@ plot_participation <- function(
   cex.axis = 0.8,
   cex.lab = 1,
   cex.pattern = 0.7,
-  mar = c(8, 8, 4, 2) + 0.1
+  mar = c(5, 8, 4, 6) + 0.1 # Increased right margin for vertical legend
 ) {
   # Input validation
   if (missing(data)) {
@@ -162,11 +162,13 @@ plot_participation <- function(
   on.exit(par(mar = old_mar))
   par(mar = mar)
 
-  # Reverse matrix for plotting (most common pattern at top) and colors for correct mapping
+  # Reverse matrix for plotting (most common pattern at top)
   plot_matrix <- ordered_matrix[nrow(ordered_matrix):1, , drop = FALSE]
-  col_palette <- rev(colors) # Reverse colors to match matrix values: 0=missing, 1=present
 
-  # Create heatmap
+  # Use colors directly without reversal - ensure correct mapping
+  col_palette <- colors # Present = colors[1], Missing = colors[2]
+
+  # Create heatmap with explicit breaks to ensure correct color mapping
   image(
     1:ncol(plot_matrix),
     1:nrow(plot_matrix),
@@ -177,7 +179,8 @@ plot_participation <- function(
     main = main,
     axes = FALSE,
     cex.lab = cex.lab,
-    useRaster = TRUE
+    useRaster = TRUE,
+    breaks = c(-0.5, 0.5, 1.5) # Explicit breaks for correct color assignment
   )
 
   # Add axes
@@ -223,18 +226,16 @@ plot_participation <- function(
     mtext(stats_text, side = 3, line = 0.5, cex = 0.7 * cex.lab)
   }
 
-  # Add legend at bottom
+  # Add vertical legend on the right
   legend(
-    "bottom",
+    "right",
     legend = c("Present", "Missing"),
     fill = colors,
     bty = "n",
     cex = 0.8,
-    title = "Observation Status:",
-    horiz = TRUE,
-    inset = c(0, -0.25),
-    xpd = TRUE,
-    title.adj = 0
+    title = "Observation Status",
+    inset = c(-0.15, 0),
+    xpd = TRUE
   )
 
   # Return results
@@ -251,6 +252,7 @@ plot_participation <- function(
     ),
     statistics = stats,
     group_var = group,
-    time_var = time
+    time_var = time,
+    color_mapping = c("1" = colors[1], "0" = colors[2]) # Document the mapping
   ))
 }
