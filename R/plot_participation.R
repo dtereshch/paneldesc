@@ -45,78 +45,57 @@ plot_participation <- function(
   cex.axis = 0.8,
   cex.lab = 1,
   cex.pattern = 0.7,
-  mar = c(8, 8, 4, 2) + 0.1 # Increased bottom margin for legend
+  mar = c(8, 8, 4, 2) + 0.1
 ) {
   # Input validation
   if (missing(data)) {
     stop("Argument 'data' is required")
   }
 
-  # Regular data frame - require group and time arguments as character strings
   if (is.null(group) || is.null(time)) {
-    stop(
-      "For regular data frames, both 'group' and 'time' arguments are required as character strings"
-    )
+    stop("Both 'group' and 'time' arguments are required as character strings")
   }
 
-  if (!is.character(group) || !is.character(time)) {
-    stop(
-      "For regular data frames, 'group' and 'time' arguments must be character strings"
-    )
-  }
-
-  if (length(group) != 1 || length(time) != 1) {
+  if (
+    !is.character(group) ||
+      !is.character(time) ||
+      length(group) != 1 ||
+      length(time) != 1
+  ) {
     stop("'group' and 'time' must be single character strings")
   }
 
   data_df <- as.data.frame(data)
-  group_name <- group
-  time_name <- time
-
-  # Extract variables
-  group_var <- data_df[[group_name]]
-  time_var <- data_df[[time_name]]
+  group_var <- data_df[[group]]
+  time_var <- data_df[[time]]
 
   if (is.null(group_var)) {
-    stop(
-      "Group variable '",
-      group_name,
-      "' not found in data. Available variables: ",
-      paste(names(data_df), collapse = ", ")
-    )
+    stop("Group variable '", group, "' not found in data")
   }
   if (is.null(time_var)) {
-    stop(
-      "Time variable '",
-      time_name,
-      "' not found in data. Available variables: ",
-      paste(names(data_df), collapse = ", ")
-    )
+    stop("Time variable '", time, "' not found in data")
   }
 
-  # Filter out rows that have NAs in all columns except group and time variables
-  other_vars <- setdiff(names(data_df), c(group_name, time_name))
+  # Filter out rows with all NAs in non-group/time variables
+  other_vars <- setdiff(names(data_df), c(group, time))
   if (length(other_vars) > 0) {
-    # Keep rows that have at least one non-NA value in the other variables
     has_data <- apply(data_df[other_vars], 1, function(x) any(!is.na(x)))
     data_df <- data_df[has_data, ]
-    group_var <- data_df[[group_name]]
-    time_var <- data_df[[time_name]]
+    group_var <- data_df[[group]]
+    time_var <- data_df[[time]]
 
     if (nrow(data_df) == 0) {
       stop("No observations with valid data after removing rows with all NAs")
     }
   }
 
-  # Convert to character to handle different classes uniformly
+  # Convert to character and get unique values
   group_var <- as.character(group_var)
   time_var <- as.character(time_var)
-
-  # Create cross-tabulation
   unique_groups <- unique(group_var)
   unique_times <- unique(time_var)
 
-  # Create presence matrix (1 = present, 0 = missing)
+  # Create presence matrix
   presence_matrix <- matrix(
     0,
     nrow = length(unique_groups),
@@ -124,116 +103,74 @@ plot_participation <- function(
     dimnames = list(unique_groups, unique_times)
   )
 
-  # Fill matrix with 1 for present observations
-  for (i in seq_along(group_var)) {
-    row_idx <- which(unique_groups == group_var[i])
-    col_idx <- which(unique_times == time_var[i])
-    presence_matrix[row_idx, col_idx] <- 1
-  }
+  # Fill matrix with presence indicators
+  obs_indices <- cbind(
+    match(group_var, unique_groups),
+    match(time_var, unique_times)
+  )
+  presence_matrix[obs_indices] <- 1
 
   # Group entities by missing value patterns
-  pattern_strings <- apply(presence_matrix, 1, function(x) {
-    paste(x, collapse = "")
-  })
+  pattern_strings <- apply(presence_matrix, 1, paste, collapse = "")
   pattern_groups <- split(rownames(presence_matrix), pattern_strings)
 
-  # Create pattern matrix with one row per pattern
-  # FIX: Ensure pattern_matrix is always a matrix, even with single pattern
-  if (length(pattern_groups) == 1) {
-    pattern_matrix <- matrix(
-      as.numeric(strsplit(names(pattern_groups)[1], "")[[1]]),
-      nrow = 1,
-      ncol = ncol(presence_matrix)
-    )
-  } else {
-    pattern_matrix <- matrix(
-      0,
-      nrow = length(pattern_groups),
-      ncol = ncol(presence_matrix)
-    )
-  }
-
-  rownames(pattern_matrix) <- paste0(
-    "Pattern ",
-    seq_len(length(pattern_groups))
+  # Create pattern matrix
+  pattern_matrix <- do.call(
+    rbind,
+    lapply(names(pattern_groups), function(pat) {
+      as.numeric(strsplit(pat, "")[[1]])
+    })
   )
+  rownames(pattern_matrix) <- paste0("Pattern ", seq_along(pattern_groups))
   colnames(pattern_matrix) <- colnames(presence_matrix)
 
-  # Fill pattern matrix and count entities per pattern
-  pattern_counts <- numeric(length(pattern_groups))
-  pattern_pcts <- numeric(length(pattern_groups))
-  total_entities <- length(unique_groups)
-
-  for (i in seq_along(pattern_groups)) {
-    if (length(pattern_groups) == 1) {
-      # Already filled above for single pattern case
-      pattern <- pattern_matrix[i, ]
-    } else {
-      pattern <- as.numeric(strsplit(names(pattern_groups)[i], "")[[1]])
-      pattern_matrix[i, ] <- pattern
-    }
-    pattern_counts[i] <- length(pattern_groups[[i]])
-    pattern_pcts[i] <- pattern_counts[i] / total_entities * 100
-  }
+  # Calculate pattern statistics
+  pattern_counts <- lengths(pattern_groups)
+  pattern_pcts <- pattern_counts / length(unique_groups) * 100
 
   # Order patterns by frequency (most common first)
   pattern_order <- order(pattern_counts, decreasing = TRUE)
-  pattern_matrix <- pattern_matrix[pattern_order, , drop = FALSE] # FIX: Added drop = FALSE
+  pattern_matrix <- pattern_matrix[pattern_order, , drop = FALSE]
   pattern_counts <- pattern_counts[pattern_order]
   pattern_pcts <- pattern_pcts[pattern_order]
   pattern_groups <- pattern_groups[pattern_order]
 
   # Calculate summary statistics
+  total_cells <- nrow(presence_matrix) * ncol(presence_matrix)
+  missing_obs <- total_cells - sum(presence_matrix)
+
   stats <- list(
-    n_entities = total_entities,
+    n_entities = length(unique_groups),
     n_periods = ncol(presence_matrix),
     total_obs = sum(presence_matrix),
-    balanced_obs = nrow(presence_matrix) * ncol(presence_matrix),
-    missing_obs = nrow(presence_matrix) *
-      ncol(presence_matrix) -
-      sum(presence_matrix),
-    pct_missing = (1 -
-      sum(presence_matrix) / (nrow(presence_matrix) * ncol(presence_matrix))) *
-      100,
+    missing_obs = missing_obs,
+    pct_missing = missing_obs / total_cells * 100,
     entities_with_gaps = sum(rowSums(presence_matrix) < ncol(presence_matrix)),
-    pct_entities_with_gaps = (sum(
-      rowSums(presence_matrix) < ncol(presence_matrix)
-    ) /
-      nrow(presence_matrix)) *
-      100,
     n_patterns = length(pattern_groups)
   )
 
-  # Order time periods
+  # Order time periods numerically if possible
   if (all(grepl("^-?\\d+\\.?\\d*$", unique_times))) {
-    col_order <- order(as.numeric(unique_times))
+    time_order <- order(as.numeric(unique_times))
   } else {
-    col_order <- order(unique_times)
+    time_order <- order(unique_times)
   }
+  ordered_matrix <- pattern_matrix[, time_order, drop = FALSE]
 
-  # FIX: Ensure ordered_matrix remains a matrix
-  ordered_matrix <- pattern_matrix[, col_order, drop = FALSE]
-
-  # Set up plot parameters
+  # Set up plot
   old_mar <- par("mar")
-  on.exit(par(mar = old_mar)) # Ensure parameters are reset even on error
+  on.exit(par(mar = old_mar))
   par(mar = mar)
 
-  # Create color palette - FIXED: Reverse the colors to match correct mapping
-  # The image() function maps lowest matrix values to first color, highest to last
-  # We have matrix values: 0 = missing, 1 = present
-  # So we want: 0 -> colors[2] (missing), 1 -> colors[1] (present)
-  # Therefore we need to reverse the color vector
-  col_palette <- rev(colors) # REVERSED the colors
+  # Reverse matrix for plotting (most common pattern at top) and colors for correct mapping
+  plot_matrix <- ordered_matrix[nrow(ordered_matrix):1, , drop = FALSE]
+  col_palette <- rev(colors) # Reverse colors to match matrix values: 0=missing, 1=present
 
-  # Reverse the matrix for plotting so most common pattern is at top
-  reversed_matrix <- ordered_matrix[nrow(ordered_matrix):1, , drop = FALSE]
-
-  # Create heatmap without axis labels initially
+  # Create heatmap
   image(
-    1:ncol(reversed_matrix),
-    1:nrow(reversed_matrix),
-    t(reversed_matrix),
+    1:ncol(plot_matrix),
+    1:nrow(plot_matrix),
+    t(plot_matrix),
     col = col_palette,
     xlab = "",
     ylab = "",
@@ -243,86 +180,77 @@ plot_participation <- function(
     useRaster = TRUE
   )
 
-  # Add x-axis
+  # Add axes
   axis(
     1,
-    at = 1:ncol(reversed_matrix),
-    labels = colnames(reversed_matrix),
+    at = 1:ncol(plot_matrix),
+    labels = colnames(plot_matrix),
     las = 2,
     cex.axis = cex.axis
   )
 
-  # Add y-axis with pattern labels - use original order for labels but reversed positions
   pattern_labels <- sprintf(
     "Pattern %d (n=%d, %.1f%%)",
-    seq_len(nrow(ordered_matrix)),
+    seq_along(pattern_counts),
     pattern_counts,
     pattern_pcts
   )
-
   axis(
     2,
-    at = 1:nrow(reversed_matrix),
-    labels = pattern_labels[nrow(reversed_matrix):1], # Reverse labels to match reversed matrix
+    at = 1:nrow(plot_matrix),
+    labels = pattern_labels[nrow(plot_matrix):1],
     las = 1,
     cex.axis = cex.pattern
   )
 
-  # Add x-axis label
   title(xlab = xlab, cex.lab = cex.lab, line = 3.5)
 
   # Add grid
-  abline(h = 1:nrow(reversed_matrix) - 0.5, col = "gray80", lty = 3)
-  abline(v = 1:ncol(reversed_matrix) - 0.5, col = "gray80", lty = 3)
+  abline(h = 1:nrow(plot_matrix) - 0.5, col = "gray80", lty = 3)
+  abline(v = 1:ncol(plot_matrix) - 0.5, col = "gray80", lty = 3)
 
-  # Add summary statistics if requested
+  # Add statistics if requested
   if (show_stats) {
-    stats_text <- c(
-      sprintf("Entities: %d", stats$n_entities),
-      sprintf("Time periods: %d", stats$n_periods),
-      sprintf("Observations: %d", stats$total_obs),
-      sprintf("Missing: %d (%.1f%%)", stats$missing_obs, stats$pct_missing),
-      sprintf("Patterns: %d", stats$n_patterns)
+    stats_text <- sprintf(
+      "Entities: %d | Time periods: %d | Observations: %d | Missing: %d (%.1f%%) | Patterns: %d",
+      stats$n_entities,
+      stats$n_periods,
+      stats$total_obs,
+      stats$missing_obs,
+      stats$pct_missing,
+      stats$n_patterns
     )
-
-    mtext(
-      paste(stats_text, collapse = " | "),
-      side = 3,
-      line = 0.5,
-      cex = 0.7 * cex.lab
-    )
+    mtext(stats_text, side = 3, line = 0.5, cex = 0.7 * cex.lab)
   }
 
-  # Add horizontal legend at the bottom - FIXED: Use original color order
-  # Since we reversed the colors in the palette, we use the original order for legend
+  # Add legend at bottom
   legend(
-    x = "bottom",
+    "bottom",
     legend = c("Present", "Missing"),
-    fill = colors, # Use original color order: Present = colors[1], Missing = colors[2]
+    fill = colors,
     bty = "n",
     cex = 0.8,
     title = "Observation Status:",
     horiz = TRUE,
-    inset = c(0, -0.25), # Position below the x-axis label
-    xpd = TRUE, # Allow plotting outside plot area
+    inset = c(0, -0.25),
+    xpd = TRUE,
     title.adj = 0
   )
 
-  # Return invisible results with detailed pattern information
+  # Return results
   invisible(list(
     presence_matrix = presence_matrix,
     pattern_matrix = ordered_matrix,
     pattern_groups = pattern_groups,
     pattern_stats = data.frame(
-      pattern_id = seq_len(length(pattern_counts)),
+      pattern_id = seq_along(pattern_counts),
       pattern_string = names(pattern_groups),
       n_entities = pattern_counts,
       percent_entities = pattern_pcts,
       entities = I(pattern_groups)
     ),
     statistics = stats,
-    group_var = group_name,
-    time_var = time_name,
-    color_mapping = c("1" = colors[1], "0" = colors[2]) # Document the color mapping
+    group_var = group,
+    time_var = time
   ))
 }
