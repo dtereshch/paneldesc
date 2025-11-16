@@ -16,7 +16,7 @@ plot_participation(
   cex.axis = 0.8,
   cex.lab = 1,
   cex.pattern = 0.7,
-  mar = c(5, 8, 4, 2) + 0.1
+  mar = c(8, 8, 4, 2) + 0.1
 )
 }
 \arguments{
@@ -43,7 +43,7 @@ plot_participation(
 
 \item{cex.pattern}{Pattern label text size (default: 0.7)}
 
-\item{mar}{Plot margins (default: c(5, 8, 4, 2) + 0.1)  # Reduced top margin for legend}
+\item{mar}{Plot margins (default: c(8, 8, 4, 2) + 0.1)  # Increased bottom margin for legend}
 }
 \value{
 Invisible list containing the cross-tabulation matrix and summary statistics

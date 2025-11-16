@@ -15,7 +15,7 @@
 #' @param cex.axis Axis text size (default: 0.8)
 #' @param cex.lab Label text size (default: 1)
 #' @param cex.pattern Pattern label text size (default: 0.7)
-#' @param mar Plot margins (default: c(5, 8, 4, 2) + 0.1)  # Reduced top margin for legend
+#' @param mar Plot margins (default: c(8, 8, 4, 2) + 0.1)  # Increased bottom margin for legend
 #'
 #' @return Invisible list containing the cross-tabulation matrix and summary statistics
 #'
@@ -45,7 +45,7 @@ plot_participation <- function(
   cex.axis = 0.8,
   cex.lab = 1,
   cex.pattern = 0.7,
-  mar = c(5, 8, 4, 2) + 0.1 # Reduced top margin to make space for bottom legend
+  mar = c(8, 8, 4, 2) + 0.1 # Increased bottom margin for legend
 ) {
   # Input validation
   if (missing(data)) {
@@ -219,11 +219,12 @@ plot_participation <- function(
   on.exit(par(mar = old_mar)) # Ensure parameters are reset even on error
   par(mar = mar)
 
-  # Create color palette - CRITICAL FIX: Ensure correct mapping
-  # The image() function maps the lowest value to the first color and highest to the last
-  # Since we have 0 (missing) and 1 (present), we need:
-  # 0 -> colors[2] (missing), 1 -> colors[1] (present)
-  col_palette <- colors
+  # Create color palette - FIXED: Reverse the colors to match correct mapping
+  # The image() function maps lowest matrix values to first color, highest to last
+  # We have matrix values: 0 = missing, 1 = present
+  # So we want: 0 -> colors[2] (missing), 1 -> colors[1] (present)
+  # Therefore we need to reverse the color vector
+  col_palette <- rev(colors) # REVERSED the colors
 
   # Reverse the matrix for plotting so most common pattern is at top
   reversed_matrix <- ordered_matrix[nrow(ordered_matrix):1, , drop = FALSE]
@@ -239,7 +240,6 @@ plot_participation <- function(
     main = main,
     axes = FALSE,
     cex.lab = cex.lab,
-    breaks = c(-0.5, 0.5, 1.5), # Explicit breaks to ensure correct color mapping
     useRaster = TRUE
   )
 
@@ -268,26 +268,12 @@ plot_participation <- function(
     cex.axis = cex.pattern
   )
 
-  # Add x-axis label only (no y-axis label)
+  # Add x-axis label
   title(xlab = xlab, cex.lab = cex.lab, line = 3.5)
 
   # Add grid
   abline(h = 1:nrow(reversed_matrix) - 0.5, col = "gray80", lty = 3)
   abline(v = 1:ncol(reversed_matrix) - 0.5, col = "gray80", lty = 3)
-
-  # Add horizontal legend at the bottom - CRITICAL FIX: Ensure correct color mapping
-  # The image uses: 0 -> colors[2] (missing), 1 -> colors[1] (present)
-  legend(
-    "bottom",
-    legend = c("Present", "Missing"),
-    fill = c(colors[1], colors[2]), # Present first, then Missing
-    bty = "n",
-    cex = 0.8,
-    title = "Observation Status",
-    horiz = TRUE,
-    inset = c(0, -0.15), # Adjust position to be below the plot
-    xpd = TRUE # Allow plotting outside plot area
-  )
 
   # Add summary statistics if requested
   if (show_stats) {
@@ -306,6 +292,21 @@ plot_participation <- function(
       cex = 0.7 * cex.lab
     )
   }
+
+  # Add horizontal legend at the bottom - FIXED: Use original color order
+  # Since we reversed the colors in the palette, we use the original order for legend
+  legend(
+    x = "bottom",
+    legend = c("Present", "Missing"),
+    fill = colors, # Use original color order: Present = colors[1], Missing = colors[2]
+    bty = "n",
+    cex = 0.8,
+    title = "Observation Status:",
+    horiz = TRUE,
+    inset = c(0, -0.25), # Position below the x-axis label
+    xpd = TRUE, # Allow plotting outside plot area
+    title.adj = 0
+  )
 
   # Return invisible results with detailed pattern information
   invisible(list(
