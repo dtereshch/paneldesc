@@ -2,7 +2,6 @@
 
 export(decompose_variation)
 export(describe)
-export(describe_by)
 export(describe_participation)
 export(describe_transition)
 export(explore_incomplete)

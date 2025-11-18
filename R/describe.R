@@ -1,15 +1,20 @@
-#' Calculate Basic Descriptive Statistics
+#' Calculate Descriptive Statistics
 #'
-#' Provides comprehensive descriptive statistics for numeric variables in a data frame.
-#' Returns results in a data frame format with statistics for each variable.
-#' By default, analyzes all numeric columns when no specific variables are specified.
+#' Provides comprehensive descriptive statistics for numeric variables. Can be
+#' calculated overall or grouped by a single grouping variable. Returns results
+#' in a clean data frame format.
 #'
 #' @param data A data frame containing the variables to analyze.
-#' @param variables An optional character vector specifying which numeric variables to analyze.
-#'   If NULL (default), all numeric columns in the data frame will be used.
+#' @param variables A character vector specifying which numeric variables to analyze.
+#'        If not specified, all numeric variables in the data frame will be used.
+#' @param group An optional character string specifying the grouping variable.
+#'        If not provided, overall statistics will be returned.
+#' @param digits Integer specifying the number of decimal places for rounding
+#'        statistics (default = 3).
 #'
-#' @return A data frame with one row per variable and the following columns:
-#'   \item{variable}{The name of the variable}
+#' @return A data frame with the following columns:
+#'   \item{group}{The grouping variable (or "Overall" if no group specified)}
+#'   \item{variable}{The name of the numeric variable}
 #'   \item{n}{Number of non-NA observations}
 #'   \item{mean}{Arithmetic mean}
 #'   \item{median}{Median value}
@@ -20,45 +25,74 @@
 #' @examples
 #' data(production)
 #'
-#' # Using default - analyze all numeric variables
+#' # Overall statistics (no grouping)
 #' describe(production)
-#'
-#' # Specify single numeric variable
 #' describe(production, variables = "sales")
-#'
-#' # Specify group of numeric variables
 #' describe(production, variables = c("sales", "capital", "labor"))
 #'
+#' # Grouped statistics
+#' describe(production, group = "year")
+#' describe(production, variables = "sales", group = "year")
+#' describe(production, variables = c("sales", "capital", "labor"), group = "firm")
+#'
+#' # Custom rounding
+#' describe(production, digits = 2)
+#' describe(production, group = "year", digits = 4)
+#'
 #' @export
-describe <- function(data, variables = NULL) {
+describe <- function(data, variables, group, digits = 3) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data frame")
   }
 
-  # If variables is NULL, use all numeric columns
-  if (is.null(variables)) {
-    numeric_cols <- sapply(data, is.numeric)
-    if (sum(numeric_cols) == 0) {
-      stop("No numeric columns found in the data frame")
+  # Validate digits
+  if (!is.numeric(digits) || length(digits) != 1 || digits < 0) {
+    stop("'digits' must be a single non-negative integer")
+  }
+
+  # If variables not specified, use all numeric variables excluding group variable if provided
+  if (missing(variables)) {
+    numeric_vars <- sapply(data, is.numeric)
+    variables <- names(data)[numeric_vars]
+    if (!missing(group)) {
+      variables <- variables[variables != group] # Exclude group variable
     }
-    variables <- names(data)[numeric_cols]
-  } else {
-    # Validate specified variables
-    missing_vars <- variables[!variables %in% names(data)]
-    if (length(missing_vars) > 0) {
-      stop(
-        "The following variables were not found in the data frame: ",
-        paste(missing_vars, collapse = ", ")
-      )
+  }
+
+  # Validate variables
+  if (length(variables) == 0) {
+    stop("No numeric variables found to analyze")
+  }
+
+  missing_vars <- variables[!variables %in% names(data)]
+  if (length(missing_vars) > 0) {
+    stop(
+      "The following variables were not found in the data frame: ",
+      paste(missing_vars, collapse = ", ")
+    )
+  }
+
+  # Check if specified columns are numeric
+  non_numeric_vars <- variables[!sapply(data[variables], is.numeric)]
+  if (length(non_numeric_vars) > 0) {
+    stop(
+      "The following variables are not numeric: ",
+      paste(non_numeric_vars, collapse = ", ")
+    )
+  }
+
+  # Validate group if provided
+  if (!missing(group)) {
+    if (length(group) > 1) {
+      stop("Only one grouping variable is supported")
     }
 
-    # Check if specified columns are numeric
-    non_numeric_vars <- variables[!sapply(data[variables], is.numeric)]
-    if (length(non_numeric_vars) > 0) {
+    missing_groups <- group[!group %in% names(data)]
+    if (length(missing_groups) > 0) {
       stop(
-        "The following variables are not numeric: ",
-        paste(non_numeric_vars, collapse = ", ")
+        "The following grouping variable was not found in the data frame: ",
+        paste(missing_groups, collapse = ", ")
       )
     }
   }
@@ -68,36 +102,105 @@ describe <- function(data, variables = NULL) {
     sum(!is.na(x))
   }
 
-  # Calculate statistics for each variable
-  results <- lapply(variables, function(var) {
-    x <- data[[var]]
+  # Helper function to round numeric values
+  round_values <- function(x) {
+    if (is.numeric(x)) {
+      round(x, digits = digits)
+    } else {
+      x
+    }
+  }
 
-    # Handle case where all values are NA
-    if (all(is.na(x))) {
-      return(data.frame(
-        variable = var,
-        n = 0,
-        mean = NA_real_,
-        median = NA_real_,
-        sd = NA_real_,
-        min = NA_real_,
-        max = NA_real_
-      ))
+  # Calculate statistics without grouping
+  if (missing(group)) {
+    results <- lapply(variables, function(var) {
+      x <- data[[var]]
+
+      # Handle case where all values are NA
+      if (all(is.na(x))) {
+        stats_row <- data.frame(
+          n = 0,
+          mean = NA_real_,
+          median = NA_real_,
+          sd = NA_real_,
+          min = NA_real_,
+          max = NA_real_
+        )
+      } else {
+        stats_row <- data.frame(
+          n = count_non_na(x),
+          mean = mean(x, na.rm = TRUE),
+          median = median(x, na.rm = TRUE),
+          sd = stats::sd(x, na.rm = TRUE),
+          min = min(x, na.rm = TRUE),
+          max = max(x, na.rm = TRUE)
+        )
+      }
+
+      # Round numeric statistics
+      stats_row[] <- lapply(stats_row, round_values)
+
+      # Add group information and variable name
+      data.frame(group = "Overall", variable = var, stats_row)
+    })
+
+    result_df <- do.call(rbind, results)
+  } else {
+    # Calculate statistics with grouping
+    group_combinations <- unique(data[[group]])
+    group_combinations <- sort(group_combinations[!is.na(group_combinations)])
+
+    results <- list()
+
+    for (i in seq_along(group_combinations)) {
+      current_group <- group_combinations[i]
+
+      # Create subset for current group
+      group_subset <- data[
+        data[[group]] == current_group & !is.na(data[[group]]),
+      ]
+
+      # Calculate statistics for each variable in current group
+      group_results <- lapply(variables, function(var) {
+        x <- group_subset[[var]]
+
+        # Handle case where all values are NA
+        if (all(is.na(x))) {
+          stats_row <- data.frame(
+            n = 0,
+            mean = NA_real_,
+            median = NA_real_,
+            sd = NA_real_,
+            min = NA_real_,
+            max = NA_real_
+          )
+        } else {
+          stats_row <- data.frame(
+            n = count_non_na(x),
+            mean = mean(x, na.rm = TRUE),
+            median = median(x, na.rm = TRUE),
+            sd = stats::sd(x, na.rm = TRUE),
+            min = min(x, na.rm = TRUE),
+            max = max(x, na.rm = TRUE)
+          )
+        }
+
+        # Round numeric statistics
+        stats_row[] <- lapply(stats_row, round_values)
+
+        # Add group information and variable name
+        data.frame(
+          group = as.character(current_group),
+          variable = var,
+          stats_row
+        )
+      })
+
+      results <- c(results, group_results)
     }
 
-    data.frame(
-      variable = var,
-      n = count_non_na(x),
-      mean = mean(x, na.rm = TRUE),
-      median = median(x, na.rm = TRUE),
-      sd = stats::sd(x, na.rm = TRUE),
-      min = min(x, na.rm = TRUE),
-      max = max(x, na.rm = TRUE)
-    )
-  })
-
-  # Combine all results into a single data frame
-  result_df <- do.call(rbind, results)
+    result_df <- do.call(rbind, results)
+  }
 
   # Reset row names
   rownames(result_df) <- NULL

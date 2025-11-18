@@ -2,19 +2,26 @@
 % Please edit documentation in R/describe.R
 \name{describe}
 \alias{describe}
-\title{Calculate Basic Descriptive Statistics}
+\title{Calculate Descriptive Statistics}
 \usage{
-describe(data, variables = NULL)
+describe(data, variables, group, digits = 3)
 }
 \arguments{
 \item{data}{A data frame containing the variables to analyze.}
 
-\item{variables}{An optional character vector specifying which numeric variables to analyze.
-If NULL (default), all numeric columns in the data frame will be used.}
+\item{variables}{A character vector specifying which numeric variables to analyze.
+If not specified, all numeric variables in the data frame will be used.}
+
+\item{group}{An optional character string specifying the grouping variable.
+If not provided, overall statistics will be returned.}
+
+\item{digits}{Integer specifying the number of decimal places for rounding
+statistics (default = 3).}
 }
 \value{
-A data frame with one row per variable and the following columns:
-  \item{variable}{The name of the variable}
+A data frame with the following columns:
+  \item{group}{The grouping variable (or "Overall" if no group specified)}
+  \item{variable}{The name of the numeric variable}
   \item{n}{Number of non-NA observations}
   \item{mean}{Arithmetic mean}
   \item{median}{Median value}
@@ -23,20 +30,25 @@ A data frame with one row per variable and the following columns:
   \item{max}{Maximum value}
 }
 \description{
-Provides comprehensive descriptive statistics for numeric variables in a data frame.
-Returns results in a data frame format with statistics for each variable.
-By default, analyzes all numeric columns when no specific variables are specified.
+Provides comprehensive descriptive statistics for numeric variables. Can be
+calculated overall or grouped by a single grouping variable. Returns results
+in a clean data frame format.
 }
 \examples{
 data(production)
 
-# Using default - analyze all numeric variables
+# Overall statistics (no grouping)
 describe(production)
-
-# Specify single numeric variable
 describe(production, variables = "sales")
-
-# Specify group of numeric variables
 describe(production, variables = c("sales", "capital", "labor"))
+
+# Grouped statistics
+describe(production, group = "year")
+describe(production, variables = "sales", group = "year")
+describe(production, variables = c("sales", "capital", "labor"), group = "firm")
+
+# Custom rounding
+describe(production, digits = 2)
+describe(production, group = "year", digits = 4)
 
 }
