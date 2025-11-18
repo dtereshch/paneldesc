@@ -4,7 +4,7 @@
 \alias{decompose_variation}
 \title{Decompose Variation in Panel Data}
 \usage{
-decompose_variation(data, variables = NULL, group = NULL)
+decompose_variation(data, variables = NULL, group = NULL, detailed = TRUE)
 }
 \arguments{
 \item{data}{A data frame containing the panel data.}
@@ -13,17 +13,26 @@ decompose_variation(data, variables = NULL, group = NULL)
 If NULL (default), all numeric variables in the dataset will be used.}
 
 \item{group}{A character string specifying the group ID variable (e.g., individual, firm, country).}
+
+\item{detailed}{Logical indicating whether to return detailed Stata-like output (TRUE) or
+simplified output with only key statistics (FALSE). Default is TRUE.}
 }
 \value{
-A data frame with the following columns for each variable:
+If detailed = TRUE, returns a data frame with the following columns for each variable:
+  \item{variable}{The name of the variable}
+  \item{decomposition}{Type of decomposition: overall, between, or within}
+  \item{mean}{Mean value (only for overall decomposition)}
+  \item{sd}{Standard deviation}
+  \item{min}{Minimum value}
+  \item{max}{Maximum value}
+  \item{n}{Number of observations or groups}
+
+  If detailed = FALSE, returns a simplified data frame with columns:
   \item{variable}{The name of the variable}
   \item{mean}{Overall mean}
   \item{sd_overall}{Overall standard deviation}
   \item{sd_between}{Between-group standard deviation}
   \item{sd_within}{Within-group standard deviation}
-  \item{min}{Minimum value}
-  \item{max}{Maximum value}
-  \item{obs}{Number of observations}
 }
 \description{
 Inspired by Stata's xtsum command, this function calculates descriptive statistics
@@ -31,16 +40,27 @@ for panel data and decomposes variance into between and within components.
 Provides insights into variation across groups and over time.
 }
 \examples{
-data(production)
+# Create example panel data
+set.seed(123)
+production <- data.frame(
+  firm = rep(1:30, each = 5),
+  year = rep(2001:2005, 30),
+  sales = rnorm(150, 70, 50),
+  capital = rnorm(150, 30, 30),
+  labor = rnorm(150, 80, 70)
+)
 
-# Using default - analyze all numeric variables
+# Using default detailed = TRUE (Stata-like output)
 decompose_variation(production, group = "firm")
 
-# Specify single numeric variable
-decompose_variation(production, variables = "sales", group = "firm")
+# Simplified output with detailed = FALSE
+decompose_variation(production, variables = "sales", group = "firm", detailed = FALSE)
 
-# Specify group of numeric variables
-decompose_variation(production, variables = c("sales", "capital", "labor"), group = "firm")
+# Specify group of numeric variables with simplified output
+decompose_variation(production,
+                   variables = c("sales", "capital"),
+                   group = "firm",
+                   detailed = FALSE)
 
 }
 \references{

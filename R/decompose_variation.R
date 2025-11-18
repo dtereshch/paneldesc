@@ -8,35 +8,59 @@
 #' @param variables A character vector specifying which numeric variables to analyze.
 #'   If NULL (default), all numeric variables in the dataset will be used.
 #' @param group A character string specifying the group ID variable (e.g., individual, firm, country).
+#' @param detailed Logical indicating whether to return detailed Stata-like output (TRUE) or
+#'   simplified output with only key statistics (FALSE). Default is TRUE.
 #'
-#' @return A data frame with the following columns for each variable:
+#' @return If detailed = TRUE, returns a data frame with the following columns for each variable:
+#'   \item{variable}{The name of the variable}
+#'   \item{decomposition}{Type of decomposition: overall, between, or within}
+#'   \item{mean}{Mean value (only for overall decomposition)}
+#'   \item{sd}{Standard deviation}
+#'   \item{min}{Minimum value}
+#'   \item{max}{Maximum value}
+#'   \item{n}{Number of observations or groups}
+#'
+#'   If detailed = FALSE, returns a simplified data frame with columns:
 #'   \item{variable}{The name of the variable}
 #'   \item{mean}{Overall mean}
 #'   \item{sd_overall}{Overall standard deviation}
 #'   \item{sd_between}{Between-group standard deviation}
 #'   \item{sd_within}{Within-group standard deviation}
-#'   \item{min}{Minimum value}
-#'   \item{max}{Maximum value}
-#'   \item{obs}{Number of observations}
 #'
 #' @references
 #' Based on Stata's xtsum command and corresponding discussion at
 #' https://stackoverflow.com/questions/49282083/xtsum-command-for-r
 #'
 #' @examples
-#' data(production)
+#' # Create example panel data
+#' set.seed(123)
+#' production <- data.frame(
+#'   firm = rep(1:30, each = 5),
+#'   year = rep(2001:2005, 30),
+#'   sales = rnorm(150, 70, 50),
+#'   capital = rnorm(150, 30, 30),
+#'   labor = rnorm(150, 80, 70)
+#' )
 #'
-#' # Using default - analyze all numeric variables
+#' # Using default detailed = TRUE (Stata-like output)
 #' decompose_variation(production, group = "firm")
 #'
-#' # Specify single numeric variable
-#' decompose_variation(production, variables = "sales", group = "firm")
+#' # Simplified output with detailed = FALSE
+#' decompose_variation(production, variables = "sales", group = "firm", detailed = FALSE)
 #'
-#' # Specify group of numeric variables
-#' decompose_variation(production, variables = c("sales", "capital", "labor"), group = "firm")
+#' # Specify group of numeric variables with simplified output
+#' decompose_variation(production,
+#'                    variables = c("sales", "capital"),
+#'                    group = "firm",
+#'                    detailed = FALSE)
 #'
 #' @export
-decompose_variation <- function(data, variables = NULL, group = NULL) {
+decompose_variation <- function(
+  data,
+  variables = NULL,
+  group = NULL,
+  detailed = TRUE
+) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data frame")
@@ -121,22 +145,32 @@ decompose_variation <- function(data, variables = NULL, group = NULL) {
   }
 
   # Helper function to calculate panel statistics for one variable
-  decompose_variation_1 <- function(data, varname, group) {
+  decompose_variation_1 <- function(data, varname, group, detailed_output) {
     # Remove rows with NA in the variable or group
     complete_cases <- complete.cases(data[[varname]], data[[group]])
     df <- data[complete_cases, , drop = FALSE]
 
     if (nrow(df) == 0) {
-      return(data.frame(
-        variable = varname,
-        mean = NA_real_,
-        sd_overall = NA_real_,
-        sd_between = NA_real_,
-        sd_within = NA_real_,
-        min = NA_real_,
-        max = NA_real_,
-        obs = 0
-      ))
+      if (detailed_output) {
+        return(data.frame(
+          variable = character(),
+          decomposition = character(),
+          mean = numeric(),
+          sd = numeric(),
+          min = numeric(),
+          max = numeric(),
+          n = numeric(),
+          stringsAsFactors = FALSE
+        ))
+      } else {
+        return(data.frame(
+          variable = varname,
+          mean = NA_real_,
+          sd_overall = NA_real_,
+          sd_between = NA_real_,
+          sd_within = NA_real_
+        ))
+      }
     }
 
     # Convert group to character for consistent handling
@@ -153,27 +187,50 @@ decompose_variation <- function(data, variables = NULL, group = NULL) {
     # Calculate between variance (variation in group means)
     group_means <- tapply(x, group_vec, mean, na.rm = TRUE)
     between_sd <- sd(group_means, na.rm = TRUE)
+    between_min <- min(group_means, na.rm = TRUE)
+    between_max <- max(group_means, na.rm = TRUE)
+    n_groups_var <- length(group_means)
 
     # Calculate within variance (variation around group means)
     # Match group means to original data using character representation
     group_means_expanded <- group_means[match(group_vec, names(group_means))]
     within_sd <- sd(x - group_means_expanded, na.rm = TRUE)
+    within_min <- min(x - group_means_expanded, na.rm = TRUE)
+    within_max <- max(x - group_means_expanded, na.rm = TRUE)
 
-    data.frame(
-      variable = varname,
-      mean = overall_mean,
-      sd_overall = overall_sd,
-      sd_between = between_sd,
-      sd_within = within_sd,
-      min = min_val,
-      max = max_val,
-      obs = n_obs
-    )
+    # Calculate average observations per group
+    obs_per_group <- table(group_vec)
+    avg_obs_per_group <- mean(obs_per_group, na.rm = TRUE)
+
+    if (detailed_output) {
+      # Create Stata-like output with overall, between, and within rows
+      result <- data.frame(
+        variable = c(varname, varname, varname),
+        decomposition = c("overall", "between", "within"),
+        mean = c(overall_mean, NA, NA),
+        sd = c(overall_sd, between_sd, within_sd),
+        min = c(min_val, between_min, within_min),
+        max = c(max_val, between_max, within_max),
+        n = c(n_obs, n_groups_var, avg_obs_per_group),
+        stringsAsFactors = FALSE
+      )
+    } else {
+      # Simplified output with one row per variable
+      result <- data.frame(
+        variable = varname,
+        mean = overall_mean,
+        sd_overall = overall_sd,
+        sd_between = between_sd,
+        sd_within = within_sd
+      )
+    }
+
+    return(result)
   }
 
   # Calculate statistics for each variable
   results <- lapply(variables, function(varname) {
-    decompose_variation_1(data_df, varname, group)
+    decompose_variation_1(data_df, varname, group, detailed)
   })
 
   # Combine all results
@@ -183,6 +240,7 @@ decompose_variation <- function(data, variables = NULL, group = NULL) {
   # Add data source information as attribute
   attr(result_df, "group_var") <- group
   attr(result_df, "n_groups") <- n_groups
+  attr(result_df, "detailed") <- detailed
 
   return(result_df)
 }
