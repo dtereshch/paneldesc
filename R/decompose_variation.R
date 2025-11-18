@@ -4,10 +4,11 @@
 #' for panel data and decomposes variance into between and within components.
 #' Provides insights into variation across groups and over time.
 #'
-#' @param data A data frame containing the panel data.
+#' @param data A data frame, plm::pdata.frame, or fixest::panel object containing the panel data.
 #' @param variables A character vector specifying which numeric variables to analyze.
 #'   If NULL (default), all numeric variables in the dataset will be used.
 #' @param group A character string specifying the group ID variable (e.g., individual, firm, country).
+#'   Required for regular data frames, but automatically extracted for pdata.frame and fixest_panel objects.
 #' @param detailed Logical indicating whether to return detailed Stata-like output (TRUE) or
 #'   simplified output with only key statistics (FALSE). Default is TRUE.
 #' @param digits Integer indicating the number of decimal places to round statistics.
@@ -36,8 +37,20 @@
 #' @examples
 #' data(production)
 #'
-#' # Using default detailed = TRUE (Stata-like output) with default rounding
+#' # 1. Regular dataframe with explicit group parameter
 #' decompose_variation(production, group = "firm")
+#'
+#' # 2. Using plm::pdata.frame (automatic group extraction)
+#' if (requireNamespace("plm", quietly = TRUE)) {
+#'   pdata <- plm::pdata.frame(production, index = c("firm", "year"))
+#'   decompose_variation(pdata, variables = c("sales", "capital"))
+#' }
+#'
+#' # 3. Using fixest::panel (automatic group extraction)
+#' if (requireNamespace("fixest", quietly = TRUE)) {
+#'   fdata <- fixest::panel(production, ~ firm + year)
+#'   decompose_variation(fdata, variables = "sales", detailed = FALSE)
+#' }
 #'
 #' # Simplified output with custom rounding to 2 decimal places
 #' decompose_variation(production, variables = "sales", group = "firm",
@@ -57,9 +70,13 @@ decompose_variation <- function(
   detailed = TRUE,
   digits = 3
 ) {
-  # Input validation
-  if (!is.data.frame(data)) {
-    stop("'data' must be a data frame")
+  # Input validation for data type
+  if (
+    !is.data.frame(data) &&
+      !inherits(data, "pdata.frame") &&
+      !inherits(data, "fixest_panel")
+  ) {
+    stop("'data' must be a data frame, pdata.frame, or fixest_panel object")
   }
 
   # Validate digits parameter
@@ -70,21 +87,119 @@ decompose_variation <- function(
     stop("'digits' must be a non-negative integer or NA for no rounding")
   }
 
-  # Convert to plain data frame to avoid any special class issues
-  data_df <- as.data.frame(data)
+  # Initialize variables for panel data handling
+  auto_group <- NULL
+  data_class <- class(data)
 
-  # Validate group parameter
-  if (
-    is.null(group) || !is.character(group) || length(group) == 0 || group == ""
-  ) {
-    stop("The 'group' parameter must be a non-empty character string")
+  # Handle different data types and extract panel structure
+  if (inherits(data, "pdata.frame")) {
+    # Handle plm pdata.frame objects
+    if (!requireNamespace("plm", quietly = TRUE)) {
+      stop(
+        "Package 'plm' is required for pdata.frame support but not installed"
+      )
+    }
+
+    tryCatch(
+      {
+        panel_index <- plm::index(data)
+        if (length(panel_index) >= 1) {
+          auto_group <- as.character(panel_index[[1]])
+          message(
+            "Automatically extracted group variable from pdata.frame: ",
+            auto_group
+          )
+        } else {
+          stop("pdata.frame does not contain valid panel index information")
+        }
+      },
+      error = function(e) {
+        stop("Failed to extract panel indices from pdata.frame: ", e$message)
+      }
+    )
+  } else if (inherits(data, "fixest_panel")) {
+    # Handle fixest panel objects
+    if (!requireNamespace("fixest", quietly = TRUE)) {
+      stop(
+        "Package 'fixest' is required for fixest_panel support but not installed"
+      )
+    }
+
+    tryCatch(
+      {
+        panel_info <- fixest::panel_info(data)
+        if (!is.null(panel_info$panel_id)) {
+          auto_group <- panel_info$panel_id
+          message("Automatically extracted group variable from fixest_panel")
+        } else {
+          stop("fixest_panel does not contain valid panel ID information")
+        }
+      },
+      error = function(e) {
+        stop(
+          "Failed to extract panel information from fixest_panel: ",
+          e$message
+        )
+      }
+    )
   }
 
+  # Handle group parameter based on data type
+  if (!is.null(auto_group)) {
+    # For panel data objects with automatic extraction
+    if (!is.null(group)) {
+      warning(
+        "Group parameter '",
+        group,
+        "' was specified but will be ignored. ",
+        "Using automatically extracted group variable from ",
+        ifelse(inherits(data, "pdata.frame"), "pdata.frame", "fixest_panel")
+      )
+    }
+    group <- auto_group
+  } else {
+    # For regular data frames
+    if (
+      is.null(group) ||
+        !is.character(group) ||
+        length(group) == 0 ||
+        group == ""
+    ) {
+      stop(
+        "The 'group' parameter must be a non-empty character string for regular data frames"
+      )
+    }
+  }
+
+  # Convert to plain data frame for processing
+  # For pdata.frame and fixest_panel, we need to preserve the original data structure
+  if (inherits(data, "pdata.frame")) {
+    # Convert pdata.frame to regular data frame while preserving the index
+    data_df <- as.data.frame(data)
+    # Add the group column from the pdata.frame index
+    panel_index <- plm::index(data)
+    if (length(panel_index) >= 1) {
+      data_df[[group]] <- as.character(panel_index[[1]])
+    }
+  } else if (inherits(data, "fixest_panel")) {
+    # Convert fixest_panel to regular data frame
+    data_df <- as.data.frame(data)
+    # Extract and add the panel ID
+    panel_info <- fixest::panel_info(data)
+    if (!is.null(panel_info$panel_id)) {
+      data_df[[group]] <- as.character(panel_info$panel_id)
+    }
+  } else {
+    # Regular data frame
+    data_df <- as.data.frame(data)
+  }
+
+  # Validate group variable exists in the processed data
   if (!group %in% names(data_df)) {
     stop(
       "Group variable '",
       group,
-      "' not found in data frame. Available variables: ",
+      "' not found in data. Available variables: ",
       paste(names(data_df), collapse = ", ")
     )
   }
@@ -99,9 +214,11 @@ decompose_variation <- function(
       variables <- variables[variables != group]
     }
 
-    # Remove other potential ID variables
-    id_like_vars <- c("id", "ID", "Id", "year", "time", "period", "date")
-    variables <- variables[!variables %in% id_like_vars]
+    # Remove other potential ID variables (only for regular data frames)
+    if (!inherits(data, "pdata.frame") && !inherits(data, "fixest_panel")) {
+      id_like_vars <- c("id", "ID", "Id", "year", "time", "period", "date")
+      variables <- variables[!variables %in% id_like_vars]
+    }
 
     if (length(variables) == 0) {
       stop("No numeric variables found in the dataset")
@@ -117,7 +234,7 @@ decompose_variation <- function(
   missing_vars <- variables[!variables %in% names(data_df)]
   if (length(missing_vars) > 0) {
     stop(
-      "The following variables were not found in the data frame: ",
+      "The following variables were not found in the data: ",
       paste(missing_vars, collapse = ", ")
     )
   }
@@ -273,6 +390,7 @@ decompose_variation <- function(
   attr(result_df, "n_groups") <- n_groups
   attr(result_df, "detailed") <- detailed
   attr(result_df, "digits") <- digits
+  attr(result_df, "data_type") <- data_class
 
   return(result_df)
 }

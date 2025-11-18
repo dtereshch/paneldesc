@@ -13,12 +13,13 @@ decompose_variation(
 )
 }
 \arguments{
-\item{data}{A data frame containing the panel data.}
+\item{data}{A data frame, plm::pdata.frame, or fixest::panel object containing the panel data.}
 
 \item{variables}{A character vector specifying which numeric variables to analyze.
 If NULL (default), all numeric variables in the dataset will be used.}
 
-\item{group}{A character string specifying the group ID variable (e.g., individual, firm, country).}
+\item{group}{A character string specifying the group ID variable (e.g., individual, firm, country).
+Required for regular data frames, but automatically extracted for pdata.frame and fixest_panel objects.}
 
 \item{detailed}{Logical indicating whether to return detailed Stata-like output (TRUE) or
 simplified output with only key statistics (FALSE). Default is TRUE.}
@@ -51,8 +52,20 @@ Provides insights into variation across groups and over time.
 \examples{
 data(production)
 
-# Using default detailed = TRUE (Stata-like output) with default rounding
+# 1. Regular dataframe with explicit group parameter
 decompose_variation(production, group = "firm")
+
+# 2. Using plm::pdata.frame (automatic group extraction)
+if (requireNamespace("plm", quietly = TRUE)) {
+  pdata <- plm::pdata.frame(production, index = c("firm", "year"))
+  decompose_variation(pdata, variables = c("sales", "capital"))
+}
+
+# 3. Using fixest::panel (automatic group extraction)
+if (requireNamespace("fixest", quietly = TRUE)) {
+  fdata <- fixest::panel(production, ~ firm + year)
+  decompose_variation(fdata, variables = "sales", detailed = FALSE)
+}
 
 # Simplified output with custom rounding to 2 decimal places
 decompose_variation(production, variables = "sales", group = "firm",
