@@ -49,22 +49,36 @@ explore_incomplete <- function(data, group, time = NULL, detailed = FALSE) {
     stop("Group variable has no observations")
   }
 
+  # Extract group variable and handle special types (like pseries from plm)
+  group_var <- data[[group]]
+
+  # Convert group variable to appropriate type for consistent handling
+  # This is the key fix - same as in find_incomplete
+  if (is.factor(group_var) || inherits(group_var, "pseries")) {
+    group_var <- as.character(group_var)
+  }
+
   # Check panel balance if time variable is provided
   if (!is.null(time)) {
     if (!time %in% names(data)) {
       stop("Time variable '", time, "' not found in data")
     }
 
-    # Check if panel is unbalanced
-    # Use table with the original variables (preserving types)
-    time_counts <- table(data[[group]], data[[time]])
-    if (!all(time_counts == 1)) {
+    # Extract time variable and handle special types
+    time_var <- data[[time]]
+    if (is.factor(time_var) || inherits(time_var, "pseries")) {
+      time_var <- as.character(time_var)
+    }
+
+    # Check if panel is unbalanced using the converted variables
+    time_counts <- tapply(time_var, group_var, function(x) length(unique(x)))
+    if (length(unique(time_counts)) > 1) {
       warning("The panel is unbalanced.")
     }
   }
 
-  # Get unique groups while preserving original type and order
-  unique_groups <- unique(data[[group]])
+  # Get unique groups using the converted group variable
+  unique_groups <- unique(group_var)
 
   # Get variable names excluding group and time variables
   exclude_vars <- group
@@ -77,7 +91,7 @@ explore_incomplete <- function(data, group, time = NULL, detailed = FALSE) {
     stop("No variables to analyze (only group and time variables found)")
   }
 
-  # Initialize base results with original group type
+  # Initialize base results
   result <- data.frame(
     group = unique_groups,
     n_vars_with_na = 0,
@@ -97,8 +111,9 @@ explore_incomplete <- function(data, group, time = NULL, detailed = FALSE) {
   for (i in seq_along(unique_groups)) {
     current_group <- unique_groups[i]
 
-    # Use logical indexing that preserves data types
-    group_indices <- data[[group]] == current_group
+    # Use logical indexing with the converted group variable
+    # This avoids the "comparison of these types is not implemented" error
+    group_indices <- group_var == current_group
     group_data <- data[group_indices, vars, drop = FALSE]
 
     # Count variables with at least one NA
@@ -135,6 +150,21 @@ explore_incomplete <- function(data, group, time = NULL, detailed = FALSE) {
 
   # Reset row names
   rownames(result) <- NULL
+
+  # Convert back to original type if possible (same as find_incomplete)
+  original_type <- class(data[[group]])
+  if ("numeric" %in% original_type || "integer" %in% original_type) {
+    # Handle numeric conversion carefully to avoid warnings
+    numeric_groups <- suppressWarnings(as.numeric(result[[group]]))
+    if (!any(is.na(numeric_groups))) {
+      result[[group]] <- numeric_groups
+    }
+  } else if ("factor" %in% original_type) {
+    result[[group]] <- factor(
+      result[[group]],
+      levels = levels(data[[group]])
+    )
+  }
 
   return(result)
 }
