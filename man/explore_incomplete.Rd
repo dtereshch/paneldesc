@@ -2,40 +2,34 @@
 % Please edit documentation in R/explore_incomplete.R
 \name{explore_incomplete}
 \alias{explore_incomplete}
-\title{Explore entities with incomplete observations (missing values)}
+\title{Providing a table of entities with incomplete observations (missing values)}
 \usage{
 explore_incomplete(data, group, time = NULL, detailed = FALSE)
 }
 \arguments{
-\item{data}{The data frame or pdata.frame to analyze}
+\item{data}{The data frame}
 
-\item{group}{Character string specifying the entities' identifier (column name)}
+\item{group}{Entities' identifier}
 
-\item{time}{Character string specifying the time identifier (optional, for checking panel balance)}
+\item{time}{Time identifier (optional, for checking panel balance)}
 
 \item{detailed}{Logical indicating whether to include detailed missing counts
 for each variable (TRUE) or just summary counts (FALSE). Default is FALSE.}
 }
 \value{
-A data frame containing entities with missing values, including:
-\itemize{
-  \item The group identifier
-  \item Number of variables with at least one missing value for that entity
-  \item Total number of missing observations for that entity
-  \item (If detailed = TRUE) Additional columns with NA counts for each variable
-}
-The data frame is arranged in descending order by number of variables with
-missing values, then by total missing observations. If no incomplete entities
-are found, returns a character string message.
+A data frame containing entities with number of variables that have
+        at least one missing value for that entity, as well as total number
+        of missing observations. The data frame is arranged by number of
+        variables with missing values. If detailed = TRUE, includes additional
+        columns with NA counts for each variable.
 }
 \description{
-This function provides a detailed table of entities with incomplete observations,
-showing the number of variables with missing values and total missing observations
-for each entity. It works with both regular data frames and plm pdata.frame objects.
+Providing a table of entities with incomplete observations (missing values)
 }
 \examples{
-# Using regular data frame - summary view
 data(production)
+
+# Using regular data frame - summary view
 explore_incomplete(production, group = "firm")
 
 # Detailed view with variable-level NA counts
@@ -44,13 +38,4 @@ explore_incomplete(production, group = "firm", detailed = TRUE)
 # Check for panel balance
 explore_incomplete(production, group = "firm", time = "year")
 
-# With plm pdata.frame
-library(plm)
-pdf <- pdata.frame(production, index = c("firm", "year"))
-explore_incomplete(pdf, group = "firm", time = "year")
-
-}
-\seealso{
-\code{\link{find_incomplete}} for a simpler function that returns only
-the identifiers of incomplete entities
 }
