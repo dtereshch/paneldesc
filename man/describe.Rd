@@ -53,3 +53,6 @@ describe(production, digits = 2)
 describe(production, group = "year", digits = 4)
 
 }
+\seealso{
+[decompose_variation()]
+}

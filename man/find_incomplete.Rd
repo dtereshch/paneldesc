@@ -29,3 +29,6 @@ find_incomplete(production, group = "firm", time = "year")
 find_incomplete(production, group = "firm")
 
 }
+\seealso{
+[explore_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
+}

@@ -34,3 +34,6 @@ describe_transition(production, variable = "status", group = "firm", time = "yea
 describe_transition(production, variable = "status", group = "firm", time = "year", format = "long")
 
 }
+\seealso{
+[decompose_variation()], [explore_participation()]
+}

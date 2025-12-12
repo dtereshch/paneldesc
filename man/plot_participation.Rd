@@ -43,3 +43,6 @@ plot_participation(production, group = "firm", time = "year",
                        colors = c("blue", "red"))
 
 }
+\seealso{
+[describe_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
+}

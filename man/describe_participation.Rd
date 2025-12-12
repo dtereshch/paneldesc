@@ -26,8 +26,7 @@ A data frame with participation patterns containing:
 }
 }
 \description{
-This function replicates Stata's xtdes command, showing the participation patterns
-of entities in panel data over time.
+This function shows the table with participation patterns of entities in panel data over time.
 }
 \examples{
 # Load the production dataset
@@ -39,4 +38,7 @@ describe_participation(production, group = "firm", time = "year")
 # Show simplified version without time period columns
 describe_participation(production, group = "firm", time = "year", detailed = FALSE)
 
+}
+\seealso{
+[plot_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
 }

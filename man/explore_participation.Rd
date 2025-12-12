@@ -27,7 +27,7 @@ explore_participation(
 Invisible list containing detailed participation pattern statistics
 }
 \description{
-Provides comprehensive summary statistics and pattern analysis of panel data structure
+This function replicates Stata's xtdes command, by providing comprehensive summary statistics and pattern analysis of panel data structure
 in text format. Supports regular data frames with explicit group and time identifiers.
 }
 \examples{
@@ -43,4 +43,7 @@ explore_participation(production, group = "firm", time = "year", detailed = FALS
 # Increase maximum patterns to display
 explore_participation(production, group = "firm", time = "year", max_patterns = 15)
 
+}
+\seealso{
+[decompose_variation()], [describe_transition()], [describe_participation()], [plot_participation()]
 }

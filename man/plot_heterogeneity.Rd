@@ -51,3 +51,6 @@ plot_heterogeneity(production, variable = "sales", group = "year",
                   colors = c("gray50", "black"))
 
 }
+\seealso{
+[decompose_variation()], [plot_participation()]
+}

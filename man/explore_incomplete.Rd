@@ -2,7 +2,7 @@
 % Please edit documentation in R/explore_incomplete.R
 \name{explore_incomplete}
 \alias{explore_incomplete}
-\title{Providing a table of entities with incomplete observations (missing values)}
+\title{Providing a descriptive table of entities with incomplete observations (missing values)}
 \usage{
 explore_incomplete(data, group, time = NULL, detailed = FALSE)
 }
@@ -24,7 +24,7 @@ A data frame containing entities with number of variables that have
         columns with NA counts for each variable.
 }
 \description{
-Providing a table of entities with incomplete observations (missing values)
+Providing a descriptive table of entities with incomplete observations (missing values)
 }
 \examples{
 data(production)
@@ -38,4 +38,7 @@ explore_incomplete(production, group = "firm", detailed = TRUE)
 # Check for panel balance
 explore_incomplete(production, group = "firm", time = "year")
 
+}
+\seealso{
+[find_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
 }

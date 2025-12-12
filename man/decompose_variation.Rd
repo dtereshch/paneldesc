@@ -69,3 +69,6 @@ decompose_variation(production,
 Based on Stata's xtsum command and corresponding discussion at
 https://stackoverflow.com/questions/49282083/xtsum-command-for-r
 }
+\seealso{
+[describe()], [plot_heterogeneity()], [explore_participation()], [describe_transition()]
+}
