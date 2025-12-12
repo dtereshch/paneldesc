@@ -99,7 +99,7 @@ explore_incomplete <- function(data, group, time = NULL, detailed = FALSE) {
     current_group <- unique_groups[i]
 
     # Use logical indexing that preserves data types
-    group_indices <- as.factor(data[[group]]) == current_group
+    group_indices <- data[[group]] == current_group
     group_data <- data[group_indices, vars, drop = FALSE]
 
     # Count variables with at least one NA
