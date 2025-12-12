@@ -23,6 +23,8 @@
 #'   \item{max}{Maximum value}
 #'   When ungrouped, the group column is omitted.
 #'
+#' @seealso [decompose_variation()]
+#'
 #' @examples
 #' data(production)
 #'

@@ -13,6 +13,8 @@
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a base R plot.
 #'
+#' @seealso [decompose_variation()], [plot_participation()]
+#'
 #' @examples
 #' data(production)
 #'

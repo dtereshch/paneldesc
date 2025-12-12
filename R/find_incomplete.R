@@ -4,6 +4,9 @@
 #' @param group Entities' identifier (column name as character string)
 #' @param time Time identifier (optional, for checking panel balance)
 #' @return A vector containing entities with missing values, or a message if no incomplete entities found
+#'
+#' @seealso [explore_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
+#'
 #' @examples
 #' data(production)
 #'

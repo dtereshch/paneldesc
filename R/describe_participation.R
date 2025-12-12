@@ -1,7 +1,6 @@
 #' Describe panel data participation patterns
 #'
-#' This function replicates Stata's xtdes command, showing the participation patterns
-#' of entities in panel data over time.
+#' This function shows the table with participation patterns of entities in panel data over time.
 #'
 #' @param data A data frame with panel data structure
 #' @param group Character string specifying the entity/group variable name
@@ -16,6 +15,8 @@
 #'   \item Share: Proportion of entities with this pattern
 #'   \item Cumul.: Cumulative proportion of entities
 #' }
+#'
+#' @seealso [plot_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
 #'
 #' @examples
 #' # Load the production dataset

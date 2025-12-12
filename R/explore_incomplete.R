@@ -1,4 +1,4 @@
-#' Providing a table of entities with incomplete observations (missing values)
+#' Providing a descriptive table of entities with incomplete observations (missing values)
 #'
 #' @param data The data frame
 #' @param group Entities' identifier
@@ -10,6 +10,9 @@
 #'         of missing observations. The data frame is arranged by number of
 #'         variables with missing values. If detailed = TRUE, includes additional
 #'         columns with NA counts for each variable.
+#'
+#' @seealso [find_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
+#'
 #' @examples
 #' data(production)
 #'

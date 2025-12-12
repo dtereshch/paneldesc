@@ -11,6 +11,8 @@
 #'
 #' @return A data frame in either wide or long format containing transition probabilities
 #'
+#' @seealso [decompose_variation()], [explore_participation()]
+#'
 #' @examples
 #' data(production)
 #'

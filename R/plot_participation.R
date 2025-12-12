@@ -12,6 +12,8 @@
 #'
 #' @return A heatmap plot showing participation patterns
 #'
+#' @seealso [describe_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
+#'
 #' @examples
 #' # Load the production dataset
 #' data(production)

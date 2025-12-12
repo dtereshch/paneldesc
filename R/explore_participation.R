@@ -1,6 +1,6 @@
 #' Describes participation patterns in an unbalanced panel
 #'
-#' Provides comprehensive summary statistics and pattern analysis of panel data structure
+#' This function replicates Stata's xtdes command, by providing comprehensive summary statistics and pattern analysis of panel data structure
 #' in text format. Supports regular data frames with explicit group and time identifiers.
 #'
 #' @param data The data frame object
@@ -10,6 +10,8 @@
 #' @param max_patterns Maximum number of patterns to display in detail (default: 10)
 #'
 #' @return Invisible list containing detailed participation pattern statistics
+#'
+#' @seealso [decompose_variation()], [describe_transition()], [describe_participation()], [plot_participation()]
 #'
 #' @examples
 #' # Load the production dataset
