@@ -18,11 +18,11 @@ describe_participation(data, group = NULL, time = NULL, detailed = TRUE)
 \value{
 A data frame with participation patterns containing:
 \itemize{
-  \item Pattern: Pattern identifier (1, 2, 3, ...)
-  \item Columns for each time period showing participation (1 = present, 0 = missing)
-  \item Count: Number of entities with this pattern
-  \item Share: Proportion of entities with this pattern
-  \item Cumul.: Cumulative proportion of entities
+\item Pattern: Pattern identifier (1, 2, 3, ...)
+\item Columns for each time period showing participation (1 = present, 0 = missing)
+\item Count: Number of entities with this pattern
+\item Share: Proportion of entities with this pattern
+\item Cumul.: Cumulative proportion of entities
 }
 }
 \description{
@@ -40,5 +40,5 @@ describe_participation(production, group = "firm", time = "year", detailed = FAL
 
 }
 \seealso{
-[plot_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
+\code{\link[=plot_participation]{plot_participation()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=find_incomplete]{find_incomplete()}}, \code{\link[=explore_incomplete]{explore_incomplete()}}
 }

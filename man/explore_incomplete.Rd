@@ -18,10 +18,10 @@ for each variable (TRUE) or just summary counts (FALSE). Default is FALSE.}
 }
 \value{
 A data frame containing entities with number of variables that have
-        at least one missing value for that entity, as well as total number
-        of missing observations. The data frame is arranged by number of
-        variables with missing values. If detailed = TRUE, includes additional
-        columns with NA counts for each variable.
+at least one missing value for that entity, as well as total number
+of missing observations. The data frame is arranged by number of
+variables with missing values. If detailed = TRUE, includes additional
+columns with NA counts for each variable.
 }
 \description{
 Providing a descriptive table of entities with incomplete observations (missing values)
@@ -40,5 +40,5 @@ explore_incomplete(production, group = "firm", time = "year")
 
 }
 \seealso{
-[find_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
+\code{\link[=find_incomplete]{find_incomplete()}}, \code{\link[=describe_participation]{describe_participation()}}, \code{\link[=plot_participation]{plot_participation()}}, \code{\link[=explore_participation]{explore_participation()}}
 }

@@ -35,5 +35,5 @@ describe_transition(production, variable = "status", group = "firm", time = "yea
 
 }
 \seealso{
-[decompose_variation()], [explore_participation()]
+\code{\link[=decompose_variation]{decompose_variation()}}, \code{\link[=explore_participation]{explore_participation()}}
 }

@@ -28,20 +28,20 @@ Default is 3.}
 }
 \value{
 If detailed = TRUE, returns a data frame with the following columns for each variable:
-  \item{variable}{The name of the variable}
-  \item{decomposition}{Type of decomposition: overall, between, or within}
-  \item{mean}{Mean value (only for overall decomposition)}
-  \item{sd}{Standard deviation}
-  \item{min}{Minimum value}
-  \item{max}{Maximum value}
-  \item{n}{Number of observations or groups}
+\item{variable}{The name of the variable}
+\item{decomposition}{Type of decomposition: overall, between, or within}
+\item{mean}{Mean value (only for overall decomposition)}
+\item{sd}{Standard deviation}
+\item{min}{Minimum value}
+\item{max}{Maximum value}
+\item{n}{Number of observations or groups}
 
-  If detailed = FALSE, returns a simplified data frame with columns:
-  \item{variable}{The name of the variable}
-  \item{mean}{Overall mean}
-  \item{sd_overall}{Overall standard deviation}
-  \item{sd_between}{Between-group standard deviation}
-  \item{sd_within}{Within-group standard deviation}
+If detailed = FALSE, returns a simplified data frame with columns:
+\item{variable}{The name of the variable}
+\item{mean}{Overall mean}
+\item{sd_overall}{Overall standard deviation}
+\item{sd_between}{Between-group standard deviation}
+\item{sd_within}{Within-group standard deviation}
 }
 \description{
 Inspired by Stata's xtsum command, this function calculates descriptive statistics
@@ -70,5 +70,5 @@ Based on Stata's xtsum command and corresponding discussion at
 https://stackoverflow.com/questions/49282083/xtsum-command-for-r
 }
 \seealso{
-[describe()], [plot_heterogeneity()], [explore_participation()], [describe_transition()]
+\code{\link[=describe]{describe()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=describe_transition]{describe_transition()}}
 }

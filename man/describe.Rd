@@ -20,15 +20,15 @@ statistics (default = 3).}
 }
 \value{
 A data frame with descriptive statistics. When grouped, contains:
-  \item{group}{The grouping variable}
-  \item{variable}{The name of the numeric variable}
-  \item{n}{Number of non-NA observations}
-  \item{mean}{Arithmetic mean}
-  \item{median}{Median value}
-  \item{sd}{Standard deviation}
-  \item{min}{Minimum value}
-  \item{max}{Maximum value}
-  When ungrouped, the group column is omitted.
+\item{group}{The grouping variable}
+\item{variable}{The name of the numeric variable}
+\item{n}{Number of non-NA observations}
+\item{mean}{Arithmetic mean}
+\item{median}{Median value}
+\item{sd}{Standard deviation}
+\item{min}{Minimum value}
+\item{max}{Maximum value}
+When ungrouped, the group column is omitted.
 }
 \description{
 Provides comprehensive descriptive statistics for numeric variables. Can be
@@ -54,5 +54,5 @@ describe(production, group = "year", digits = 4)
 
 }
 \seealso{
-[decompose_variation()]
+\code{\link[=decompose_variation]{decompose_variation()}}
 }

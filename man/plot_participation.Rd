@@ -44,5 +44,5 @@ plot_participation(production, group = "firm", time = "year",
 
 }
 \seealso{
-[describe_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
+\code{\link[=describe_participation]{describe_participation()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=find_incomplete]{find_incomplete()}}, \code{\link[=explore_incomplete]{explore_incomplete()}}
 }

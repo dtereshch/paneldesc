@@ -52,5 +52,5 @@ plot_heterogeneity(production, variable = "sales", group = "year",
 
 }
 \seealso{
-[decompose_variation()], [plot_participation()]
+\code{\link[=decompose_variation]{decompose_variation()}}, \code{\link[=plot_participation]{plot_participation()}}
 }

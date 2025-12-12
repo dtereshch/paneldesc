@@ -30,5 +30,5 @@ find_incomplete(production, group = "firm")
 
 }
 \seealso{
-[explore_incomplete()], [describe_participation()], [plot_participation()], [explore_participation()]
+\code{\link[=explore_incomplete]{explore_incomplete()}}, \code{\link[=describe_participation]{describe_participation()}}, \code{\link[=plot_participation]{plot_participation()}}, \code{\link[=explore_participation]{explore_participation()}}
 }

@@ -45,5 +45,5 @@ explore_participation(production, group = "firm", time = "year", max_patterns = 
 
 }
 \seealso{
-[decompose_variation()], [describe_transition()], [describe_participation()], [plot_participation()]
+\code{\link[=decompose_variation]{decompose_variation()}}, \code{\link[=describe_transition]{describe_transition()}}, \code{\link[=describe_participation]{describe_participation()}}, \code{\link[=plot_participation]{plot_participation()}}
 }
