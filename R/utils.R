@@ -1,62 +1,3 @@
-#' Convert Input to Data Frame
-#'
-#' @description Internal helper to ensure input is a data frame.
-#' Attempts conversion with `as.data.frame()` if needed, providing
-#' clear errors on failure.
-#'
-#' @param data Input object to convert
-#' @param arg_name Argument name for error messages (default: "data")
-#' @return A data frame
-#'
-#' @details Uses `stringsAsFactors = FALSE` for conversion. Returns
-#' data frames unchanged. Handles matrices, lists, and other
-#' `as.data.frame()`-compatible objects.
-#'
-#' @keywords internal
-#' @noRd
-.check_and_convert_data_minimal <- function(data, arg_name = "data") {
-  # Null check
-  if (is.null(data)) {
-    stop("'", arg_name, "' cannot be NULL", call. = FALSE)
-  }
-
-  # Already a data.frame (includes tibbles)
-  if (is.data.frame(data)) {
-    return(data)
-  }
-
-  # Try conversion
-  converted <- try(as.data.frame(data, stringsAsFactors = FALSE), silent = TRUE)
-
-  if (inherits(converted, "try-error")) {
-    stop(
-      "'",
-      arg_name,
-      "' must be a data.frame or convertible to data.frame.\n",
-      "  Class: ",
-      paste(class(data), collapse = ", "),
-      "\n",
-      "  Error: ",
-      as.character(converted),
-      call. = FALSE
-    )
-  }
-
-  # Double-check
-  if (!is.data.frame(converted)) {
-    stop(
-      "Conversion of '",
-      arg_name,
-      "' failed to produce a data.frame.\n",
-      "  Got class: ",
-      paste(class(converted), collapse = ", "),
-      call. = FALSE
-    )
-  }
-
-  return(converted)
-}
-
 #' Validate and Convert Input to Plain Data Frame
 #'
 #' @description
@@ -78,8 +19,9 @@
 #'   error messages. Defaults to `"data"`.
 #' @param convert_special_df Should special data.frame subclasses be converted
 #'   to plain data.frames? Default TRUE.
-#' @param warn_special_df Warn when converting special data.frame subclasses?
-#'   Default TRUE.
+#' @param warn_conversion Should warnings be shown when converting
+#'   non-data.frame objects or special subclasses to plain data.frame?
+#'   Default FALSE (no warnings shown).
 #' @param strip_pseries Should pseries classes be stripped from columns?
 #'   Default TRUE. This is critical for pdata.frame objects.
 #'
@@ -98,14 +40,17 @@
 #' # Returns mtcars unchanged (already a plain data.frame)
 #' .check_and_convert_data_robust(mtcars)
 #'
-#' # Converts matrix to data.frame
+#' # Converts matrix to data.frame (no warning by default)
 #' mat <- matrix(1:6, ncol = 2)
 #' .check_and_convert_data_robust(mat)
 #'
-#' # Handles pdata.frame (strips pseries classes)
+#' # Handles pdata.frame (strips pseries classes, no warning by default)
 #' library(plm)
 #' pdata <- pdata.frame(mtcars, index = c("cyl", "gear"))
 #' .check_and_convert_data_robust(pdata)
+#'
+#' # With warnings enabled
+#' .check_and_convert_data_robust(pdata, warn_conversion = TRUE)
 #' }
 #'
 #' @keywords internal
@@ -114,7 +59,7 @@
   data,
   arg_name = "data",
   convert_special_df = TRUE,
-  warn_special_df = TRUE,
+  warn_conversion = FALSE,
   strip_pseries = TRUE
 ) {
   # Check for NULL
@@ -144,7 +89,7 @@
     }
 
     # Warn about conversion if requested
-    if (warn_special_df && !identical(orig_class, class(df))) {
+    if (warn_conversion && !identical(orig_class, class(df))) {
       warning(
         "Converted '",
         arg_name,
@@ -165,8 +110,8 @@
     current_class <- class(df)
     is_pdataframe <- any(grepl("pdata", current_class, ignore.case = TRUE))
 
-    # Warn about conversion
-    if (warn_special_df) {
+    # Warn about conversion if requested
+    if (warn_conversion) {
       if (is_pdataframe) {
         warning(
           "pdata.frame detected. Converting to plain data.frame and ",
@@ -191,7 +136,7 @@
 
   # Step 3: Strip pseries classes from columns if requested
   if (strip_pseries) {
-    df <- .strip_pseries_from_dataframe(df, warn = warn_special_df)
+    df <- .strip_pseries_from_dataframe(df, warn = warn_conversion)
   }
 
   # Step 4: Final validation
@@ -206,7 +151,8 @@
     )
   }
 
-  # Check for zero rows/columns
+  # Check for zero rows/columns - these warnings are separate and always shown
+  # as they indicate potential issues with the data
   if (nrow(df) == 0) {
     warning("'", arg_name, "' has zero rows.", call. = FALSE, immediate. = TRUE)
   }
@@ -324,17 +270,220 @@
 #'
 #' @param data Input data
 #' @param arg_name Argument name for error messages
+#' @param warn_conversion Should warnings be shown when converting?
+#'   Default FALSE (no warnings).
 #' @return Plain data.frame
 #'
 #' @keywords internal
 #' @noRd
-.safe_convert_dataframe <- function(data, arg_name = "data") {
+.safe_convert_dataframe <- function(
+  data,
+  arg_name = "data",
+  warn_conversion = FALSE
+) {
   # Alias for backward compatibility
   .check_and_convert_data_robust(
     data = data,
     arg_name = arg_name,
     convert_special_df = TRUE,
-    warn_special_df = TRUE,
+    warn_conversion = warn_conversion,
     strip_pseries = TRUE
   )
+}
+
+#' Simplified safe data frame conversion
+#'
+#' @description
+#' Simplified version with fewer parameters for common use cases.
+#' By default, does not show conversion warnings.
+#'
+#' @param data Input data
+#' @param arg_name Argument name for error messages
+#' @param warn_conversion Should warnings be shown when converting?
+#'   Default FALSE (no warnings).
+#' @return Plain data.frame
+#'
+#' @keywords internal
+#' @noRd
+.check_and_convert_data_safe <- function(
+  data,
+  arg_name = "data",
+  warn_conversion = FALSE
+) {
+  # Check for NULL
+  if (is.null(data)) {
+    stop("'", arg_name, "' cannot be NULL", call. = FALSE)
+  }
+
+  # Step 1: Ensure it's a data.frame
+  if (!is.data.frame(data)) {
+    df <- try(as.data.frame(data, stringsAsFactors = FALSE), silent = TRUE)
+    if (inherits(df, "try-error")) {
+      stop(
+        "Failed to convert '",
+        arg_name,
+        "' to data.frame.\n",
+        "  Class: ",
+        paste(class(data), collapse = ", "),
+        "\n",
+        "  Error: ",
+        as.character(df),
+        call. = FALSE
+      )
+    }
+    if (warn_conversion) {
+      warning(
+        "Converted '",
+        arg_name,
+        "' to data.frame.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  } else {
+    df <- data
+  }
+
+  # Step 2: Strip any subclasses (pdata.frame, etc.)
+  if (length(class(df)) > 1) {
+    # Check for pdata.frame specifically
+    if (any(grepl("pdata", class(df), ignore.case = TRUE)) && warn_conversion) {
+      warning(
+        "pdata.frame detected. Converting to plain data.frame.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    df <- as.data.frame(df, stringsAsFactors = FALSE)
+  }
+
+  # Step 3: Critical - strip pseries from columns
+  for (i in seq_along(df)) {
+    col_data <- df[[i]]
+    if (inherits(col_data, "pseries")) {
+      # Completely remove pseries class structure
+      df[[i]] <- .force_plain_vector(col_data)
+    }
+  }
+
+  return(df)
+}
+
+#' Force any vector to be plain (no pseries)
+#'
+#' @param x Any vector
+#' @return Plain vector without pseries class
+#'
+#' @keywords internal
+#' @noRd
+.force_plain_vector <- function(x) {
+  if (inherits(x, "pseries")) {
+    # Get the underlying data
+    result <- unclass(x)
+    # Remove all pseries-related attributes
+    attr(result, "index") <- NULL
+    # Remove pseries from class
+    if (!is.null(attr(result, "class"))) {
+      attr(result, "class") <- attr(result, "class")[
+        !grepl("pseries", attr(result, "class"))
+      ]
+      if (length(attr(result, "class")) == 0) {
+        attr(result, "class") <- NULL
+      }
+    }
+    return(result)
+  }
+  return(x)
+}
+
+#' Minimal data frame conversion (no warnings by default)
+#'
+#' @description
+#' Minimal version for quick conversion with no warnings by default.
+#'
+#' @param data Input data
+#' @param arg_name Argument name for error messages
+#' @param warn_conversion Show conversion warnings? Default FALSE.
+#' @return Plain data.frame
+#'
+#' @keywords internal
+#' @noRd
+.check_and_convert_data_minimal <- function(
+  data,
+  arg_name = "data",
+  warn_conversion = FALSE
+) {
+  # Null check
+  if (is.null(data)) {
+    stop("'", arg_name, "' cannot be NULL", call. = FALSE)
+  }
+
+  # Already a data.frame (includes tibbles)
+  if (is.data.frame(data)) {
+    # Still need to check for pseries in columns
+    data_class <- class(data)
+    if (
+      length(data_class) > 1 &&
+        any(grepl("pdata", data_class, ignore.case = TRUE))
+    ) {
+      # It's a pdata.frame - need to convert
+      if (warn_conversion) {
+        warning(
+          "pdata.frame detected. Converting to plain data.frame.",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      }
+      df <- as.data.frame(data, stringsAsFactors = FALSE)
+      # Strip pseries from columns
+      for (i in seq_along(df)) {
+        if (inherits(df[[i]], "pseries")) {
+          df[[i]] <- .force_plain_vector(df[[i]])
+        }
+      }
+      return(df)
+    }
+    return(data)
+  }
+
+  # Not a data.frame - try conversion
+  if (warn_conversion) {
+    warning(
+      "Converting '",
+      arg_name,
+      "' to data.frame.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+
+  converted <- try(as.data.frame(data, stringsAsFactors = FALSE), silent = TRUE)
+
+  if (inherits(converted, "try-error")) {
+    stop(
+      "'",
+      arg_name,
+      "' must be a data.frame or convertible to data.frame.\n",
+      "  Class: ",
+      paste(class(data), collapse = ", "),
+      "\n",
+      "  Error: ",
+      as.character(converted),
+      call. = FALSE
+    )
+  }
+
+  # Double-check
+  if (!is.data.frame(converted)) {
+    stop(
+      "Conversion of '",
+      arg_name,
+      "' failed to produce a data.frame.\n",
+      "  Got class: ",
+      paste(class(converted), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  return(converted)
 }
