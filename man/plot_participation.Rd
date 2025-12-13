@@ -8,6 +8,7 @@ plot_participation(
   data,
   group = NULL,
   time = NULL,
+  detailed = TRUE,
   colors = c("#0072B2", "#D55E00"),
   xlab = "Time Period"
 )
@@ -18,6 +19,9 @@ plot_participation(
 \item{group}{Character string specifying the entity/group variable name}
 
 \item{time}{Character string specifying the time variable name}
+
+\item{detailed}{Logical indicating whether to show all patterns (TRUE) or
+only top-10 most frequent patterns (FALSE) (default: TRUE)}
 
 \item{colors}{Vector of two colors for present and missing observations
 (default: c("#0072B2", "#D55E00") - colorblind-friendly)}
@@ -37,6 +41,10 @@ data(production)
 
 # Basic usage with all patterns shown
 plot_participation(production, group = "firm", time = "year")
+
+# Show only top-10 patterns
+plot_participation(production, group = "firm", time = "year",
+                   detailed = FALSE)
 
 # Custom colors
 plot_participation(production, group = "firm", time = "year",

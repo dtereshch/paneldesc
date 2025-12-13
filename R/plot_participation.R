@@ -6,6 +6,8 @@
 #' @param data A data frame with panel data structure
 #' @param group Character string specifying the entity/group variable name
 #' @param time Character string specifying the time variable name
+#' @param detailed Logical indicating whether to show all patterns (TRUE) or
+#'   only top-10 most frequent patterns (FALSE) (default: TRUE)
 #' @param colors Vector of two colors for present and missing observations
 #' (default: c("#0072B2", "#D55E00") - colorblind-friendly)
 #' @param xlab X-axis label (default: "Time Period")
@@ -22,6 +24,10 @@
 #' # Basic usage with all patterns shown
 #' plot_participation(production, group = "firm", time = "year")
 #'
+#' # Show only top-10 patterns
+#' plot_participation(production, group = "firm", time = "year",
+#'                    detailed = FALSE)
+#'
 #' # Custom colors
 #' plot_participation(production, group = "firm", time = "year",
 #'                        colors = c("blue", "red"))
@@ -31,6 +37,7 @@ plot_participation <- function(
   data,
   group = NULL,
   time = NULL,
+  detailed = TRUE,
   colors = c("#0072B2", "#D55E00"),
   xlab = "Time Period"
 ) {
@@ -51,6 +58,11 @@ plot_participation <- function(
 
   if (!time %in% names(data)) {
     stop("Time variable '", time, "' not found in data")
+  }
+
+  # Validate detailed argument
+  if (!is.logical(detailed) || length(detailed) != 1) {
+    stop("Argument 'detailed' must be a single logical value (TRUE or FALSE)")
   }
 
   # Identify data columns (excluding group and time)
@@ -128,6 +140,12 @@ plot_participation <- function(
   pattern_matrix <- pattern_matrix[sorted_order, ]
   counts <- counts[sorted_order]
 
+  # If detailed = FALSE, keep only top-10 patterns
+  if (!detailed && nrow(pattern_matrix) > 10) {
+    pattern_matrix <- pattern_matrix[1:10, ]
+    counts <- counts[1:10]
+  }
+
   # Reverse the matrix to put most common pattern on top
   pattern_matrix <- pattern_matrix[rev(seq_len(nrow(pattern_matrix))), ]
   counts <- counts[rev(seq_len(length(counts)))]
@@ -187,6 +205,7 @@ plot_participation <- function(
     pattern_matrix = pattern_matrix,
     time_periods = time_cols,
     pattern_labels = y_labels,
-    counts = counts
+    counts = counts,
+    detailed = detailed
   ))
 }
