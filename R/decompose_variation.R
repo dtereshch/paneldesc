@@ -48,7 +48,7 @@
 #' decompose_variation(production,
 #'                    variables = c("sales", "capital"),
 #'                    group = "firm",
-#'                    digits = NA)
+#'                    digits = 999)
 #'
 #' @export
 decompose_variation <- function(

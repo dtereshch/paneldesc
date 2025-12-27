@@ -61,7 +61,7 @@ decompose_variation(production, variables = "sales", group = "firm",
 decompose_variation(production,
                    variables = c("sales", "capital"),
                    group = "firm",
-                   digits = NA)
+                   digits = 999)
 
 }
 \references{
