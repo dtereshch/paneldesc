@@ -22,13 +22,13 @@
 #' data(production)
 #'
 #' # Analyze transitions in wide format (default)
-#' describe_transition(production, variable = "status", group = "firm", time = "year")
+#' describe_transition(production, variable = "industry", group = "firm", time = "year")
 #'
 #' # Analyze transitions in long format
-#' describe_transition(production, variable = "status", group = "firm", time = "year", format = "long")
+#' describe_transition(production, variable = "industry", group = "firm", time = "year", format = "long")
 #'
 #' # Specify number of decimal places
-#' describe_transition(production, variable = "status", group = "firm", time = "year", digits = 4)
+#' describe_transition(production, variable = "industry", group = "firm", time = "year", digits = 4)
 #'
 #' @export
 describe_transition <- function(
