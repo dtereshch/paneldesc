@@ -8,7 +8,7 @@ plot_participation(
   data,
   group = NULL,
   time = NULL,
-  detailed = TRUE,
+  max_patterns = 10,
   colors = c("#0072B2", "#D55E00"),
   xlab = "Time Period"
 )
@@ -20,8 +20,8 @@ plot_participation(
 
 \item{time}{A character string specifying the name of the time variable.}
 
-\item{detailed}{A logical flag indicating whether to show all patterns or
-only top-10 most frequent patterns. Default = TRUE.}
+\item{max_patterns}{An integer specifying the maximum number of patterns to display.
+Default = 10.}
 
 \item{colors}{A character vector of two colors for present and missing observations.
 Default = c("#0072B2", "#D55E00").}
@@ -39,16 +39,20 @@ of entities in panel data over time.
 # Load the production dataset
 data(production)
 
-# Basic usage with all patterns shown
+# Basic usage with top 10 patterns shown
 plot_participation(production, group = "firm", time = "year")
 
-# Show only top-10 patterns
+# Show only top 5 patterns
 plot_participation(production, group = "firm", time = "year",
-                   detailed = FALSE)
+                   max_patterns = 5)
+
+# Show all patterns
+plot_participation(production, group = "firm", time = "year",
+                   max_patterns = 999)
 
 # Custom colors
 plot_participation(production, group = "firm", time = "year",
-                       colors = c("blue", "red"))
+                   colors = c("blue", "red"))
 
 }
 \seealso{

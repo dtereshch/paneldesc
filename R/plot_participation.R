@@ -6,8 +6,8 @@
 #' @param data A data.frame containing panel data.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #' @param time A character string specifying the name of the time variable.
-#' @param detailed A logical flag indicating whether to show all patterns or
-#'   only top-10 most frequent patterns. Default = TRUE.
+#' @param max_patterns An integer specifying the maximum number of patterns to display.
+#'        Default = 10.
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#0072B2", "#D55E00").
 #' @param xlab A character string specifying the X-axis label. Default = "Time Period".
@@ -21,23 +21,27 @@
 #' # Load the production dataset
 #' data(production)
 #'
-#' # Basic usage with all patterns shown
+#' # Basic usage with top 10 patterns shown
 #' plot_participation(production, group = "firm", time = "year")
 #'
-#' # Show only top-10 patterns
+#' # Show only top 5 patterns
 #' plot_participation(production, group = "firm", time = "year",
-#'                    detailed = FALSE)
+#'                    max_patterns = 5)
+#'
+#' # Show all patterns
+#' plot_participation(production, group = "firm", time = "year",
+#'                    max_patterns = 999)
 #'
 #' # Custom colors
 #' plot_participation(production, group = "firm", time = "year",
-#'                        colors = c("blue", "red"))
+#'                    colors = c("blue", "red"))
 #'
 #' @export
 plot_participation <- function(
   data,
   group = NULL,
   time = NULL,
-  detailed = TRUE,
+  max_patterns = 10,
   colors = c("#0072B2", "#D55E00"),
   xlab = "Time Period"
 ) {
@@ -62,8 +66,13 @@ plot_participation <- function(
     stop('variable "', time, '" not found in data')
   }
 
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("'detailed' must be a single logical value, not ", class(detailed)[1])
+  if (
+    !is.numeric(max_patterns) || length(max_patterns) != 1 || max_patterns < 1
+  ) {
+    stop(
+      "'max_patterns' must be a single positive integer, not ",
+      class(max_patterns)[1]
+    )
   }
 
   if (!is.character(colors) || length(colors) != 2) {
@@ -93,11 +102,6 @@ plot_participation <- function(
 
   if (!time %in% names(data)) {
     stop("variable '", time, "' not found in data")
-  }
-
-  # Validate detailed argument
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("argument 'detailed' must be a single logical value")
   }
 
   # Identify data columns (excluding group and time)
@@ -175,14 +179,17 @@ plot_participation <- function(
   pattern_matrix <- pattern_matrix[sorted_order, ]
   counts <- counts[sorted_order]
 
-  # If detailed = FALSE, keep only top-10 patterns
-  if (!detailed && nrow(pattern_matrix) > 10) {
-    pattern_matrix <- pattern_matrix[1:10, ]
-    counts <- counts[1:10]
-  }
+  # Apply max_patterns limit
+  n_patterns_to_display <- min(nrow(pattern_matrix), max_patterns)
+  pattern_matrix <- pattern_matrix[1:n_patterns_to_display, , drop = FALSE]
+  counts <- counts[1:n_patterns_to_display]
 
   # Reverse the matrix to put most common pattern on top
-  pattern_matrix <- pattern_matrix[rev(seq_len(nrow(pattern_matrix))), ]
+  pattern_matrix <- pattern_matrix[
+    rev(seq_len(nrow(pattern_matrix))),
+    ,
+    drop = FALSE
+  ]
   counts <- counts[rev(seq_len(length(counts)))]
 
   # Create y-axis labels
@@ -241,6 +248,8 @@ plot_participation <- function(
     time_periods = time_cols,
     pattern_labels = y_labels,
     counts = counts,
-    detailed = detailed
+    max_patterns = max_patterns,
+    n_patterns_displayed = n_patterns_to_display,
+    total_patterns = length(pattern_counts)
   ))
 }
