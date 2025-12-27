@@ -1,21 +1,20 @@
-#' Calculate Descriptive Statistics
+#' Descriptive Statistics
 #'
-#' Provides comprehensive descriptive statistics for numeric variables. Can be
-#' calculated overall or grouped by a single grouping variable. Returns results
-#' in a clean data frame format.
+#' This function calculates comprehensive descriptive statistics for numeric variables,
+#' either overall or grouped by a single grouping variable.
 #'
-#' @param data A data frame containing the variables to analyze.
+#' @param data A data.frame containing the variables for analysis.
 #' @param variables A character vector specifying which numeric variables to analyze.
-#'        If not specified, all numeric variables in the data frame will be used.
-#' @param group An optional character string specifying the grouping variable.
+#'        If not specified, all numeric variables in the data.frame will be used.
+#' @param group A character string specifying the grouping variable name.
 #'        If not provided, overall statistics will be returned.
-#' @param detailed Logical indicating whether to return additional statistics in
+#' @param detailed A logical flag indicating whether to return additional statistics in
 #'        the style of pandas describe method. If TRUE, includes count, mean, sd,
-#'        min, p25, median, p75, and max (default = FALSE).
-#' @param digits Integer specifying the number of decimal places for rounding
-#'        statistics (default = 3).
+#'        min, p25, median, p75, and max. Default = FALSE.
+#' @param digits An integer specifying the number of decimal places for rounding
+#'        statistics. Default = 3.
 #'
-#' @return A data frame with descriptive statistics. When grouped, contains:
+#' @return A data.frame with descriptive statistics. When grouped, contains:
 #'   \item{group}{The grouping variable}
 #'   \item{variable}{The name of the numeric variable}
 #'   \item{n}{Number of non-NA observations}
@@ -56,16 +55,44 @@
 #' @export
 describe <- function(data, variables, group, detailed = FALSE, digits = 3) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop("describe: 'data' must be a data.frame, not ", class(data)[1])
+  }
+
+  if (!missing(variables) && !is.character(variables)) {
+    stop(
+      "describe: 'variables' must be a character vector, not ",
+      class(variables)[1]
+    )
+  }
+
+  if (!missing(group) && (!is.character(group) || length(group) != 1)) {
+    stop(
+      "describe: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!missing(group) && !group %in% names(data)) {
+    stop('describe: variable "', group, '" not found in data')
+  }
+
   data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Validate detailed parameter
   if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("'detailed' must be a single logical value (TRUE or FALSE)")
+    stop(
+      "describe: 'detailed' must be a single logical value, not ",
+      class(detailed)[1]
+    )
   }
 
   # Validate digits
   if (!is.numeric(digits) || length(digits) != 1 || digits < 0) {
-    stop("'digits' must be a single non-negative integer")
+    stop(
+      "describe: 'digits' must be a single non-negative integer, not ",
+      class(digits)[1]
+    )
   }
 
   # If variables not specified, use all numeric variables with message
@@ -76,7 +103,7 @@ describe <- function(data, variables, group, detailed = FALSE, digits = 3) {
 
     # If no numeric variables found, stop with error
     if (length(variables) == 0) {
-      stop("No numeric variables found in the dataset")
+      stop("describe: no numeric variables found in the dataset")
     }
 
     # Remove the group variable from variables if it's numeric
@@ -101,24 +128,26 @@ describe <- function(data, variables, group, detailed = FALSE, digits = 3) {
     variables <- variables[!variables %in% id_like_vars]
 
     if (length(variables) == 0) {
-      stop("No numeric variables remaining after removing ID-like variables")
+      stop(
+        "describe: no numeric variables remaining after removing ID-like variables"
+      )
     }
 
     message(
-      "Analyzing all numeric variable(s): ",
+      "Note: analyzing all numeric variable(s): ",
       paste(variables, collapse = ", ")
     )
   }
 
   # Validate variables
   if (length(variables) == 0) {
-    stop("No numeric variables found to analyze")
+    stop("describe: no numeric variables found to analyze")
   }
 
   missing_vars <- variables[!variables %in% names(data)]
   if (length(missing_vars) > 0) {
     stop(
-      "The following variables were not found in the data frame: ",
+      "describe: the following variables were not found in data: ",
       paste(missing_vars, collapse = ", ")
     )
   }
@@ -127,7 +156,7 @@ describe <- function(data, variables, group, detailed = FALSE, digits = 3) {
   non_numeric_vars <- variables[!sapply(data[variables], is.numeric)]
   if (length(non_numeric_vars) > 0) {
     stop(
-      "The following variables are not numeric: ",
+      "describe: the following variables are not numeric: ",
       paste(non_numeric_vars, collapse = ", ")
     )
   }
@@ -135,14 +164,15 @@ describe <- function(data, variables, group, detailed = FALSE, digits = 3) {
   # Validate group if provided
   if (!missing(group)) {
     if (length(group) > 1) {
-      stop("Only one grouping variable is supported")
+      stop("describe: only one grouping variable is supported")
     }
 
     missing_groups <- group[!group %in% names(data)]
     if (length(missing_groups) > 0) {
       stop(
-        "The following grouping variable was not found in the data frame: ",
-        paste(missing_groups, collapse = ", ")
+        'describe: variable "',
+        paste(missing_groups, collapse = ", "),
+        '" not found in data'
       )
     }
   }

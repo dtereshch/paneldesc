@@ -1,13 +1,13 @@
-#' Describe panel data participation patterns
+#' Panel Data Participation Patterns
 #'
-#' This function shows the table with participation patterns of entities in panel data over time.
+#' This function describes participation patterns of entities in panel data over time.
 #'
-#' @param data A data frame with panel data structure
-#' @param group Character string specifying the entity/group variable name
-#' @param time Character string specifying the time variable name
-#' @param detailed Logical indicating whether to return detailed patterns (default: TRUE)
+#' @param data A data.frame containing panel data.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param time A character string specifying the name of the time variable.
+#' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
 #'
-#' @return A data frame with participation patterns containing:
+#' @return A data.frame with participation patterns containing:
 #' \itemize{
 #'   \item Pattern: Pattern identifier (1, 2, 3, ...)
 #'   \item Columns for each time period showing participation (1 = present, 0 = missing)
@@ -37,29 +37,67 @@ describe_participation <- function(
   detailed = TRUE
 ) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop(
+      "describe_participation: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
+
+  if (!is.character(group) || length(group) != 1) {
+    stop(
+      "describe_participation: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!is.character(time) || length(time) != 1) {
+    stop(
+      "describe_participation: 'time' must be a single character string, not ",
+      class(time)[1]
+    )
+  }
+
+  if (!group %in% names(data)) {
+    stop('describe_participation: variable "', group, '" not found in data')
+  }
+
+  if (!time %in% names(data)) {
+    stop('describe_participation: variable "', time, '" not found in data')
+  }
+
+  if (!is.logical(detailed) || length(detailed) != 1) {
+    stop(
+      "describe_participation: 'detailed' must be a single logical value, not ",
+      class(detailed)[1]
+    )
+  }
+
   data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Check if group and time are specified for regular data frames
   if (is.null(group) || is.null(time)) {
     stop(
-      "Arguments 'group' and 'time' must be specified for regular data frames"
+      "describe_participation: arguments 'group' and 'time' must be specified"
     )
   }
 
   # Validate that group and time variables exist in data
   if (!group %in% names(data)) {
-    stop("Group variable '", group, "' not found in data")
+    stop("describe_participation: variable '", group, "' not found in data")
   }
 
   if (!time %in% names(data)) {
-    stop("Time variable '", time, "' not found in data")
+    stop("describe_participation: variable '", time, "' not found in data")
   }
 
   # Identify data columns (excluding group and time)
   data_cols <- setdiff(names(data), c(group, time))
 
   if (length(data_cols) == 0) {
-    stop("No data columns found (excluding group and time variables)")
+    stop(
+      "describe_participation: no data columns found (excluding group and time variables)"
+    )
   }
 
   # Filter data: remove rows where ALL data columns are NA

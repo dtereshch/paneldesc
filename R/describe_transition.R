@@ -1,16 +1,19 @@
-#' Explore transition probabilities for panel data
+#' Transition Probability Analysis
 #'
-#' This function replicates Stata's xttrans command, calculating transition probabilities
-#' between states of a categorical variable across time periods for panel data.
+#' This function calculates transition probabilities between states of a categorical
+#' variable across time periods for panel data.
 #'
-#' @param data A data frame containing panel data
-#' @param variable Character string specifying the factor variable to analyze transitions for
-#' @param group Character string specifying the entity/group variable (e.g., individual ID)
-#' @param time Character string specifying the time variable
-#' @param format Character string specifying the output format: "wide (default)" or "long"
-#' @param digits Integer indicating the number of decimal places to round probabilities (default = 3)
+#' @param data A data.frame containing panel data.
+#' @param variable A character string specifying the factor variable to analyze transitions for.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param time A character string specifying the name of the time variable.
+#' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
+#' @param digits An integer indicating the number of decimal places to round probabilities. Default = 3.
 #'
-#' @return A data frame in either wide or long format containing transition probabilities
+#' @return A data.frame in either wide or long format containing transition probabilities.
+#'
+#' @references
+#' For Stata users: This corresponds to the `xttrans` command.
 #'
 #' @seealso
 #' [decompose_variation()], [explore_participation()]
@@ -37,19 +40,73 @@ describe_transition <- function(
   digits = 3
 ) {
   # Input validation
-  data <- .check_and_convert_data_robust(data, arg_name = "data")
+  if (!is.data.frame(data)) {
+    stop(
+      "describe_transition: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
 
   if (!is.character(variable) || length(variable) != 1) {
-    stop("'variable' must be a single character string")
+    stop(
+      "describe_transition: 'variable' must be a single character string, not ",
+      class(variable)[1]
+    )
+  }
+
+  if (!is.character(group) || length(group) != 1) {
+    stop(
+      "describe_transition: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!is.character(time) || length(time) != 1) {
+    stop(
+      "describe_transition: 'time' must be a single character string, not ",
+      class(time)[1]
+    )
   }
 
   if (!variable %in% names(data)) {
-    stop("Variable '", variable, "' not found in the data")
+    stop('describe_transition: variable "', variable, '" not found in data')
   }
+
+  if (!group %in% names(data)) {
+    stop('describe_transition: variable "', group, '" not found in data')
+  }
+
+  if (!time %in% names(data)) {
+    stop('describe_transition: variable "', time, '" not found in data')
+  }
+
+  if (!is.character(format) || length(format) != 1) {
+    stop(
+      "describe_transition: 'format' must be a single character string, not ",
+      class(format)[1]
+    )
+  }
+
+  if (!format %in% c("long", "wide")) {
+    stop(
+      'describe_transition: format must be either "long" or "wide", not "',
+      format,
+      '"'
+    )
+  }
+
+  if (!is.numeric(digits) || length(digits) != 1 || digits < 0) {
+    stop(
+      "describe_transition: 'digits' must be a single non-negative integer, not ",
+      class(digits)[1]
+    )
+  }
+
+  data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Validate format argument
   if (!format %in% c("long", "wide")) {
-    stop("format must be either 'long' or 'wide'")
+    stop("describe_transition: format must be either 'long' or 'wide'")
   }
 
   # Validate digits argument
@@ -59,28 +116,28 @@ describe_transition <- function(
       digits < 0 ||
       digits != round(digits)
   ) {
-    stop("'digits' must be a single non-negative integer")
+    stop("describe_transition: 'digits' must be a single non-negative integer")
   }
 
   # Validate group and time for data frames
   if (is.null(group) || is.null(time)) {
-    stop("Both 'group' and 'time' must be specified")
+    stop("describe_transition: both 'group' and 'time' must be specified")
   }
 
   if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string")
+    stop("describe_transition: 'group' must be a single character string")
   }
 
   if (!is.character(time) || length(time) != 1) {
-    stop("'time' must be a single character string")
+    stop("describe_transition: 'time' must be a single character string")
   }
 
   if (!group %in% names(data)) {
-    stop("Group variable '", group, "' not found in the data")
+    stop("describe_transition: variable '", group, "' not found in data")
   }
 
   if (!time %in% names(data)) {
-    stop("Time variable '", time, "' not found in the data")
+    stop("describe_transition: variable '", time, "' not found in data")
   }
 
   # Convert to data frame and ensure proper ordering
@@ -88,14 +145,18 @@ describe_transition <- function(
 
   # Check if variable is factor and convert if necessary
   if (!is.factor(df[[variable]])) {
-    warning("Variable '", variable, "' is not a factor. Converting to factor.")
+    warning(
+      "Note: variable '",
+      variable,
+      "' is not a factor. Converting to factor. (occurred in describe_transition)"
+    )
     df[[variable]] <- factor(df[[variable]])
   }
 
   # Check if factor has at least 2 levels
   if (length(levels(df[[variable]])) < 2) {
     stop(
-      "Variable '",
+      "describe_transition: variable '",
       variable,
       "' must have at least 2 levels to analyze transitions"
     )
@@ -112,11 +173,11 @@ describe_transition <- function(
   complete_cases <- !is.na(df[[variable]])
   if (sum(!complete_cases) > 0) {
     warning(
-      "Removing ",
+      "Note: removing ",
       sum(!complete_cases),
       " rows with NA values in '",
       variable,
-      "'"
+      "' (occurred in describe_transition)"
     )
     df <- df[complete_cases, ]
   }
@@ -144,7 +205,7 @@ describe_transition <- function(
 
   if (is.null(transition_df)) {
     stop(
-      "No transitions found. Check if there are multiple time periods per group."
+      "describe_transition: no transitions found. Check if there are multiple time periods per group."
     )
   }
 

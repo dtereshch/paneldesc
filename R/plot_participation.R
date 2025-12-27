@@ -1,18 +1,18 @@
-#' Visualize panel data participation patterns as a heatmap
+#' Participation Patterns Visualization
 #'
 #' This function creates a heatmap visualization of participation patterns
-#' of entities in panel data over time, similar to Stata's xtdes command.
+#' of entities in panel data over time.
 #'
-#' @param data A data frame with panel data structure
-#' @param group Character string specifying the entity/group variable name
-#' @param time Character string specifying the time variable name
-#' @param detailed Logical indicating whether to show all patterns (TRUE) or
-#'   only top-10 most frequent patterns (FALSE) (default: TRUE)
-#' @param colors Vector of two colors for present and missing observations
-#' (default: c("#0072B2", "#D55E00") - colorblind-friendly)
-#' @param xlab X-axis label (default: "Time Period")
+#' @param data A data.frame containing panel data.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param time A character string specifying the name of the time variable.
+#' @param detailed A logical flag indicating whether to show all patterns or
+#'   only top-10 most frequent patterns. Default = TRUE.
+#' @param colors A character vector of two colors for present and missing observations.
+#'        Default = c("#0072B2", "#D55E00").
+#' @param xlab A character string specifying the X-axis label. Default = "Time Period".
 #'
-#' @return A heatmap plot showing participation patterns
+#' @return A heatmap plot showing participation patterns.
 #'
 #' @seealso
 #' [describe_participation()], [explore_participation()], [find_incomplete()], [explore_incomplete()]
@@ -42,34 +42,88 @@ plot_participation <- function(
   xlab = "Time Period"
 ) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop(
+      "plot_participation: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
+
+  if (!is.character(group) || length(group) != 1) {
+    stop(
+      "plot_participation: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!is.character(time) || length(time) != 1) {
+    stop(
+      "plot_participation: 'time' must be a single character string, not ",
+      class(time)[1]
+    )
+  }
+
+  if (!group %in% names(data)) {
+    stop('plot_participation: variable "', group, '" not found in data')
+  }
+
+  if (!time %in% names(data)) {
+    stop('plot_participation: variable "', time, '" not found in data')
+  }
+
+  if (!is.logical(detailed) || length(detailed) != 1) {
+    stop(
+      "plot_participation: 'detailed' must be a single logical value, not ",
+      class(detailed)[1]
+    )
+  }
+
+  if (!is.character(colors) || length(colors) != 2) {
+    stop(
+      "plot_participation: 'colors' must be a character vector of length 2, not ",
+      class(colors)[1]
+    )
+  }
+
+  if (!is.character(xlab) || length(xlab) != 1) {
+    stop(
+      "plot_participation: 'xlab' must be a single character string, not ",
+      class(xlab)[1]
+    )
+  }
+
   data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Check if group and time are specified for regular data frames
   if (is.null(group) || is.null(time)) {
     stop(
-      "Arguments 'group' and 'time' must be specified"
+      "plot_participation: arguments 'group' and 'time' must be specified"
     )
   }
 
   # Validate that group and time variables exist in data
   if (!group %in% names(data)) {
-    stop("Group variable '", group, "' not found in data")
+    stop("plot_participation: variable '", group, "' not found in data")
   }
 
   if (!time %in% names(data)) {
-    stop("Time variable '", time, "' not found in data")
+    stop("plot_participation: variable '", time, "' not found in data")
   }
 
   # Validate detailed argument
   if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("Argument 'detailed' must be a single logical value (TRUE or FALSE)")
+    stop(
+      "plot_participation: argument 'detailed' must be a single logical value"
+    )
   }
 
   # Identify data columns (excluding group and time)
   data_cols <- setdiff(names(data), c(group, time))
 
   if (length(data_cols) == 0) {
-    stop("No data columns found (excluding group and time variables)")
+    stop(
+      "plot_participation: no data columns found (excluding group and time variables)"
+    )
   }
 
   # Filter data: remove rows where ALL data columns are NA

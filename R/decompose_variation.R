@@ -1,19 +1,18 @@
-#' Decompose Variation in Panel Data
+#' Panel Data Variation Decomposition
 #'
-#' Inspired by Stata's xtsum command, this function calculates descriptive statistics
-#' for panel data and decomposes variance into between and within components.
-#' Provides insights into variation across groups and over time.
+#' This function calculates descriptive statistics for panel data and decomposes
+#' variance into between and within components.
 #'
-#' @param data A data frame containing the panel data.
+#' @param data A data.frame containing panel data.
 #' @param variables A character vector specifying which numeric variables to analyze.
-#'   If NULL (default), all numeric variables in the dataset will be used.
-#' @param group A character string specifying the group ID variable (e.g., individual, firm, country).
-#' @param detailed Logical indicating whether to return detailed Stata-like output (TRUE) or
-#'   simplified output with only key statistics (FALSE). Default is TRUE.
-#' @param digits Integer indicating the number of decimal places to round statistics.
-#'   Default is 3.
+#'   If not specified, all numeric variables in the data.frame will be used.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param detailed A logical flag indicating whether to return detailed Stata-like output.
+#'   Default = TRUE.
+#' @param digits An integer indicating the number of decimal places to round statistics.
+#'   Default = 3.
 #'
-#' @return If detailed = TRUE, returns a data frame with the following columns for each variable:
+#' @return If detailed = TRUE, returns a data.frame with the following columns for each variable:
 #'   \item{variable}{The name of the variable}
 #'   \item{decomposition}{Type of decomposition: overall, between, or within}
 #'   \item{mean}{Mean value (only for overall decomposition)}
@@ -22,7 +21,7 @@
 #'   \item{max}{Maximum value}
 #'   \item{n}{Number of observations or groups}
 #'
-#'   If detailed = FALSE, returns a simplified data frame with columns:
+#'   If detailed = FALSE, returns a simplified data.frame with columns:
 #'   \item{variable}{The name of the variable}
 #'   \item{mean}{Overall mean}
 #'   \item{sd_overall}{Overall standard deviation}
@@ -30,8 +29,7 @@
 #'   \item{sd_within}{Within-group standard deviation}
 #'
 #' @references
-#' Based on Stata's xtsum command and corresponding discussion at
-#' https://stackoverflow.com/questions/49282083/xtsum-command-for-r
+#' For Stata users: This corresponds to the `xtsum` command.
 #'
 #' @seealso
 #' [describe()], [plot_heterogeneity()], [explore_participation()], [describe_transition()]
@@ -61,6 +59,45 @@ decompose_variation <- function(
   digits = 3
 ) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop(
+      "decompose_variation: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
+
+  if (!is.null(variables) && !is.character(variables)) {
+    stop(
+      "decompose_variation: 'variables' must be a character vector or NULL, not ",
+      class(variables)[1]
+    )
+  }
+
+  if (!is.character(group) || length(group) != 1) {
+    stop(
+      "decompose_variation: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!group %in% names(data)) {
+    stop('decompose_variation: variable "', group, '" not found in data')
+  }
+
+  if (!is.logical(detailed) || length(detailed) != 1) {
+    stop(
+      "decompose_variation: 'detailed' must be a single logical value, not ",
+      class(detailed)[1]
+    )
+  }
+
+  if (!is.numeric(digits) || length(digits) != 1) {
+    stop(
+      "decompose_variation: 'digits' must be a single numeric value, not ",
+      class(digits)[1]
+    )
+  }
+
   data_df <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Validate digits parameter
@@ -68,21 +105,23 @@ decompose_variation <- function(
     !is.na(digits) &&
       (!is.numeric(digits) || digits < 0 || digits != round(digits))
   ) {
-    stop("'digits' must be a non-negative integer or NA for no rounding")
+    stop(
+      "decompose_variation: 'digits' must be a non-negative integer or NA for no rounding"
+    )
   }
 
   # Validate group parameter
   if (
     is.null(group) || !is.character(group) || length(group) == 0 || group == ""
   ) {
-    stop("The 'group' parameter must be a non-empty character string")
+    stop("decompose_variation: 'group' must be a non-empty character string")
   }
 
   if (!group %in% names(data_df)) {
     stop(
-      "Group variable '",
+      "decompose_variation: variable '",
       group,
-      "' not found in data frame. Available variables: ",
+      "' not found in data. Available variables: ",
       paste(names(data_df), collapse = ", ")
     )
   }
@@ -102,11 +141,11 @@ decompose_variation <- function(
     variables <- variables[!variables %in% id_like_vars]
 
     if (length(variables) == 0) {
-      stop("No numeric variables found in the dataset")
+      stop("decompose_variation: no numeric variables found in the dataset")
     }
 
     message(
-      "Analyzing all numeric variables: ",
+      "Note: analyzing all numeric variables: ",
       paste(variables, collapse = ", ")
     )
   }
@@ -115,7 +154,7 @@ decompose_variation <- function(
   missing_vars <- variables[!variables %in% names(data_df)]
   if (length(missing_vars) > 0) {
     stop(
-      "The following variables were not found in the data frame: ",
+      "decompose_variation: the following variables were not found in data: ",
       paste(missing_vars, collapse = ", ")
     )
   }
@@ -126,7 +165,7 @@ decompose_variation <- function(
   ]
   if (length(non_numeric_vars) > 0) {
     stop(
-      "The following variables are not numeric: ",
+      "decompose_variation: the following variables are not numeric: ",
       paste(non_numeric_vars, collapse = ", ")
     )
   }
@@ -134,15 +173,15 @@ decompose_variation <- function(
   # Check group variable
   group_vector <- data_df[[group]]
   if (length(group_vector) == 0) {
-    stop("Group variable '", group, "' has zero length")
+    stop("decompose_variation: group variable '", group, "' has zero length")
   }
 
   n_groups <- length(unique(group_vector))
   if (n_groups > 10000) {
     warning(
-      "Large number of groups (",
+      "Note: large number of groups (",
       n_groups,
-      "). This may impact performance."
+      "). This may impact performance. (occurred in decompose_variation)"
     )
   }
 
@@ -200,7 +239,6 @@ decompose_variation <- function(
     n_groups_var <- length(group_means)
 
     # Calculate within variance (variation around group means)
-    # Match group means to original data using character representation
     group_means_expanded <- group_means[match(group_vec, names(group_means))]
     within_sd <- sd(x - group_means_expanded, na.rm = TRUE)
     within_min <- min(x - group_means_expanded, na.rm = TRUE)

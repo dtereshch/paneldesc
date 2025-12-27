@@ -1,15 +1,17 @@
-#' Describes participation patterns in an unbalanced panel
+#' Panel Data Participation Analysis
 #'
-#' This function replicates Stata's xtdes command, by providing comprehensive summary statistics and pattern analysis of panel data structure
-#' in text format. Supports regular data frames with explicit group and time identifiers.
+#' This function provides comprehensive summary statistics and pattern analysis of panel data structure.
 #'
-#' @param data The data frame object
-#' @param group Character string specifying the entities' identifier column name
-#' @param time Character string specifying the time identifier column name
-#' @param detailed Logical, whether to show detailed pattern information (default: TRUE)
-#' @param max_patterns Maximum number of patterns to display in detail (default: 10)
+#' @param data A data.frame containing panel data.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param time A character string specifying the name of the time variable.
+#' @param detailed A logical flag indicating whether to show detailed pattern information. Default = TRUE.
+#' @param max_patterns An integer specifying the maximum number of patterns to display in detail. Default = 10.
 #'
-#' @return Invisible list containing detailed participation pattern statistics
+#' @return Invisible list containing detailed participation pattern statistics.
+#'
+#' @references
+#' For Stata users: This corresponds to the `xtdes` command.
 #'
 #' @seealso
 #' [decompose_variation()], [describe_transition()], [describe_participation()], [plot_participation()]
@@ -36,23 +38,70 @@ explore_participation <- function(
   max_patterns = 10
 ) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop(
+      "explore_participation: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
+
+  if (!is.character(group) || length(group) != 1) {
+    stop(
+      "explore_participation: 'group' must be a single character string, not ",
+      class(group)[1]
+    )
+  }
+
+  if (!is.character(time) || length(time) != 1) {
+    stop(
+      "explore_participation: 'time' must be a single character string, not ",
+      class(time)[1]
+    )
+  }
+
+  if (!group %in% names(data)) {
+    stop('explore_participation: variable "', group, '" not found in data')
+  }
+
+  if (!time %in% names(data)) {
+    stop('explore_participation: variable "', time, '" not found in data')
+  }
+
+  if (!is.logical(detailed) || length(detailed) != 1) {
+    stop(
+      "explore_participation: 'detailed' must be a single logical value, not ",
+      class(detailed)[1]
+    )
+  }
+
+  if (
+    !is.numeric(max_patterns) || length(max_patterns) != 1 || max_patterns < 1
+  ) {
+    stop(
+      "explore_participation: 'max_patterns' must be a single positive integer, not ",
+      class(max_patterns)[1]
+    )
+  }
+
   data_df <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Regular data frame - require group and time arguments as character strings
   if (is.null(group) || is.null(time)) {
     stop(
-      "For regular data frames, both 'group' and 'time' arguments are required as character strings"
+      "explore_participation: for regular data frames, both 'group' and 'time' arguments are required as character strings"
     )
   }
 
   if (!is.character(group) || !is.character(time)) {
     stop(
-      "For regular data frames, 'group' and 'time' arguments must be character strings"
+      "explore_participation: for regular data frames, 'group' and 'time' arguments must be character strings"
     )
   }
 
   if (length(group) != 1 || length(time) != 1) {
-    stop("'group' and 'time' must be single character strings")
+    stop(
+      "explore_participation: 'group' and 'time' must be single character strings"
+    )
   }
 
   group_name <- group
@@ -64,7 +113,7 @@ explore_participation <- function(
 
   if (is.null(group_var)) {
     stop(
-      "Group variable '",
+      "explore_participation: variable '",
       group_name,
       "' not found in data. Available variables: ",
       paste(names(data_df), collapse = ", ")
@@ -72,7 +121,7 @@ explore_participation <- function(
   }
   if (is.null(time_var)) {
     stop(
-      "Time variable '",
+      "explore_participation: variable '",
       time_name,
       "' not found in data. Available variables: ",
       paste(names(data_df), collapse = ", ")
@@ -83,7 +132,9 @@ explore_participation <- function(
   substantive_vars <- setdiff(names(data_df), c(group_name, time_name))
 
   if (length(substantive_vars) == 0) {
-    stop("No substantive variables found (besides group and time variables)")
+    stop(
+      "explore_participation: no substantive variables found (besides group and time variables)"
+    )
   }
 
   # Identify rows that have at least one non-NA value in substantive variables

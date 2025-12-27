@@ -1,15 +1,14 @@
-#' Plot Heterogeneity Among Groups
+#' Heterogeneity Visualization
 #'
-#' Creates publication-ready visualizations of heterogeneity among groups using base R graphics.
-#' Designed for panel data to show variation across object identifiers or time periods. Supports
-#' multiple grouping variables (faceting).
+#' This function creates visualizations of heterogeneity among groups.
 #'
-#' @param data A data frame in long panel format or tidy format
-#' @param variable The numeric variable of interest (character string)
-#' @param group The grouping variable(s) (character string or vector of character strings)
-#' @param xlab X-axis label (default: based on grouping variable)
-#' @param ylab Y-axis label (default: based on variable name)
-#' @param colors Vector of two colors: first for individual points, second for mean line and points (default: c("#D55E00", "#0072B2"))
+#' @param data A data.frame containing the variables for analysis.
+#' @param variable A character string specifying the numeric variable of interest.
+#' @param group A character string or vector of character strings specifying the grouping variable(s).
+#' @param xlab A character string specifying the X-axis label (default: based on grouping variable).
+#' @param ylab A character string specifying the Y-axis label (default: based on variable name).
+#' @param colors A character vector of two colors: first for individual points, second for mean line and points.
+#'        Default = c("#D55E00", "#0072B2").
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a base R plot.
 #'
@@ -42,36 +41,85 @@ plot_heterogeneity <- function(
   colors = c("#D55E00", "#0072B2")
 ) {
   # Input validation
+  if (!is.data.frame(data)) {
+    stop(
+      "plot_heterogeneity: 'data' must be a data.frame, not ",
+      class(data)[1]
+    )
+  }
+
+  if (!is.character(variable) || length(variable) != 1) {
+    stop(
+      "plot_heterogeneity: 'variable' must be a single character string, not ",
+      class(variable)[1]
+    )
+  }
+
+  if (!variable %in% names(data)) {
+    stop('plot_heterogeneity: variable "', variable, '" not found in data')
+  }
+
+  if (!is.numeric(data[[variable]])) {
+    stop(
+      "plot_heterogeneity: 'variable' must be a numeric variable, not ",
+      class(data[[variable]])[1]
+    )
+  }
+
+  if (is.null(group)) {
+    stop("plot_heterogeneity: 'group' must be provided")
+  }
+
+  if (!is.character(group)) {
+    stop(
+      "plot_heterogeneity: 'group' must be a character string or vector of character strings, not ",
+      class(group)[1]
+    )
+  }
+
+  missing_groups <- group[!group %in% names(data)]
+  if (length(missing_groups) > 0) {
+    stop(
+      'plot_heterogeneity: variable(s) "',
+      paste(missing_groups, collapse = '", "'),
+      '" not found in data'
+    )
+  }
+
+  if (!is.character(colors) || length(colors) != 2) {
+    stop(
+      "plot_heterogeneity: 'colors' must be a character vector of length 2, not ",
+      class(colors)[1]
+    )
+  }
+
   data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   if (nrow(data) == 0) {
-    stop("'data' must have at least one row")
-  }
-
-  # Require variable to be character string
-  if (!is.character(variable) || length(variable) != 1) {
-    stop("'variable' must be a single character string")
+    stop("plot_heterogeneity: 'data' must have at least one row")
   }
 
   # If group is NULL, error
   if (is.null(group)) {
-    stop("'group' must be provided")
+    stop("plot_heterogeneity: 'group' must be provided")
   }
 
   # Validate group parameter
   if (!is.character(group)) {
-    stop("'group' must be a character string or vector of character strings")
+    stop(
+      "plot_heterogeneity: 'group' must be a character string or vector of character strings"
+    )
   }
 
   # Check if variables exist in data
   if (!variable %in% names(data)) {
-    stop("Variable '", variable, "' not found in data")
+    stop("plot_heterogeneity: variable '", variable, "' not found in data")
   }
 
   missing_groups <- setdiff(group, names(data))
   if (length(missing_groups) > 0) {
     stop(
-      "Group variable(s) '",
+      "plot_heterogeneity: group variable(s) '",
       paste(missing_groups, collapse = "', '"),
       "' not found in data"
     )
@@ -79,7 +127,7 @@ plot_heterogeneity <- function(
 
   # Validate colors parameter
   if (!is.character(colors) || length(colors) != 2) {
-    stop("'colors' must be a character vector of length 2")
+    stop("plot_heterogeneity: 'colors' must be a character vector of length 2")
   }
 
   # Extract colors
@@ -100,7 +148,7 @@ plot_heterogeneity <- function(
 
   # Check variable type
   if (!is.numeric(y_var)) {
-    stop("'variable' must be a numeric variable")
+    stop("plot_heterogeneity: 'variable' must be a numeric variable")
   }
 
   # Function to create single plot
@@ -115,9 +163,10 @@ plot_heterogeneity <- function(
     # Check group variable type
     if (!is.factor(x_var) && !is.character(x_var) && !is.numeric(x_var)) {
       stop(
-        "Group variable '",
+        "plot_heterogeneity: group variable '",
         group_var,
-        "' must be a factor, character, or numeric variable"
+        "' must be a factor, character, or numeric variable, not ",
+        class(x_var)[1]
       )
     }
 
