@@ -30,7 +30,7 @@
 #' plot_participation(production, group = "firm", time = "year", max_patterns = 999999)
 #'
 #' # Custom colors
-#' plot_participation(production, group = "firm", time = "year", colors = c("black", "gray"))
+#' plot_participation(production, group = "firm", time = "year", colors = c("black", "white"))
 #'
 #' @export
 plot_participation <- function(
