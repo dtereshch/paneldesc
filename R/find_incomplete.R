@@ -25,13 +25,13 @@
 #' production_balanced <- subset(production, !(firm %in% incomplete_entities))
 #'
 #' @export
-find_incomplete <- function(data, group = NULL, time = NULL) {
+find_incomplete <- function(data, group, time = NULL) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
   }
 
-  if (is.null(group) || !is.character(group) || length(group) != 1) {
+  if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
 
@@ -40,7 +40,10 @@ find_incomplete <- function(data, group = NULL, time = NULL) {
   }
 
   if (!is.null(time) && (!is.character(time) || length(time) != 1)) {
-    stop("'time' must be a single character string, not ", class(time)[1])
+    stop(
+      "'time' must be a single character string or NULL, not ",
+      class(time)[1]
+    )
   }
 
   if (!is.null(time) && !time %in% names(data)) {
@@ -48,17 +51,6 @@ find_incomplete <- function(data, group = NULL, time = NULL) {
   }
 
   data <- .check_and_convert_data_robust(data, arg_name = "data")
-
-  if (missing(group) || is.null(group)) {
-    stop("argument 'group' is required")
-  }
-
-  # Validate group is a character string
-  if (!is.character(group) || length(group) != 1) {
-    stop(
-      "'group' must be a single character string specifying the column name"
-    )
-  }
 
   group_name <- group
 
@@ -72,11 +64,6 @@ find_incomplete <- function(data, group = NULL, time = NULL) {
   # Check if time variable is provided for unbalanced panel check
   check_unbalanced <- FALSE
   if (!is.null(time)) {
-    if (!is.character(time) || length(time) != 1) {
-      stop(
-        "'time' must be a single character string specifying the column name"
-      )
-    }
     if (!time %in% names(data)) {
       stop("variable '", time, "' not found in data")
     }

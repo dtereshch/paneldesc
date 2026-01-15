@@ -4,7 +4,7 @@
 \alias{find_incomplete}
 \title{Incomplete Entities Identification}
 \usage{
-find_incomplete(data, group = NULL, time = NULL)
+find_incomplete(data, group, time = NULL)
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
