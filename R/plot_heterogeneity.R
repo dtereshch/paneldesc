@@ -5,10 +5,10 @@
 #' @param data A data.frame containing the variables for analysis.
 #' @param selection A character string specifying the numeric variable of interest.
 #' @param group A character string or vector of character strings specifying the grouping variable(s).
-#' @param xlab A character string specifying the X-axis label (default: based on grouping variable).
-#' @param ylab A character string specifying the Y-axis label (default: based on variable name).
 #' @param colors A character vector of two colors: first for individual points, second for mean line and points.
 #'        Default = c("#D55E00", "#0072B2").
+#' @param xlab A character string specifying the X-axis label (default: based on grouping variable).
+#' @param ylab A character string specifying the Y-axis label (default: based on variable name).
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a plot showing group heterogeneity.
 #'
@@ -35,9 +35,9 @@ plot_heterogeneity <- function(
   data,
   selection,
   group,
+  colors = c("#D55E00", "#0072B2"),
   xlab = NULL,
-  ylab = NULL,
-  colors = c("#D55E00", "#0072B2")
+  ylab = NULL
 ) {
   # Input validation
   if (!is.data.frame(data)) {

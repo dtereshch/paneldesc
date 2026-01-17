@@ -8,9 +8,9 @@ plot_heterogeneity(
   data,
   selection,
   group,
+  colors = c("#D55E00", "#0072B2"),
   xlab = NULL,
-  ylab = NULL,
-  colors = c("#D55E00", "#0072B2")
+  ylab = NULL
 )
 }
 \arguments{
@@ -20,12 +20,12 @@ plot_heterogeneity(
 
 \item{group}{A character string or vector of character strings specifying the grouping variable(s).}
 
+\item{colors}{A character vector of two colors: first for individual points, second for mean line and points.
+Default = c("#D55E00", "#0072B2").}
+
 \item{xlab}{A character string specifying the X-axis label (default: based on grouping variable).}
 
 \item{ylab}{A character string specifying the Y-axis label (default: based on variable name).}
-
-\item{colors}{A character vector of two colors: first for individual points, second for mean line and points.
-Default = c("#D55E00", "#0072B2").}
 }
 \value{
 Invisibly returns a list with summary statistics. Creates a plot showing group heterogeneity.
