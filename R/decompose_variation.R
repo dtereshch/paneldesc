@@ -8,6 +8,9 @@
 #'   If not specified, all numeric variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'   Required for variance decomposition.
+#' @param time A character string specifying the name of the time variable in panel data.
+#'   Optional but recommended for panel data validation. If not specified, only group structure
+#'   is used for variance decomposition.
 #' @param detailed A logical flag indicating whether to return detailed Stata-like output.
 #'   Default = TRUE.
 #' @param digits An integer indicating the number of decimal places to round statistics.
@@ -29,6 +32,8 @@
 #'   \item{sd_between}{Between-group standard deviation}
 #'   \item{sd_within}{Within-group standard deviation}
 #'
+#'   The result includes attributes with metadata about the panel structure.
+#'
 #' @references
 #' For Stata users: This corresponds to the `xtsum` command.
 #'
@@ -41,26 +46,31 @@
 #' # Basic usage with statistics for all numeric variables
 #' decompose_variation(production, group = "firm")
 #'
+#' # With time variable for panel validation
+#' decompose_variation(production, group = "firm", time = "year")
+#'
 #' # Simplified output
-#' decompose_variation(production, group = "firm", detailed = FALSE)
+#' decompose_variation(production, group = "firm", time = "year", detailed = FALSE)
 #'
 #' # Show statistics for a single variable
-#' decompose_variation(production, selection = "sales", group = "firm")
+#' decompose_variation(production, selection = "sales", group = "firm", time = "year")
 #'
 #' # Show statistics for multiple variables
-#' decompose_variation(production, selection = c("capital", "labor"), group = "firm")
+#' decompose_variation(production, selection = c("capital", "labor"),
+#'                     group = "firm", time = "year")
 #'
 #' # Show statistics with two digits rounding
-#' decompose_variation(production, group = "firm", digits = 2)
+#' decompose_variation(production, group = "firm", time = "year", digits = 2)
 #'
 #' # Show statistics with no rounding
-#' decompose_variation(production, group = "firm", digits = 999999)
+#' decompose_variation(production, group = "firm", time = "year", digits = 999999)
 #'
 #' @export
 decompose_variation <- function(
   data,
   selection = NULL,
   group,
+  time = NULL,
   detailed = TRUE,
   digits = 3
 ) {
@@ -76,13 +86,28 @@ decompose_variation <- function(
     )
   }
 
-  # Group is now required, no NULL default
+  # Group is required
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string")
   }
 
   if (!group %in% names(data)) {
     stop('variable "', group, '" not found in data')
+  }
+
+  # Time is optional but validated if provided
+  if (!is.null(time)) {
+    if (!is.character(time) || length(time) != 1) {
+      stop("'time' must be a single character string or NULL")
+    }
+
+    if (!time %in% names(data)) {
+      stop('time variable "', time, '" not found in data')
+    }
+
+    if (time == group) {
+      stop("'time' and 'group' cannot be the same variable")
+    }
   }
 
   if (!is.logical(detailed) || length(detailed) != 1) {
@@ -103,7 +128,7 @@ decompose_variation <- function(
     stop("'digits' must be a non-negative integer or NA for no rounding")
   }
 
-  # Validate group parameter (simplified since group is required)
+  # Validate group parameter
   if (group == "" || length(group) == 0) {
     stop("'group' must be a non-empty character string")
   }
@@ -117,18 +142,110 @@ decompose_variation <- function(
     )
   }
 
+  # Panel structure validation and diagnostics
+  panel_info <- list(
+    group_var = group,
+    time_var = if (!is.null(time)) time else NA_character_,
+    n_groups = length(unique(data_df[[group]])),
+    is_balanced = NA,
+    has_duplicates = FALSE,
+    time_class = if (!is.null(time)) class(data_df[[time]]) else NA_character_
+  )
+
+  if (!is.null(time)) {
+    # Check for duplicate group-time combinations
+    group_vector <- data_df[[group]]
+    time_vector <- data_df[[time]]
+    combos <- paste(group_vector, time_vector, sep = "|")
+
+    if (any(duplicated(combos))) {
+      n_duplicates <- sum(duplicated(combos))
+      panel_info$has_duplicates <- TRUE
+      warning(
+        "Found ",
+        n_duplicates,
+        " duplicate group-time combinations. ",
+        "Panel data should have at most one observation per group-time pair."
+      )
+    }
+
+    # Check for balanced panel (same time points for all groups)
+    time_by_group <- split(time_vector, group_vector)
+    unique_time_sets <- lapply(time_by_group, unique)
+    time_set_lengths <- sapply(unique_time_sets, length)
+
+    if (length(unique(time_set_lengths)) == 1) {
+      # All groups have same number of time points
+      all_time_sets <- unique(unique_time_sets)
+      if (length(all_time_sets) == 1) {
+        panel_info$is_balanced <- TRUE
+      } else {
+        panel_info$is_balanced <- FALSE
+        warning(
+          "Panel appears unbalanced: groups have different time points ",
+          "even though they have the same number of observations."
+        )
+      }
+    } else {
+      panel_info$is_balanced <- FALSE
+      warning(
+        "Panel is unbalanced: groups have different numbers of time points (",
+        paste(range(time_set_lengths), collapse = "-"),
+        " observations per group)."
+      )
+    }
+
+    # Check time ordering if it's numeric or Date-like
+    if (
+      is.numeric(time_vector) ||
+        inherits(time_vector, "Date") ||
+        inherits(time_vector, "POSIXt")
+    ) {
+      # Check for irregular time intervals within groups
+      irregular_groups <- sapply(time_by_group, function(times) {
+        if (length(times) > 1) {
+          sorted_times <- sort(unique(times))
+          intervals <- diff(sorted_times)
+          return(length(unique(intervals)) > 1)
+        }
+        return(FALSE)
+      })
+
+      if (any(irregular_groups)) {
+        n_irregular <- sum(irregular_groups)
+        panel_info$irregular_groups <- n_irregular
+        warning(
+          "Irregular time intervals detected for ",
+          n_irregular,
+          " group(s)."
+        )
+      }
+    }
+
+    # Store number of unique time periods
+    panel_info$n_periods <- length(unique(time_vector))
+  } else {
+    message(
+      "Note: No time variable specified. Panel time structure not validated."
+    )
+  }
+
   # If selection is not specified, use all numeric variables
   if (is.null(selection)) {
     numeric_vars <- vapply(data_df, is.numeric, FUN.VALUE = logical(1))
     selection <- names(data_df)[numeric_vars]
 
-    # Remove the group variable from selection if it's numeric
-    if (group %in% selection) {
-      selection <- selection[selection != group]
+    # Remove the group and time variables from selection if they are numeric
+    vars_to_remove <- c(group)
+    if (!is.null(time)) {
+      vars_to_remove <- c(vars_to_remove, time)
     }
+    selection <- selection[!selection %in% vars_to_remove]
 
     if (length(selection) == 0) {
-      stop("no numeric variables found in the dataset")
+      stop(
+        "no numeric variables found in the dataset (excluding group and time variables)"
+      )
     }
 
     message(
@@ -177,11 +294,20 @@ decompose_variation <- function(
     data,
     varname,
     group,
+    time,
     detailed_output,
     digits_val
   ) {
-    # Remove rows with NA in the variable or group
-    complete_cases <- complete.cases(data[[varname]], data[[group]])
+    # Remove rows with NA in the variable, group, or time (if specified)
+    if (!is.null(time)) {
+      complete_cases <- complete.cases(
+        data[[varname]],
+        data[[group]],
+        data[[time]]
+      )
+    } else {
+      complete_cases <- complete.cases(data[[varname]], data[[group]])
+    }
     df <- data[complete_cases, , drop = FALSE]
 
     if (nrow(df) == 0) {
@@ -284,18 +410,33 @@ decompose_variation <- function(
 
   # Calculate statistics for each variable
   results <- lapply(selection, function(varname) {
-    decompose_variation_1(data_df, varname, group, detailed, digits)
+    decompose_variation_1(data_df, varname, group, time, detailed, digits)
   })
 
   # Combine all results
   result_df <- do.call(rbind, results)
   rownames(result_df) <- NULL
 
-  # Add data source information as attribute
-  attr(result_df, "group_var") <- group
-  attr(result_df, "n_groups") <- n_groups
+  # Add panel structure information as attributes
+  attr(result_df, "panel_info") <- panel_info
   attr(result_df, "detailed") <- detailed
   attr(result_df, "digits") <- digits
+
+  # Add panel summary message
+  if (!is.null(time)) {
+    panel_summary <- paste0(
+      "Panel: ",
+      panel_info$n_groups,
+      " groups, ",
+      panel_info$n_periods,
+      " time periods, ",
+      ifelse(panel_info$is_balanced, "balanced", "unbalanced")
+    )
+    if (panel_info$has_duplicates) {
+      panel_summary <- paste0(panel_summary, ", with duplicates")
+    }
+    attr(result_df, "panel_summary") <- panel_summary
+  }
 
   return(result_df)
 }

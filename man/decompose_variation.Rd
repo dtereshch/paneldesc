@@ -4,7 +4,14 @@
 \alias{decompose_variation}
 \title{Panel Data Variation Decomposition}
 \usage{
-decompose_variation(data, selection = NULL, group, detailed = TRUE, digits = 3)
+decompose_variation(
+  data,
+  selection = NULL,
+  group,
+  time = NULL,
+  detailed = TRUE,
+  digits = 3
+)
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
@@ -14,6 +21,10 @@ If not specified, all numeric variables in the data.frame will be used.}
 
 \item{group}{A character string specifying the name of the entity/group variable in panel data.
 Required for variance decomposition.}
+
+\item{time}{A character string specifying the name of the time variable in panel data.
+Optional but recommended for panel data validation. If not specified, only group structure
+is used for variance decomposition.}
 
 \item{detailed}{A logical flag indicating whether to return detailed Stata-like output.
 Default = TRUE.}
@@ -37,6 +48,8 @@ If detailed = FALSE, returns a simplified data.frame with columns:
 \item{sd_overall}{Overall standard deviation}
 \item{sd_between}{Between-group standard deviation}
 \item{sd_within}{Within-group standard deviation}
+
+The result includes attributes with metadata about the panel structure.
 }
 \description{
 This function calculates descriptive statistics for panel data and decomposes
@@ -48,20 +61,24 @@ data(production)
 # Basic usage with statistics for all numeric variables
 decompose_variation(production, group = "firm")
 
+# With time variable for panel validation
+decompose_variation(production, group = "firm", time = "year")
+
 # Simplified output
-decompose_variation(production, group = "firm", detailed = FALSE)
+decompose_variation(production, group = "firm", time = "year", detailed = FALSE)
 
 # Show statistics for a single variable
-decompose_variation(production, selection = "sales", group = "firm")
+decompose_variation(production, selection = "sales", group = "firm", time = "year")
 
 # Show statistics for multiple variables
-decompose_variation(production, selection = c("capital", "labor"), group = "firm")
+decompose_variation(production, selection = c("capital", "labor"),
+                    group = "firm", time = "year")
 
 # Show statistics with two digits rounding
-decompose_variation(production, group = "firm", digits = 2)
+decompose_variation(production, group = "firm", time = "year", digits = 2)
 
 # Show statistics with no rounding
-decompose_variation(production, group = "firm", digits = 999999)
+decompose_variation(production, group = "firm", time = "year", digits = 999999)
 
 }
 \references{
