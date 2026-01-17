@@ -273,6 +273,7 @@ explore_balance <- function(data, group, time) {
     n_entities_without_na,
     pct_entities_without_na
   ))
+  cat("\n")
 
   # Create invisible return object
   result <- list(
