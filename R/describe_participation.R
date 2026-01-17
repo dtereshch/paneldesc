@@ -6,11 +6,21 @@
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #' @param time A character string specifying the name of the time variable.
 #' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
+#' @param format A character string specifying the output format: "wide" (default) or "long".
 #'
-#' @return A data.frame with participation patterns containing:
+#' @return A data.frame with participation patterns. For `format = "wide"`:
 #' \itemize{
 #'   \item Pattern: Pattern identifier (1, 2, 3, ...)
 #'   \item Columns for each time period showing participation (1 = present, 0 = missing)
+#'   \item Count: Number of entities with this pattern
+#'   \item Share: Proportion of entities with this pattern
+#'   \item Cumul.: Cumulative proportion of entities
+#' }
+#' For `format = "long"`:
+#' \itemize{
+#'   \item Pattern: Pattern identifier (1, 2, 3, ...)
+#'   \item [time]: The time period variable (named according to the `time` argument)
+#'   \item Participation: 0/1 values indicating absence/presence in the period
 #'   \item Count: Number of entities with this pattern
 #'   \item Share: Proportion of entities with this pattern
 #'   \item Cumul.: Cumulative proportion of entities
@@ -25,15 +35,19 @@
 #' # Basic usage
 #' describe_participation(production, group = "firm", time = "year")
 #'
-#' # Simplified version without time period columns
+#' # Simplified version
 #' describe_participation(production, group = "firm", time = "year", detailed = FALSE)
+#'
+#' # Simplified version in long format
+#' describe_participation(production, group = "firm", time = "year", detailed = FALSE, format = "long")
 #'
 #' @export
 describe_participation <- function(
   data,
   group,
   time,
-  detailed = TRUE
+  detailed = TRUE,
+  format = "wide"
 ) {
   # Input validation
   if (!is.data.frame(data)) {
@@ -58,6 +72,14 @@ describe_participation <- function(
 
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
+  }
+
+  if (!is.character(format) || length(format) != 1) {
+    stop("'format' must be a single character string, not ", class(format)[1])
+  }
+
+  if (!format %in% c("wide", "long")) {
+    stop('format must be either "wide" or "long", not "', format, '"')
   }
 
   data <- .check_and_convert_data_robust(data, arg_name = "data")
@@ -144,14 +166,46 @@ describe_participation <- function(
   result$Pattern <- seq_len(nrow(result))
   rownames(result) <- NULL
 
+  # Convert to long format if requested
+  if (format == "long") {
+    # Reshape from wide to long format
+    long_result <- data.frame()
+
+    for (i in seq_len(nrow(result))) {
+      pattern_row <- result[i, ]
+
+      for (t in time_cols) {
+        long_result <- rbind(
+          long_result,
+          data.frame(
+            Pattern = pattern_row$Pattern,
+            Time = t,
+            Participation = as.integer(pattern_row[[t]]),
+            Count = pattern_row$Count,
+            Share = pattern_row$Share,
+            Cumul. = pattern_row$Cumul.,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    }
+
+    # Rename the "Time" column to match the original time variable name
+    names(long_result)[names(long_result) == "Time"] <- time
+
+    if (!detailed) {
+      # Return simplified version with only Pattern, time, and Participation columns
+      simplified_result <- long_result[c("Pattern", time, "Participation")]
+      return(simplified_result)
+    }
+
+    return(long_result)
+  }
+
+  # Wide format handling (original behavior)
   if (!detailed) {
-    # Return simplified version without individual time period columns
-    simplified_result <- data.frame(
-      Pattern = result$Pattern,
-      Count = result$Count,
-      Share = result$Share,
-      Cumul. = result$Cumul.
-    )
+    # Return simplified version with only Pattern and time period columns
+    simplified_result <- result[c("Pattern", time_cols)]
     return(simplified_result)
   }
 

@@ -4,7 +4,7 @@
 \alias{describe_participation}
 \title{Panel Data Participation Patterns}
 \usage{
-describe_participation(data, group, time, detailed = TRUE)
+describe_participation(data, group, time, detailed = TRUE, format = "wide")
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
@@ -14,12 +14,23 @@ describe_participation(data, group, time, detailed = TRUE)
 \item{time}{A character string specifying the name of the time variable.}
 
 \item{detailed}{A logical flag indicating whether to return detailed patterns. Default = TRUE.}
+
+\item{format}{A character string specifying the output format: "wide" (default) or "long".}
 }
 \value{
-A data.frame with participation patterns containing:
+A data.frame with participation patterns. For \code{format = "wide"}:
 \itemize{
 \item Pattern: Pattern identifier (1, 2, 3, ...)
 \item Columns for each time period showing participation (1 = present, 0 = missing)
+\item Count: Number of entities with this pattern
+\item Share: Proportion of entities with this pattern
+\item Cumul.: Cumulative proportion of entities
+}
+For \code{format = "long"}:
+\itemize{
+\item Pattern: Pattern identifier (1, 2, 3, ...)
+\item \link{time}: The time period variable (named according to the \code{time} argument)
+\item Participation: 0/1 values indicating absence/presence in the period
 \item Count: Number of entities with this pattern
 \item Share: Proportion of entities with this pattern
 \item Cumul.: Cumulative proportion of entities
@@ -34,8 +45,11 @@ data(production)
 # Basic usage
 describe_participation(production, group = "firm", time = "year")
 
-# Simplified version without time period columns
+# Simplified version
 describe_participation(production, group = "firm", time = "year", detailed = FALSE)
+
+# Simplified version in long format
+describe_participation(production, group = "firm", time = "year", detailed = FALSE, format = "long")
 
 }
 \seealso{
