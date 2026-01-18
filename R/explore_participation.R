@@ -152,26 +152,12 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
   entities_by_pattern <- pattern_counts
   names(entities_by_pattern) <- rownames(pattern_matrix)
 
-  # Check if the result is being assigned to a variable
-  # by looking at the parent call
-  parent_call <- sys.call(-1)
-  is_assigned <- FALSE
+  # Check if we're at the top level (called directly, not assigned)
+  # Compare the current call to the first call in the call stack
+  called_from_top <- length(sys.calls()) == 1
 
-  if (!is.null(parent_call)) {
-    # Convert to string and check if it contains assignment operators
-    call_text <- deparse(parent_call)
-    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
-
-    for (op in assignment_ops) {
-      if (grepl(op, call_text, fixed = TRUE)) {
-        is_assigned <- TRUE
-        break
-      }
-    }
-  }
-
-  # Print if not assigned (basic usage)
-  if (!is_assigned) {
+  # Print if called directly (not assigned)
+  if (called_from_top) {
     # Print formatted output
     n_to_display <- min(length(pattern_groups), max_patterns)
     cat(sprintf(
@@ -225,27 +211,49 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
       ))
     }
     cat("\n")
+
+    # Create pattern stats data.frame
+    pattern_stats <- data.frame(
+      pattern_id = seq_len(length(pattern_counts)),
+      pattern_string = names(pattern_groups),
+      n_entities = pattern_counts,
+      percent_entities = pattern_pcts,
+      entities = I(pattern_groups),
+      stringsAsFactors = FALSE
+    )
+
+    # Return visibly so it gets printed by the REPL
+    return(list(
+      pattern_matrix = pattern_matrix,
+      pattern_groups = pattern_groups,
+      pattern_stats = pattern_stats,
+      entities_by_pattern = entities_by_pattern,
+      presence_matrix = presence_matrix,
+      group_var = group,
+      time_var = time,
+      filtered_data = filtered_data
+    ))
+  } else {
+    # Create pattern stats data.frame
+    pattern_stats <- data.frame(
+      pattern_id = seq_len(length(pattern_counts)),
+      pattern_string = names(pattern_groups),
+      n_entities = pattern_counts,
+      percent_entities = pattern_pcts,
+      entities = I(pattern_groups),
+      stringsAsFactors = FALSE
+    )
+
+    # Return invisibly if not at top level (likely assigned)
+    invisible(list(
+      pattern_matrix = pattern_matrix,
+      pattern_groups = pattern_groups,
+      pattern_stats = pattern_stats,
+      entities_by_pattern = entities_by_pattern,
+      presence_matrix = presence_matrix,
+      group_var = group,
+      time_var = time,
+      filtered_data = filtered_data
+    ))
   }
-
-  # Create pattern stats data.frame
-  pattern_stats <- data.frame(
-    pattern_id = seq_len(length(pattern_counts)),
-    pattern_string = names(pattern_groups),
-    n_entities = pattern_counts,
-    percent_entities = pattern_pcts,
-    entities = I(pattern_groups),
-    stringsAsFactors = FALSE
-  )
-
-  # Return invisible results
-  invisible(list(
-    pattern_matrix = pattern_matrix,
-    pattern_groups = pattern_groups,
-    pattern_stats = pattern_stats,
-    entities_by_pattern = entities_by_pattern,
-    presence_matrix = presence_matrix,
-    group_var = group,
-    time_var = time,
-    filtered_data = filtered_data
-  ))
 }

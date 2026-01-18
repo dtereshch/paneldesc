@@ -214,26 +214,12 @@ explore_balance <- function(data, group, time) {
     0
   )
 
-  # Check if the result is being assigned to a variable
-  # by looking at the parent call
-  parent_call <- sys.call(-1)
-  is_assigned <- FALSE
+  # Check if we're at the top level (called directly, not assigned)
+  # Compare the current call to the first call in the call stack
+  called_from_top <- length(sys.calls()) == 1
 
-  if (!is.null(parent_call)) {
-    # Convert to string and check if it contains assignment operators
-    call_text <- deparse(parent_call)
-    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
-
-    for (op in assignment_ops) {
-      if (grepl(op, call_text, fixed = TRUE)) {
-        is_assigned <- TRUE
-        break
-      }
-    }
-  }
-
-  # Print if not assigned (basic usage)
-  if (!is_assigned) {
+  # Print if called directly (not assigned)
+  if (called_from_top) {
     # Print formatted output
     cat("Panel Data Balance Check\n")
     cat("===========================================\n\n")
@@ -287,39 +273,71 @@ explore_balance <- function(data, group, time) {
       pct_entities_without_na
     ))
     cat("\n")
+
+    # Return visibly so it gets printed by the REPL
+    return(list(
+      summary = list(
+        total_observations = total_obs,
+        observations_without_na = obs_without_na,
+        observations_with_na = obs_with_na,
+        n_time_periods = n_periods,
+        min_obs_per_entity = min_obs_per_entity,
+        max_obs_per_entity = max_obs_per_entity,
+        avg_obs_per_entity = avg_obs_per_entity,
+        n_balanced_periods = n_balanced_periods,
+        n_periods_without_na = n_periods_without_na,
+        n_entities = n_entities,
+        min_obs_per_period = min_obs_per_period,
+        max_obs_per_period = max_obs_per_period,
+        avg_obs_per_period = avg_obs_per_period,
+        n_balanced_entities = n_balanced_entities,
+        pct_balanced_entities = pct_balanced_entities,
+        n_entities_without_na = n_entities_without_na,
+        pct_entities_without_na = pct_entities_without_na
+      ),
+      balanced_periods = balanced_periods,
+      periods_without_na = periods_without_na,
+      balanced_entities = balanced_entities,
+      entities_without_na = entities_without_na,
+      presence_matrix = presence_matrix,
+      na_matrix = na_matrix,
+      group_var = group,
+      time_var = time
+    ))
+  } else {
+    # Create invisible return object
+    result <- list(
+      summary = list(
+        total_observations = total_obs,
+        observations_without_na = obs_without_na,
+        observations_with_na = obs_with_na,
+        n_time_periods = n_periods,
+        min_obs_per_entity = min_obs_per_entity,
+        max_obs_per_entity = max_obs_per_entity,
+        avg_obs_per_entity = avg_obs_per_entity,
+        n_balanced_periods = n_balanced_periods,
+        n_periods_without_na = n_periods_without_na,
+        n_entities = n_entities,
+        min_obs_per_period = min_obs_per_period,
+        max_obs_per_period = max_obs_per_period,
+        avg_obs_per_period = avg_obs_per_period,
+        n_balanced_entities = n_balanced_entities,
+        pct_balanced_entities = pct_balanced_entities,
+        n_entities_without_na = n_entities_without_na,
+        pct_entities_without_na = pct_entities_without_na
+      ),
+      balanced_periods = balanced_periods,
+      periods_without_na = periods_without_na,
+      balanced_entities = balanced_entities,
+      entities_without_na = entities_without_na,
+      presence_matrix = presence_matrix,
+      na_matrix = na_matrix,
+      group_var = group,
+      time_var = time
+    )
+
+    class(result) <- "balance_exploration"
+    # Return invisibly if not at top level (likely assigned)
+    invisible(result)
   }
-
-  # Create invisible return object
-  result <- list(
-    summary = list(
-      total_observations = total_obs,
-      observations_without_na = obs_without_na,
-      observations_with_na = obs_with_na,
-      n_time_periods = n_periods,
-      min_obs_per_entity = min_obs_per_entity,
-      max_obs_per_entity = max_obs_per_entity,
-      avg_obs_per_entity = avg_obs_per_entity,
-      n_balanced_periods = n_balanced_periods,
-      n_periods_without_na = n_periods_without_na,
-      n_entities = n_entities,
-      min_obs_per_period = min_obs_per_period,
-      max_obs_per_period = max_obs_per_period,
-      avg_obs_per_period = avg_obs_per_period,
-      n_balanced_entities = n_balanced_entities,
-      pct_balanced_entities = pct_balanced_entities,
-      n_entities_without_na = n_entities_without_na,
-      pct_entities_without_na = pct_entities_without_na
-    ),
-    balanced_periods = balanced_periods,
-    periods_without_na = periods_without_na,
-    balanced_entities = balanced_entities,
-    entities_without_na = entities_without_na,
-    presence_matrix = presence_matrix,
-    na_matrix = na_matrix,
-    group_var = group,
-    time_var = time
-  )
-
-  class(result) <- "balance_exploration"
-  invisible(result)
 }

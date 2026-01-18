@@ -27,10 +27,10 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic validation
+#' # Basic validation - will print automatically
 #' check_panel(production, group = "firm", time = "year")
 #'
-#' # Detailed validation
+#' # Detailed validation - will print automatically
 #' check_panel(production, group = "firm", time = "year", detailed = TRUE)
 #'
 #' # Assigning to variable - will not print
@@ -440,26 +440,12 @@ check_panel <- function(data, group, time, detailed = FALSE) {
 
   class(result) <- "panel_check"
 
-  # Check if the result is being assigned to a variable
-  # by looking at the parent call
-  parent_call <- sys.call(-1)
-  is_assigned <- FALSE
+  # Check if we're at the top level (called directly, not assigned)
+  # Compare the current call to the first call in the call stack
+  called_from_top <- length(sys.calls()) == 1
 
-  if (!is.null(parent_call)) {
-    # Convert to string and check if it contains assignment operators
-    call_text <- deparse(parent_call)
-    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
-
-    for (op in assignment_ops) {
-      if (grepl(op, call_text, fixed = TRUE)) {
-        is_assigned <- TRUE
-        break
-      }
-    }
-  }
-
-  # Print if not assigned (basic usage)
-  if (!is_assigned) {
+  # Print if called directly (not assigned)
+  if (called_from_top) {
     # Print logic
     if (result$detailed) {
       cat("Panel Data Structure Check\n")
@@ -495,8 +481,11 @@ check_panel <- function(data, group, time, detailed = FALSE) {
       cat(result$panel_summary, "\n")
       cat("Validation Status:", result$validation_message, "\n")
     }
-  }
 
-  # Always return the result invisibly
-  invisible(result)
+    # Return visibly so it gets printed by the REPL
+    return(result)
+  } else {
+    # Return invisibly if not at top level (likely assigned)
+    invisible(result)
+  }
 }
