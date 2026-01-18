@@ -193,7 +193,7 @@ explore_participation <- function(
 
   # Print if requested
   if (print_result) {
-    cat("Panel Data Participation Patterns\n")
+    cat("Panel Data Participation Analysis\n")
     cat("==============================================================\n\n")
     # Print formatted output
     n_to_display <- min(length(pattern_groups), max_patterns)
