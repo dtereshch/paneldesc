@@ -13,11 +13,12 @@ check_panel(data, group, time, detailed = FALSE)
 
 \item{time}{A character string specifying the name of the time variable in panel data.}
 
-\item{detailed}{A logical flag indicating whether to return detailed vaildation results.
+\item{detailed}{A logical flag indicating whether to return detailed validation results.
 Default = FALSE.}
 }
 \value{
 A list with panel validation results. The structure depends on the \code{detailed} parameter.
+The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 This function performs comprehensive validation of panel data structure,
@@ -38,11 +39,14 @@ The function performs the following checks:
 \examples{
 data(production)
 
-# Basic validation
+# Basic validation - will print automatically
 check_panel(production, group = "firm", time = "year")
 
-# Detailed validation
+# Detailed validation - will print automatically
 check_panel(production, group = "firm", time = "year", detailed = TRUE)
+
+# Assigning to variable - won't print
+check_result <- check_panel(production, group = "firm", time = "year")
 
 }
 \seealso{

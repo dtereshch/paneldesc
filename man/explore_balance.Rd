@@ -14,13 +14,14 @@ explore_balance(data, group, time)
 \item{time}{A character string specifying the name of the time variable.}
 }
 \value{
-An invisible list containing the following components:
+A list containing the following components:
 \item{summary}{A list with summary statistics}
 \item{balanced_periods}{Vector of time periods where all entities are present}
 \item{periods_without_na}{Vector of time periods with no missing values in substantive variables}
 \item{balanced_entities}{Vector of entities present in all time periods}
 \item{entities_without_na}{Vector of entities with no missing values in substantive variables}
 \item{presence_matrix}{Binary matrix showing entity-time presence (1=present, 0=missing)}
+The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 This function provides detailed analysis of panel data balance, including
@@ -34,16 +35,14 @@ The function analyzes panel data balance from multiple perspectives:
 \item \strong{Time periods}: Which periods have all entities, which have no NAs
 \item \strong{Entities}: Which entities are present in all periods, which have no NAs
 }
-The function prints a formatted summary and returns detailed vectors for
-further analysis.
 }
 \examples{
 data(production)
 
-# Basic usage
+# Basic usage - will print automatically
 explore_balance(production, group = "firm", time = "year")
 
-# Access returned vectors for further analysis
+# Access returned vectors for further analysis - won't print
 result <- explore_balance(panel_data, group = "firm", time = "year")
 
 # Balanced periods (all entities present)

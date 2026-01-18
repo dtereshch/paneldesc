@@ -8,13 +8,15 @@
 #' @param group A character string specifying the name of the entity/group variable.
 #' @param time A character string specifying the name of the time variable.
 #'
-#' @return An invisible list containing the following components:
+#' @return A list containing the following components:
 #'   \item{summary}{A list with summary statistics}
 #'   \item{balanced_periods}{Vector of time periods where all entities are present}
 #'   \item{periods_without_na}{Vector of time periods with no missing values in substantive variables}
 #'   \item{balanced_entities}{Vector of entities present in all time periods}
 #'   \item{entities_without_na}{Vector of entities with no missing values in substantive variables}
 #'   \item{presence_matrix}{Binary matrix showing entity-time presence (1=present, 0=missing)}
+#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
+#'
 #'
 #' @details
 #' The function analyzes panel data balance from multiple perspectives:
@@ -23,16 +25,14 @@
 #'   \item \strong{Time periods}: Which periods have all entities, which have no NAs
 #'   \item \strong{Entities}: Which entities are present in all periods, which have no NAs
 #' }
-#' The function prints a formatted summary and returns detailed vectors for
-#' further analysis.
 #'
 #' @examples
 #' data(production)
 #'
-#' # Basic usage
+#' # Basic usage - will print automatically
 #' explore_balance(production, group = "firm", time = "year")
 #'
-#' # Access returned vectors for further analysis
+#' # Access returned vectors for further analysis - won't print
 #' result <- explore_balance(panel_data, group = "firm", time = "year")
 #'
 #' # Balanced periods (all entities present)
@@ -197,13 +197,6 @@ explore_balance <- function(data, group, time) {
   )
 
   # Entities without NAs (all observations have no NAs)
-  entities_without_na <- unique_groups[
-    apply(na_matrix, 1, function(x) {
-      all(
-        x[presence_matrix[rownames(na_matrix) == unique_groups[1], ] == 1] == 1
-      )
-    })
-  ]
   # Alternative calculation for entities without NAs
   entities_without_na <- c()
   for (i in seq_along(unique_groups)) {
@@ -221,59 +214,80 @@ explore_balance <- function(data, group, time) {
     0
   )
 
-  # Print formatted output
-  cat("Panel Data Balance Check\n")
-  cat("===========================================\n\n")
+  # Check if the result is being assigned to a variable
+  # by looking at the parent call
+  parent_call <- sys.call(-1)
+  is_assigned <- FALSE
 
-  cat("Basic Information\n")
-  cat("--------------------------------------------------------------\n")
-  cat(sprintf("  Total observations: %d \n", total_obs))
-  cat(sprintf(
-    "  Observations without NAs: %d (%.1f%%) \n",
-    obs_without_na,
-    ifelse(total_obs > 0, obs_without_na / total_obs * 100, 0)
-  ))
-  cat(sprintf(
-    "  Observations with NAs: %d (%.1f%%) \n\n",
-    obs_with_na,
-    ifelse(total_obs > 0, obs_with_na / total_obs * 100, 0)
-  ))
+  if (!is.null(parent_call)) {
+    # Convert to string and check if it contains assignment operators
+    call_text <- deparse(parent_call)
+    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
 
-  cat("Time Periods\n")
-  cat("--------------------------------------------------------------\n")
-  cat(sprintf("  Number of time periods: %d \n", n_periods))
-  cat(sprintf(
-    "  Observations per entity: %d - %d (avg: %.1f )\n",
-    min_obs_per_entity,
-    max_obs_per_entity,
-    avg_obs_per_entity
-  ))
-  cat(sprintf("  Number of balanced time periods: %d\n", n_balanced_periods))
-  cat(sprintf(
-    "  Number of time periods without NAs: %d\n\n",
-    n_periods_without_na
-  ))
+    for (op in assignment_ops) {
+      if (grepl(op, call_text, fixed = TRUE)) {
+        is_assigned <- TRUE
+        break
+      }
+    }
+  }
 
-  cat("Entities\n")
-  cat("--------------------------------------------------------------\n")
-  cat(sprintf("  Number of entities: %d \n", n_entities))
-  cat(sprintf(
-    "  Observations per time period: %d - %d (avg: %.1f )\n",
-    min_obs_per_period,
-    max_obs_per_period,
-    avg_obs_per_period
-  ))
-  cat(sprintf(
-    "  Number of balanced entities: %d (%.1f%%)\n",
-    n_balanced_entities,
-    pct_balanced_entities
-  ))
-  cat(sprintf(
-    "  Number of entities without NAs: %d (%.1f%%)\n",
-    n_entities_without_na,
-    pct_entities_without_na
-  ))
-  cat("\n")
+  # Print if not assigned (basic usage)
+  if (!is_assigned) {
+    # Print formatted output
+    cat("Panel Data Balance Check\n")
+    cat("===========================================\n\n")
+
+    cat("Basic Information\n")
+    cat("--------------------------------------------------------------\n")
+    cat(sprintf("  Total observations: %d \n", total_obs))
+    cat(sprintf(
+      "  Observations without NAs: %d (%.1f%%) \n",
+      obs_without_na,
+      ifelse(total_obs > 0, obs_without_na / total_obs * 100, 0)
+    ))
+    cat(sprintf(
+      "  Observations with NAs: %d (%.1f%%) \n\n",
+      obs_with_na,
+      ifelse(total_obs > 0, obs_with_na / total_obs * 100, 0)
+    ))
+
+    cat("Time Periods\n")
+    cat("--------------------------------------------------------------\n")
+    cat(sprintf("  Number of time periods: %d \n", n_periods))
+    cat(sprintf(
+      "  Observations per entity: %d - %d (avg: %.1f )\n",
+      min_obs_per_entity,
+      max_obs_per_entity,
+      avg_obs_per_entity
+    ))
+    cat(sprintf("  Number of balanced time periods: %d\n", n_balanced_periods))
+    cat(sprintf(
+      "  Number of time periods without NAs: %d\n\n",
+      n_periods_without_na
+    ))
+
+    cat("Entities\n")
+    cat("--------------------------------------------------------------\n")
+    cat(sprintf("  Number of entities: %d \n", n_entities))
+    cat(sprintf(
+      "  Observations per time period: %d - %d (avg: %.1f )\n",
+      min_obs_per_period,
+      max_obs_per_period,
+      avg_obs_per_period
+    ))
+    cat(sprintf(
+      "  Number of balanced entities: %d (%.1f%%)\n",
+      n_balanced_entities,
+      pct_balanced_entities
+    ))
+    cat(sprintf(
+      "  Number of entities without NAs: %d (%.1f%%)\n",
+      n_entities_without_na,
+      pct_entities_without_na
+    ))
+    cat("\n")
+  }
 
   # Create invisible return object
   result <- list(
@@ -308,33 +322,4 @@ explore_balance <- function(data, group, time) {
 
   class(result) <- "balance_exploration"
   invisible(result)
-}
-
-#' @export
-print.balance_exploration <- function(x, ...) {
-  cat("Panel Data Balance Exploration Results\n")
-  cat("===========================================\n\n")
-
-  cat("Summary Statistics:\n")
-  cat(sprintf("  Total observations: %d\n", x$summary$total_observations))
-  cat(sprintf("  Time periods: %d\n", x$summary$n_time_periods))
-  cat(sprintf("  Entities: %d\n", x$summary$n_entities))
-  cat(sprintf(
-    "  Balanced entities: %d (%.1f%%)\n",
-    x$summary$n_balanced_entities,
-    x$summary$pct_balanced_entities
-  ))
-  cat(sprintf("  Balanced time periods: %d\n", x$summary$n_balanced_periods))
-
-  cat("\nAvailable vectors for further analysis:\n")
-  cat("  - balanced_periods: ", length(x$balanced_periods), " time periods\n")
-  cat(
-    "  - periods_without_na: ",
-    length(x$periods_without_na),
-    " time periods\n"
-  )
-  cat("  - balanced_entities: ", length(x$balanced_entities), " entities\n")
-  cat("  - entities_without_na: ", length(x$entities_without_na), " entities\n")
-
-  invisible(x)
 }

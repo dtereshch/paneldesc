@@ -6,10 +6,11 @@
 #' @param data A data.frame containing panel data.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #' @param time A character string specifying the name of the time variable in panel data.
-#' @param detailed A logical flag indicating whether to return detailed vaildation results.
+#' @param detailed A logical flag indicating whether to return detailed validation results.
 #' Default = FALSE.
 #'
 #' @return A list with panel validation results. The structure depends on the `detailed` parameter.
+#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 #'
 #' @details
 #' The function performs the following checks:
@@ -26,11 +27,14 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic validation
+#' # Basic validation - will print automatically
 #' check_panel(production, group = "firm", time = "year")
 #'
-#' # Detailed validation
+#' # Detailed validation - will print automatically
 #' check_panel(production, group = "firm", time = "year", detailed = TRUE)
+#'
+#' # Assigning to variable - won't print
+#' check_result <- check_panel(production, group = "firm", time = "year")
 #'
 #' @seealso
 #' [decompose_variation()] for variance decomposition in panel data
@@ -309,45 +313,64 @@ check_panel <- function(data, group, time, detailed = FALSE) {
   )
 
   class(result) <- "panel_check"
-  return(result)
-}
 
-#' @export
-print.panel_check <- function(x, ...) {
-  if (x$detailed) {
-    cat("Panel Data Structure Check\n")
-    cat("==============================================================\n\n")
+  # Check if the result is being assigned to a variable
+  # by looking at the parent call
+  parent_call <- sys.call(-1)
+  is_assigned <- FALSE
 
-    cat("Summary\n")
-    cat("--------------------------------------------------------------\n")
-    cat(x$panel_summary, "\n")
-    cat("Validation Status:", x$validation_message, "\n\n")
+  if (!is.null(parent_call)) {
+    # Convert to string and check if it contains assignment operators
+    call_text <- deparse(parent_call)
+    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
 
-    cat("Validation Results\n")
-    cat("--------------------------------------------------------------\n")
-
-    for (i in 1:nrow(x$validation_results)) {
-      row <- x$validation_results[i, ]
-
-      # Color coding for status
-      status_str <- switch(
-        row$status,
-        PASS = paste0("\033[32m", row$status, "\033[0m"),
-        FAIL = paste0("\033[31m", row$status, "\033[0m"),
-        WARNING = paste0("\033[33m", row$status, "\033[0m"),
-        INFO = paste0("\033[34m", row$status, "\033[0m"),
-        row$status
-      )
-
-      cat(sprintf("  %-20s [%s] %s\n", row$variable, status_str, row$message))
+    for (op in assignment_ops) {
+      if (grepl(op, call_text, fixed = TRUE)) {
+        is_assigned <- TRUE
+        break
+      }
     }
-    cat("\n")
-  } else {
-    # For non-detailed output, just show the panel summary and validation status
-    # without any titles
-    cat(x$panel_summary, "\n")
-    cat("Validation Status:", x$validation_message, "\n")
   }
 
-  invisible(x)
+  # Print if not assigned (basic usage)
+  if (!is_assigned) {
+    # Print logic
+    if (result$detailed) {
+      cat("Panel Data Structure Check\n")
+      cat("==============================================================\n\n")
+
+      cat("Summary\n")
+      cat("--------------------------------------------------------------\n")
+      cat(result$panel_summary, "\n")
+      cat("Validation Status:", result$validation_message, "\n\n")
+
+      cat("Validation Results\n")
+      cat("--------------------------------------------------------------\n")
+
+      for (i in 1:nrow(result$validation_results)) {
+        row <- result$validation_results[i, ]
+
+        # Color coding for status
+        status_str <- switch(
+          row$status,
+          PASS = paste0("\033[32m", row$status, "\033[0m"),
+          FAIL = paste0("\033[31m", row$status, "\033[0m"),
+          WARNING = paste0("\033[33m", row$status, "\033[0m"),
+          INFO = paste0("\033[34m", row$status, "\033[0m"),
+          row$status
+        )
+
+        cat(sprintf("  %-20s [%s] %s\n", row$variable, status_str, row$message))
+      }
+      cat("\n")
+    } else {
+      # For non-detailed output, just show the panel summary and validation status
+      # without any titles
+      cat(result$panel_summary, "\n")
+      cat("Validation Status:", result$validation_message, "\n")
+    }
+  }
+
+  # Always return the result invisibly
+  invisible(result)
 }

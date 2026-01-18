@@ -7,23 +7,24 @@
 #' @param time A character string specifying the name of the time variable.
 #' @param max_patterns An integer specifying the maximum number of patterns to display in detail. Default = 10.
 #'
-#' @return Invisible list containing detailed participation pattern statistics.
-#'   The list includes:
-#'   - `pattern_matrix`: Matrix showing presence patterns
-#'   - `pattern_groups`: List of entities belonging to each pattern
-#'   - `pattern_stats`: Data.frame with pattern statistics
-#'   - `entities_by_pattern`: Vector with the number of entities in each pattern
+#' @return A list containing detailed participation pattern statistics.
+#' The list includes:
+#'   \item{pattern_matrix}{Matrix showing presence patterns}
+#'   \item{pattern_groups}{List of entities belonging to each pattern}
+#'   \item{pattern_stats}{Data.frame with pattern statistics}
+#'   \item{entities_by_pattern}{Vector with the number of entities in each pattern}
+#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 #'
 #' @examples
 #' data(production)
 #'
-#' # Basic usage
+#' # Basic usage - will print automatically
 #' explore_participation(production, group = "firm", time = "year")
 #'
-#' # Show only top 5 patterns
+#' # Show only top 5 patterns - will print automatically
 #' explore_participation(production, group = "firm", time = "year", max_patterns = 5)
 #'
-#' # Access the number of entities per pattern
+#' # Access the number of entities per pattern - won't print
 #' result <- explore_participation(production, group = "firm", time = "year")
 #' entities_per_pattern <- result$entities_by_pattern
 #' print(entities_per_pattern)
@@ -151,56 +152,80 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
   entities_by_pattern <- pattern_counts
   names(entities_by_pattern) <- rownames(pattern_matrix)
 
-  # Print formatted output
-  n_to_display <- min(length(pattern_groups), max_patterns)
-  cat(sprintf("Information on Top %d Participation Patterns\n\n", n_to_display))
+  # Check if the result is being assigned to a variable
+  # by looking at the parent call
+  parent_call <- sys.call(-1)
+  is_assigned <- FALSE
 
-  # Calculate maximum widths for alignment
-  max_pattern_width <- nchar(as.character(n_to_display))
-  max_count_width <- max(nchar(as.character(pattern_counts[1:n_to_display])))
+  if (!is.null(parent_call)) {
+    # Convert to string and check if it contains assignment operators
+    call_text <- deparse(parent_call)
+    assignment_ops <- c("<-", "=", "<<-", "assign", "->", "->>")
 
-  for (i in seq_len(n_to_display)) {
-    pattern <- pattern_matrix[i, ]
-    pattern_visual <- ifelse(pattern == 1, "1", "0")
+    for (op in assignment_ops) {
+      if (grepl(op, call_text, fixed = TRUE)) {
+        is_assigned <- TRUE
+        break
+      }
+    }
+  }
 
-    # Format the pattern line with aligned separators
-    pattern_label <- sprintf("Pattern %*d", max_pattern_width, i)
-    count_label <- sprintf("n=%*d", max_count_width, pattern_counts[i])
-    pct_label <- sprintf("%5.1f%%", pattern_pcts[i])
+  # Print if not assigned (basic usage)
+  if (!is_assigned) {
+    # Print formatted output
+    n_to_display <- min(length(pattern_groups), max_patterns)
+    cat(sprintf(
+      "Information on Top %d Participation Patterns\n\n",
+      n_to_display
+    ))
 
-    # Show entities for this pattern
-    entities_in_pattern <- pattern_groups[[i]]
-    if (length(entities_in_pattern) <= 5) {
-      entities_label <- paste(entities_in_pattern, collapse = ", ")
-    } else {
-      entities_label <- paste(
-        paste(entities_in_pattern[1:3], collapse = ", "),
-        ", ... (",
-        length(entities_in_pattern) - 3,
-        " more)",
-        sep = ""
-      )
+    # Calculate maximum widths for alignment
+    max_pattern_width <- nchar(as.character(n_to_display))
+    max_count_width <- max(nchar(as.character(pattern_counts[1:n_to_display])))
+
+    for (i in seq_len(n_to_display)) {
+      pattern <- pattern_matrix[i, ]
+      pattern_visual <- ifelse(pattern == 1, "1", "0")
+
+      # Format the pattern line with aligned separators
+      pattern_label <- sprintf("Pattern %*d", max_pattern_width, i)
+      count_label <- sprintf("n=%*d", max_count_width, pattern_counts[i])
+      pct_label <- sprintf("%5.1f%%", pattern_pcts[i])
+
+      # Show entities for this pattern
+      entities_in_pattern <- pattern_groups[[i]]
+      if (length(entities_in_pattern) <= 5) {
+        entities_label <- paste(entities_in_pattern, collapse = ", ")
+      } else {
+        entities_label <- paste(
+          paste(entities_in_pattern[1:3], collapse = ", "),
+          ", ... (",
+          length(entities_in_pattern) - 3,
+          " more)",
+          sep = ""
+        )
+      }
+
+      cat(sprintf(
+        "%s (%s, %s): [%s], entities: %s%s\n",
+        pattern_label,
+        count_label,
+        pct_label,
+        paste(pattern_visual, collapse = ""),
+        entities_label,
+        ifelse(i == 1, " (Most Common)", "")
+      ))
     }
 
-    cat(sprintf(
-      "%s (%s, %s): [%s], entities: %s%s\n",
-      pattern_label,
-      count_label,
-      pct_label,
-      paste(pattern_visual, collapse = ""),
-      entities_label,
-      ifelse(i == 1, " (Most Common)", "")
-    ))
+    if (length(pattern_groups) > max_patterns) {
+      cat(sprintf(
+        "\n... and %d more patterns (use max_patterns = %d to see all)\n",
+        length(pattern_groups) - max_patterns,
+        length(pattern_groups)
+      ))
+    }
+    cat("\n")
   }
-
-  if (length(pattern_groups) > max_patterns) {
-    cat(sprintf(
-      "\n... and %d more patterns (use max_patterns = %d to see all)\n",
-      length(pattern_groups) - max_patterns,
-      length(pattern_groups)
-    ))
-  }
-  cat("\n")
 
   # Create pattern stats data.frame
   pattern_stats <- data.frame(

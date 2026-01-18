@@ -16,14 +16,13 @@ explore_participation(data, group, time, max_patterns = 10)
 \item{max_patterns}{An integer specifying the maximum number of patterns to display in detail. Default = 10.}
 }
 \value{
-Invisible list containing detailed participation pattern statistics.
+A list containing detailed participation pattern statistics.
 The list includes:
-\itemize{
-\item \code{pattern_matrix}: Matrix showing presence patterns
-\item \code{pattern_groups}: List of entities belonging to each pattern
-\item \code{pattern_stats}: Data.frame with pattern statistics
-\item \code{entities_by_pattern}: Vector with the number of entities in each pattern
-}
+\item{pattern_matrix}{Matrix showing presence patterns}
+\item{pattern_groups}{List of entities belonging to each pattern}
+\item{pattern_stats}{Data.frame with pattern statistics}
+\item{entities_by_pattern}{Vector with the number of entities in each pattern}
+The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 Provides detailed analysis of participation patterns in panel data.
@@ -31,13 +30,13 @@ Provides detailed analysis of participation patterns in panel data.
 \examples{
 data(production)
 
-# Basic usage
+# Basic usage - will print automatically
 explore_participation(production, group = "firm", time = "year")
 
-# Show only top 5 patterns
+# Show only top 5 patterns - will print automatically
 explore_participation(production, group = "firm", time = "year", max_patterns = 5)
 
-# Access the number of entities per pattern
+# Access the number of entities per pattern - won't print
 result <- explore_participation(production, group = "firm", time = "year")
 entities_per_pattern <- result$entities_by_pattern
 print(entities_per_pattern)
