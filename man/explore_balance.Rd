@@ -43,7 +43,7 @@ data(production)
 explore_balance(production, group = "firm", time = "year")
 
 # Access returned vectors for further analysis - won't print
-result <- explore_balance(panel_data, group = "firm", time = "year")
+result <- explore_balance(production, group = "firm", time = "year")
 
 # Balanced periods (all entities present)
 balanced_periods <- result$balanced_periods
@@ -62,12 +62,12 @@ clean_entities <- result$entities_without_na
 print(clean_entities)
 
 # Create a balanced subset
-balanced_data <- panel_data[panel_data$firm \%in\% complete_entities, ]
+balanced_data <- production[production$firm \%in\% complete_entities, ]
 
 # Create a complete subset (balanced and no NAs)
-complete_data <- panel_data[
-  panel_data$firm \%in\% complete_entities &
-  panel_data$year \%in\% clean_periods,
+complete_data <- production[
+  production$firm \%in\% complete_entities &
+  production$year \%in\% clean_periods,
 ]
 
 }
