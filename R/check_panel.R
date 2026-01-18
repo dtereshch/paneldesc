@@ -27,14 +27,27 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic validation - will print automatically
+#' # Basic validation
 #' check_panel(production, group = "firm", time = "year")
 #'
-#' # Detailed validation - will print automatically
+#' # Detailed validation
 #' check_panel(production, group = "firm", time = "year", detailed = TRUE)
 #'
-#' # Assigning to variable - won't print
+#' # Assigning to variable - will not print
 #' check_result <- check_panel(production, group = "firm", time = "year")
+#'
+#' # Access useful vectors for further analysis
+#' duplicate_rows <- check_result$vectors$duplicate_rows
+#' unbalanced_firms <- check_result$vectors$unbalanced_groups
+#' irregular_firms <- check_result$vectors$irregular_groups
+#' obs_per_firm <- check_result$vectors$observations_per_group
+#'
+#' # Identify problematic observations
+#' problematic_indices <- unique(c(
+#' check_result$vectors$duplicate_indices,
+#' check_result$vectors$missing_groups,
+#' check_result$vectors$missing_times
+#' ))
 #'
 #' @seealso
 #' [decompose_variation()] for variance decomposition in panel data
@@ -92,11 +105,36 @@ check_panel <- function(data, group, time, detailed = FALSE) {
   n_periods <- length(unique(data[[time]]))
   n_obs <- nrow(data)
 
-  # Check for duplicate group-time combinations
+  # Get group and time vectors
   group_vector <- data[[group]]
   time_vector <- data[[time]]
+
+  # Create combo identifier
   combos <- paste(group_vector, time_vector, sep = "|")
+
+  # Check for duplicate group-time combinations
   has_duplicates <- any(duplicated(combos))
+
+  # Identify duplicate indices
+  duplicate_indices <- which(
+    duplicated(combos) | duplicated(combos, fromLast = TRUE)
+  )
+  duplicate_rows <- data[duplicate_indices, ]
+
+  # Create unique identifier for duplicates
+  duplicate_combos <- unique(combos[duplicated(combos)])
+  duplicate_summary <- data.frame(
+    combo = duplicate_combos,
+    count = sapply(duplicate_combos, function(x) sum(combos == x)),
+    stringsAsFactors = FALSE
+  )
+
+  # Split combos into group and time for the summary
+  if (nrow(duplicate_summary) > 0) {
+    split_combos <- strsplit(duplicate_summary$combo, "\\|")
+    duplicate_summary$group <- sapply(split_combos, function(x) x[1])
+    duplicate_summary$time <- sapply(split_combos, function(x) x[2])
+  }
 
   # Check for balanced panel
   time_by_group <- split(time_vector, group_vector)
@@ -110,21 +148,60 @@ check_panel <- function(data, group, time, detailed = FALSE) {
     is_balanced <- FALSE
   }
 
+  # Identify groups with missing time points (if unbalanced)
+  if (!is_balanced) {
+    # Find all unique time points across all groups
+    all_times <- sort(unique(time_vector))
+
+    # For each group, identify missing time points
+    missing_time_info <- list()
+    for (grp in names(time_by_group)) {
+      group_times <- unique(time_by_group[[grp]])
+      missing_times <- setdiff(all_times, group_times)
+      if (length(missing_times) > 0) {
+        missing_time_info[[grp]] <- missing_times
+      }
+    }
+  } else {
+    missing_time_info <- list()
+  }
+
   # Check for irregular time intervals
   has_irregular_intervals <- FALSE
+  irregular_groups <- character()
+  interval_details <- list()
+
   if (
     is.numeric(time_vector) ||
       inherits(time_vector, "Date") ||
       inherits(time_vector, "POSIXt")
   ) {
-    for (times in time_by_group) {
+    for (grp in names(time_by_group)) {
+      times <- time_by_group[[grp]]
       unique_times <- sort(unique(times))
       if (length(unique_times) > 1) {
         intervals <- diff(unique_times)
         if (length(unique(intervals)) > 1) {
           has_irregular_intervals <- TRUE
-          break
+          irregular_groups <- c(irregular_groups, grp)
+          interval_details[[grp]] <- list(
+            times = unique_times,
+            intervals = intervals,
+            is_regular = FALSE
+          )
+        } else {
+          interval_details[[grp]] <- list(
+            times = unique_times,
+            intervals = intervals,
+            is_regular = TRUE
+          )
         }
+      } else {
+        interval_details[[grp]] <- list(
+          times = unique_times,
+          intervals = numeric(0),
+          is_regular = TRUE
+        )
       }
     }
   }
@@ -132,6 +209,12 @@ check_panel <- function(data, group, time, detailed = FALSE) {
   # Calculate observations per group
   group_table <- table(data[[group]])
   avg_obs_per_group <- mean(group_table)
+
+  # Get groups with minimum and maximum observations
+  min_obs <- min(group_table)
+  max_obs <- max(group_table)
+  groups_with_min_obs <- names(group_table)[group_table == min_obs]
+  groups_with_max_obs <- names(group_table)[group_table == max_obs]
 
   # Build validation results
   validation_results <- rbind(
@@ -288,7 +371,7 @@ check_panel <- function(data, group, time, detailed = FALSE) {
     panel_summary <- paste0(panel_summary, ", ", paste(issues, collapse = ", "))
   }
 
-  # Create result object
+  # Create result object with useful vectors for further analysis
   result <- list(
     panel_summary = panel_summary,
     validation_status = overall_status,
@@ -299,6 +382,8 @@ check_panel <- function(data, group, time, detailed = FALSE) {
     ),
     validation_results = validation_results,
     detailed = detailed,
+
+    # Panel structure information
     panel_info = list(
       n_groups = n_groups,
       n_periods = n_periods,
@@ -309,6 +394,47 @@ check_panel <- function(data, group, time, detailed = FALSE) {
       has_irregular_intervals = has_irregular_intervals,
       group_var = group,
       time_var = time
+    ),
+
+    # Vectors for further analysis
+    vectors = list(
+      # All group and time vectors
+      group_vector = group_vector,
+      time_vector = time_vector,
+      combo_vector = combos,
+
+      # Duplicate information
+      duplicate_indices = duplicate_indices,
+      duplicate_rows = duplicate_rows,
+      duplicate_summary = duplicate_summary,
+      duplicate_combos = duplicate_combos,
+
+      # Balance information
+      all_groups = unique(group_vector),
+      all_times = unique(time_vector),
+      missing_time_info = missing_time_info,
+      unbalanced_groups = if (!is_balanced) {
+        names(missing_time_info)
+      } else {
+        character()
+      },
+
+      # Time interval information
+      irregular_groups = irregular_groups,
+      interval_details = interval_details,
+
+      # Group statistics
+      observations_per_group = group_table,
+      groups_with_min_obs = groups_with_min_obs,
+      groups_with_max_obs = groups_with_max_obs,
+      min_observations = min_obs,
+      max_observations = max_obs,
+
+      # Missing value information
+      missing_groups = which(is.na(group_vector)),
+      missing_times = which(is.na(time_vector)),
+      na_group_count = sum(is.na(group_vector)),
+      na_time_count = sum(is.na(time_vector))
     )
   )
 

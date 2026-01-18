@@ -39,14 +39,27 @@ The function performs the following checks:
 \examples{
 data(production)
 
-# Basic validation - will print automatically
+# Basic validation
 check_panel(production, group = "firm", time = "year")
 
-# Detailed validation - will print automatically
+# Detailed validation
 check_panel(production, group = "firm", time = "year", detailed = TRUE)
 
-# Assigning to variable - won't print
+# Assigning to variable - will not print
 check_result <- check_panel(production, group = "firm", time = "year")
+
+# Access useful vectors for further analysis
+duplicate_rows <- check_result$vectors$duplicate_rows
+unbalanced_firms <- check_result$vectors$unbalanced_groups
+irregular_firms <- check_result$vectors$irregular_groups
+obs_per_firm <- check_result$vectors$observations_per_group
+
+# Identify problematic observations
+problematic_indices <- unique(c(
+check_result$vectors$duplicate_indices,
+check_result$vectors$missing_groups,
+check_result$vectors$missing_times
+))
 
 }
 \seealso{
