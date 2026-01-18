@@ -6,6 +6,8 @@
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #' @param time A character string specifying the name of the time variable.
 #' @param max_patterns An integer specifying the maximum number of patterns to display in detail. Default = 10.
+#' @param print_result A logical flag indicating whether to print the validation results.
+#' Default = TRUE.
 #'
 #' @return A list containing detailed participation pattern statistics.
 #' The list includes:
@@ -13,24 +15,32 @@
 #'   \item{pattern_groups}{List of entities belonging to each pattern}
 #'   \item{pattern_stats}{Data.frame with pattern statistics}
 #'   \item{entities_by_pattern}{Vector with the number of entities in each pattern}
-#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 #'
 #' @examples
 #' data(production)
 #'
-#' # Basic usage
+#' # Basic usage (prints by default)
 #' explore_participation(production, group = "firm", time = "year")
 #'
 #' # Show only top 5 patterns
 #' explore_participation(production, group = "firm", time = "year", max_patterns = 5)
 #'
-#' # Access the number of entities per pattern
-#' result <- explore_participation(production, group = "firm", time = "year")
-#' entities_per_pattern <- result$entities_by_pattern
+#' # Assign the results without printing
+#' participation_result <- explore_participation(production, group = "firm", time = "year",
+#' print_result = FALSE)
+#'
+#' # Access the number of entities per pattern#'
+#' entities_per_pattern <- participation_result$entities_by_pattern
 #' print(entities_per_pattern)
 #'
 #' @export
-explore_participation <- function(data, group, time, max_patterns = 10) {
+explore_participation <- function(
+  data,
+  group,
+  time,
+  max_patterns = 10,
+  print_result = TRUE
+) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
@@ -58,6 +68,13 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
     stop(
       "'max_patterns' must be a single positive integer, not ",
       class(max_patterns)[1]
+    )
+  }
+
+  if (!is.logical(print_result) || length(print_result) != 1) {
+    stop(
+      "'print_result' must be a single logical value, not ",
+      class(print_result)[1]
     )
   }
 
@@ -148,18 +165,34 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
   total_entities <- length(unique_groups)
   pattern_pcts <- pattern_counts / total_entities * 100
 
-  # Create vector with entities number for each pattern - FIXED
-  # Recreate pattern names after reordering
-  pattern_names <- paste0("Pattern ", seq_len(length(pattern_counts)))
+  # Create vector with entities number for each pattern
   entities_by_pattern <- pattern_counts
-  names(entities_by_pattern) <- pattern_names
+  names(entities_by_pattern) <- rownames(pattern_matrix)
 
-  # Check if we're at the top level (called directly, not assigned)
-  # Compare the current call to the first call in the call stack
-  called_from_top <- length(sys.calls()) == 1
+  # Create pattern stats data.frame
+  pattern_stats <- data.frame(
+    pattern_id = seq_len(length(pattern_counts)),
+    pattern_string = names(pattern_groups),
+    n_entities = pattern_counts,
+    percent_entities = pattern_pcts,
+    entities = I(pattern_groups),
+    stringsAsFactors = FALSE
+  )
 
-  # Print if called directly (not assigned)
-  if (called_from_top) {
+  # Return results
+  result <- list(
+    pattern_matrix = pattern_matrix,
+    pattern_groups = pattern_groups,
+    pattern_stats = pattern_stats,
+    entities_by_pattern = entities_by_pattern,
+    presence_matrix = presence_matrix,
+    group_var = group,
+    time_var = time,
+    filtered_data = filtered_data
+  )
+
+  # Print if requested
+  if (print_result) {
     # Print formatted output
     n_to_display <- min(length(pattern_groups), max_patterns)
     cat(sprintf(
@@ -213,49 +246,7 @@ explore_participation <- function(data, group, time, max_patterns = 10) {
       ))
     }
     cat("\n")
-
-    # Create pattern stats data.frame
-    pattern_stats <- data.frame(
-      pattern_id = seq_len(length(pattern_counts)),
-      pattern_string = names(pattern_groups),
-      n_entities = pattern_counts,
-      percent_entities = pattern_pcts,
-      entities = I(pattern_groups),
-      stringsAsFactors = FALSE
-    )
-
-    # Return visibly so it gets printed by the REPL
-    return(list(
-      pattern_matrix = pattern_matrix,
-      pattern_groups = pattern_groups,
-      pattern_stats = pattern_stats,
-      entities_by_pattern = entities_by_pattern,
-      presence_matrix = presence_matrix,
-      group_var = group,
-      time_var = time,
-      filtered_data = filtered_data
-    ))
-  } else {
-    # Create pattern stats data.frame
-    pattern_stats <- data.frame(
-      pattern_id = seq_len(length(pattern_counts)),
-      pattern_string = names(pattern_groups),
-      n_entities = pattern_counts,
-      percent_entities = pattern_pcts,
-      entities = I(pattern_groups),
-      stringsAsFactors = FALSE
-    )
-
-    # Return invisibly if not at top level (likely assigned)
-    invisible(list(
-      pattern_matrix = pattern_matrix,
-      pattern_groups = pattern_groups,
-      pattern_stats = pattern_stats,
-      entities_by_pattern = entities_by_pattern,
-      presence_matrix = presence_matrix,
-      group_var = group,
-      time_var = time,
-      filtered_data = filtered_data
-    ))
   }
+
+  invisible(result)
 }

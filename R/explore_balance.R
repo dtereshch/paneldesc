@@ -7,6 +7,8 @@
 #' @param data A data.frame containing panel data.
 #' @param group A character string specifying the name of the entity/group variable.
 #' @param time A character string specifying the name of the time variable.
+#' @param print_result A logical flag indicating whether to print the validation results.
+#' Default = TRUE.
 #'
 #' @return A list containing the following components:
 #'   \item{summary}{A list with summary statistics}
@@ -15,7 +17,6 @@
 #'   \item{balanced_entities}{Vector of entities present in all time periods}
 #'   \item{entities_without_na}{Vector of entities with no missing values in substantive variables}
 #'   \item{presence_matrix}{Binary matrix showing entity-time presence (1=present, 0=missing)}
-#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 #'
 #'
 #' @details
@@ -29,26 +30,26 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic usage
+#' # Basic usage (prints by default)
 #' explore_balance(production, group = "firm", time = "year")
 #'
-#' # Access returned vectors for further analysis
-#' result <- explore_balance(production, group = "firm", time = "year")
+#' # Assign the results without printing
+#' balance_result <- explore_balance(production, group = "firm", time = "year", print_result = FALSE)
 #'
 #' # Balanced periods (all entities present)
-#' balanced_periods <- result$balanced_periods
+#' balanced_periods <- balance_result$balanced_periods
 #' print(balanced_periods)
 #'
 #' # Time periods with no missing values
-#' clean_periods <- result$periods_without_na
+#' clean_periods <- balance_result$periods_without_na
 #' print(clean_periods)
 #'
 #' # Balanced entities (present in all time periods)
-#' complete_entities <- result$balanced_entities
+#' complete_entities <- balance_result$balanced_entities
 #' print(complete_entities)
 #'
 #' # Entities with no missing values
-#' clean_entities <- result$entities_without_na
+#' clean_entities <- balance_result$entities_without_na
 #' print(clean_entities)
 #'
 #' # Create a balanced subset
@@ -66,7 +67,7 @@
 #' [explore_participation()] for participation pattern analysis
 #'
 #' @export
-explore_balance <- function(data, group, time) {
+explore_balance <- function(data, group, time, print_result = TRUE) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
@@ -90,6 +91,13 @@ explore_balance <- function(data, group, time) {
 
   if (time == group) {
     stop("'time' and 'group' cannot be the same variable")
+  }
+
+  if (!is.logical(print_result) || length(print_result) != 1) {
+    stop(
+      "'print_result' must be a single logical value, not ",
+      class(print_result)[1]
+    )
   }
 
   # Get substantive variables (all except group and time)
@@ -214,13 +222,41 @@ explore_balance <- function(data, group, time) {
     0
   )
 
-  # Check if we're at the top level (called directly, not assigned)
-  # Compare the current call to the first call in the call stack
-  called_from_top <- length(sys.calls()) == 1
+  # Create invisible return object
+  result <- list(
+    summary = list(
+      total_observations = total_obs,
+      observations_without_na = obs_without_na,
+      observations_with_na = obs_with_na,
+      n_time_periods = n_periods,
+      min_obs_per_entity = min_obs_per_entity,
+      max_obs_per_entity = max_obs_per_entity,
+      avg_obs_per_entity = avg_obs_per_entity,
+      n_balanced_periods = n_balanced_periods,
+      n_periods_without_na = n_periods_without_na,
+      n_entities = n_entities,
+      min_obs_per_period = min_obs_per_period,
+      max_obs_per_period = max_obs_per_period,
+      avg_obs_per_period = avg_obs_per_period,
+      n_balanced_entities = n_balanced_entities,
+      pct_balanced_entities = pct_balanced_entities,
+      n_entities_without_na = n_entities_without_na,
+      pct_entities_without_na = pct_entities_without_na
+    ),
+    balanced_periods = balanced_periods,
+    periods_without_na = periods_without_na,
+    balanced_entities = balanced_entities,
+    entities_without_na = entities_without_na,
+    presence_matrix = presence_matrix,
+    na_matrix = na_matrix,
+    group_var = group,
+    time_var = time
+  )
 
-  # Print if called directly (not assigned)
-  if (called_from_top) {
-    # Print formatted output
+  class(result) <- "balance_exploration"
+
+  # Print if requested
+  if (print_result) {
     cat("Panel Data Balance Check\n")
     cat("===========================================\n\n")
 
@@ -273,71 +309,7 @@ explore_balance <- function(data, group, time) {
       pct_entities_without_na
     ))
     cat("\n")
-
-    # Return visibly so it gets printed by the REPL
-    return(list(
-      summary = list(
-        total_observations = total_obs,
-        observations_without_na = obs_without_na,
-        observations_with_na = obs_with_na,
-        n_time_periods = n_periods,
-        min_obs_per_entity = min_obs_per_entity,
-        max_obs_per_entity = max_obs_per_entity,
-        avg_obs_per_entity = avg_obs_per_entity,
-        n_balanced_periods = n_balanced_periods,
-        n_periods_without_na = n_periods_without_na,
-        n_entities = n_entities,
-        min_obs_per_period = min_obs_per_period,
-        max_obs_per_period = max_obs_per_period,
-        avg_obs_per_period = avg_obs_per_period,
-        n_balanced_entities = n_balanced_entities,
-        pct_balanced_entities = pct_balanced_entities,
-        n_entities_without_na = n_entities_without_na,
-        pct_entities_without_na = pct_entities_without_na
-      ),
-      balanced_periods = balanced_periods,
-      periods_without_na = periods_without_na,
-      balanced_entities = balanced_entities,
-      entities_without_na = entities_without_na,
-      presence_matrix = presence_matrix,
-      na_matrix = na_matrix,
-      group_var = group,
-      time_var = time
-    ))
-  } else {
-    # Create invisible return object
-    result <- list(
-      summary = list(
-        total_observations = total_obs,
-        observations_without_na = obs_without_na,
-        observations_with_na = obs_with_na,
-        n_time_periods = n_periods,
-        min_obs_per_entity = min_obs_per_entity,
-        max_obs_per_entity = max_obs_per_entity,
-        avg_obs_per_entity = avg_obs_per_entity,
-        n_balanced_periods = n_balanced_periods,
-        n_periods_without_na = n_periods_without_na,
-        n_entities = n_entities,
-        min_obs_per_period = min_obs_per_period,
-        max_obs_per_period = max_obs_per_period,
-        avg_obs_per_period = avg_obs_per_period,
-        n_balanced_entities = n_balanced_entities,
-        pct_balanced_entities = pct_balanced_entities,
-        n_entities_without_na = n_entities_without_na,
-        pct_entities_without_na = pct_entities_without_na
-      ),
-      balanced_periods = balanced_periods,
-      periods_without_na = periods_without_na,
-      balanced_entities = balanced_entities,
-      entities_without_na = entities_without_na,
-      presence_matrix = presence_matrix,
-      na_matrix = na_matrix,
-      group_var = group,
-      time_var = time
-    )
-
-    class(result) <- "balance_exploration"
-    # Return invisibly if not at top level (likely assigned)
-    invisible(result)
   }
+
+  invisible(result)
 }

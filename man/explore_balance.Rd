@@ -4,7 +4,7 @@
 \alias{explore_balance}
 \title{Panel Data Balance Exploration}
 \usage{
-explore_balance(data, group, time)
+explore_balance(data, group, time, print_result = TRUE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
@@ -12,6 +12,9 @@ explore_balance(data, group, time)
 \item{group}{A character string specifying the name of the entity/group variable.}
 
 \item{time}{A character string specifying the name of the time variable.}
+
+\item{print_result}{A logical flag indicating whether to print the validation results.
+Default = TRUE.}
 }
 \value{
 A list containing the following components:
@@ -21,7 +24,6 @@ A list containing the following components:
 \item{balanced_entities}{Vector of entities present in all time periods}
 \item{entities_without_na}{Vector of entities with no missing values in substantive variables}
 \item{presence_matrix}{Binary matrix showing entity-time presence (1=present, 0=missing)}
-The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 This function provides detailed analysis of panel data balance, including
@@ -39,26 +41,26 @@ The function analyzes panel data balance from multiple perspectives:
 \examples{
 data(production)
 
-# Basic usage
+# Basic usage (prints by default)
 explore_balance(production, group = "firm", time = "year")
 
-# Access returned vectors for further analysis
-result <- explore_balance(production, group = "firm", time = "year")
+# Assign the results without printing
+balance_result <- explore_balance(production, group = "firm", time = "year", print_result = FALSE)
 
 # Balanced periods (all entities present)
-balanced_periods <- result$balanced_periods
+balanced_periods <- balance_result$balanced_periods
 print(balanced_periods)
 
 # Time periods with no missing values
-clean_periods <- result$periods_without_na
+clean_periods <- balance_result$periods_without_na
 print(clean_periods)
 
 # Balanced entities (present in all time periods)
-complete_entities <- result$balanced_entities
+complete_entities <- balance_result$balanced_entities
 print(complete_entities)
 
 # Entities with no missing values
-clean_entities <- result$entities_without_na
+clean_entities <- balance_result$entities_without_na
 print(clean_entities)
 
 # Create a balanced subset

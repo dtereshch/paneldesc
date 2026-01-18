@@ -4,7 +4,7 @@
 \alias{check_panel}
 \title{Panel Data Structure Validation}
 \usage{
-check_panel(data, group, time, detailed = FALSE)
+check_panel(data, group, time, detailed = FALSE, print_result = TRUE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
@@ -15,10 +15,12 @@ check_panel(data, group, time, detailed = FALSE)
 
 \item{detailed}{A logical flag indicating whether to return detailed validation results.
 Default = FALSE.}
+
+\item{print_result}{A logical flag indicating whether to print the validation results.
+Default = TRUE.}
 }
 \value{
 A list with panel validation results. The structure depends on the \code{detailed} parameter.
-The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 This function performs comprehensive validation of panel data structure,
@@ -39,14 +41,14 @@ The function performs the following checks:
 \examples{
 data(production)
 
-# Basic usage
+# Basic usage (prints by default)
 check_panel(production, group = "firm", time = "year")
 
 # Detailed validation results
 check_panel(production, group = "firm", time = "year", detailed = TRUE)
 
-# Assigning to variable
-check_result <- check_panel(production, group = "firm", time = "year")
+# Assign the results without printing
+check_result <- check_panel(production, group = "firm", time = "year", print_result = FALSE)
 
 # Access useful vectors for further analysis
 duplicate_rows <- check_result$vectors$duplicate_rows

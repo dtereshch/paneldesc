@@ -4,7 +4,13 @@
 \alias{explore_participation}
 \title{Detailed Panel Data Participation Patterns}
 \usage{
-explore_participation(data, group, time, max_patterns = 10)
+explore_participation(
+  data,
+  group,
+  time,
+  max_patterns = 10,
+  print_result = TRUE
+)
 }
 \arguments{
 \item{data}{A data.frame containing panel data.}
@@ -14,6 +20,9 @@ explore_participation(data, group, time, max_patterns = 10)
 \item{time}{A character string specifying the name of the time variable.}
 
 \item{max_patterns}{An integer specifying the maximum number of patterns to display in detail. Default = 10.}
+
+\item{print_result}{A logical flag indicating whether to print the validation results.
+Default = TRUE.}
 }
 \value{
 A list containing detailed participation pattern statistics.
@@ -22,7 +31,6 @@ The list includes:
 \item{pattern_groups}{List of entities belonging to each pattern}
 \item{pattern_stats}{Data.frame with pattern statistics}
 \item{entities_by_pattern}{Vector with the number of entities in each pattern}
-The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 }
 \description{
 Provides detailed analysis of participation patterns in panel data.
@@ -30,15 +38,18 @@ Provides detailed analysis of participation patterns in panel data.
 \examples{
 data(production)
 
-# Basic usage
+# Basic usage (prints by default)
 explore_participation(production, group = "firm", time = "year")
 
 # Show only top 5 patterns
 explore_participation(production, group = "firm", time = "year", max_patterns = 5)
 
-# Access the number of entities per pattern
-result <- explore_participation(production, group = "firm", time = "year")
-entities_per_pattern <- result$entities_by_pattern
+# Assign the results without printing
+participation_result <- explore_participation(production, group = "firm", time = "year",
+print_result = FALSE)
+
+# Access the number of entities per pattern#'
+entities_per_pattern <- participation_result$entities_by_pattern
 print(entities_per_pattern)
 
 }

@@ -8,9 +8,10 @@
 #' @param time A character string specifying the name of the time variable in panel data.
 #' @param detailed A logical flag indicating whether to return detailed validation results.
 #' Default = FALSE.
+#' @param print_result A logical flag indicating whether to print the validation results.
+#' Default = TRUE.
 #'
 #' @return A list with panel validation results. The structure depends on the `detailed` parameter.
-#' The result is returned invisibly, and will be printed automatically unless assigned to a variable.
 #'
 #' @details
 #' The function performs the following checks:
@@ -27,14 +28,14 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic usage
+#' # Basic usage (prints by default)
 #' check_panel(production, group = "firm", time = "year")
 #'
 #' # Detailed validation results
 #' check_panel(production, group = "firm", time = "year", detailed = TRUE)
 #'
-#' # Assigning to variable
-#' check_result <- check_panel(production, group = "firm", time = "year")
+#' # Assign the results without printing
+#' check_result <- check_panel(production, group = "firm", time = "year", print_result = FALSE)
 #'
 #' # Access useful vectors for further analysis
 #' duplicate_rows <- check_result$vectors$duplicate_rows
@@ -53,7 +54,13 @@
 #' [decompose_variation()] for variance decomposition in panel data
 #'
 #' @export
-check_panel <- function(data, group, time, detailed = FALSE) {
+check_panel <- function(
+  data,
+  group,
+  time,
+  detailed = FALSE,
+  print_result = TRUE
+) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
@@ -81,6 +88,13 @@ check_panel <- function(data, group, time, detailed = FALSE) {
 
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
+  }
+
+  if (!is.logical(print_result) || length(print_result) != 1) {
+    stop(
+      "'print_result' must be a single logical value, not ",
+      class(print_result)[1]
+    )
   }
 
   # Check for missing values
@@ -440,13 +454,8 @@ check_panel <- function(data, group, time, detailed = FALSE) {
 
   class(result) <- "panel_check"
 
-  # Check if we're at the top level (called directly, not assigned)
-  # Compare the current call to the first call in the call stack
-  called_from_top <- length(sys.calls()) == 1
-
-  # Print if called directly (not assigned)
-  if (called_from_top) {
-    # Print logic
+  # Print if requested
+  if (print_result) {
     if (result$detailed) {
       cat("Panel Data Structure Check\n")
       cat("==============================================================\n\n")
@@ -481,11 +490,8 @@ check_panel <- function(data, group, time, detailed = FALSE) {
       cat(result$panel_summary, "\n")
       cat("Validation Status:", result$validation_message, "\n")
     }
-
-    # Return visibly so it gets printed by the REPL
-    return(result)
-  } else {
-    # Return invisibly if not at top level (likely assigned)
-    invisible(result)
   }
+
+  # Always return the result invisibly
+  invisible(result)
 }
