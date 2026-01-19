@@ -2,6 +2,7 @@
 
 export(describe_balance)
 export(describe_incomplete)
+export(describe_panel)
 export(describe_participation)
 export(describe_periods)
 export(explore_balance)
