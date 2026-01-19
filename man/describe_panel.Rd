@@ -16,10 +16,10 @@ describe_panel(data, group, time)
 \value{
 A data.frame with four columns:
 \describe{
-\item{\code{Entities}}{Number of unique groups/entities in the panel}
-\item{\code{Time Periods}}{Number of unique time periods in the panel}
-\item{\code{Observations}}{Total number of observations in the panel}
-\item{\code{Status}}{Panel validity status: "Valid" or "Invalid"}
+\item{\code{entities}}{Number of unique groups/entities in the panel}
+\item{\code{time_periods}}{Number of unique time periods in the panel}
+\item{\code{observations}}{Total number of observations in the panel}
+\item{\code{status}}{Panel validity status: "valid" or "invalid"}
 }
 }
 \description{
@@ -35,18 +35,18 @@ This function performs a simplified version of the exploration done by
 \item Missing values in group/time variables
 }
 
-If the panel is marked as "Invalid", a message is printed to the console
+If the panel is marked as "invalid", a message is printed to the console
 recommending the use of \code{\link{explore_panel}} for more detailed analysis.
 }
 \examples{
-#' data(production)
+data(production)
 
 # Get panel description
 panel_desc <- describe_panel(production, group = "firm", time = "year")
 print(panel_desc)
 
-# If status is "Invalid", use explore_panel() for detailed analysis
-if (panel_desc$Status == "Invalid") {
+# If status is "invalid", use explore_panel() for detailed analysis
+if (panel_desc$status == "invalid") {
   explore_panel(production, group = "firm", time = "year", detailed = TRUE)
 }
 

@@ -15,26 +15,26 @@
 #'
 #' \strong{When `format = "wide"` and `detailed = TRUE` (default):}
 #' \describe{
-#'   \item{\code{Pattern}}{Pattern identifier (1, 2, 3, ...)}
+#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...)}
 #'   \item{\code{[time_period]}}{Columns for each time period showing participation
 #'     (1 = present, 0 = missing). Column names match the time variable values.}
-#'   \item{\code{Count}}{Number of entities with this pattern}
-#'   \item{\code{Share}}{Proportion of entities with this pattern (0 to 1)}
-#'   \item{\code{Cumul.}}{Cumulative proportion of entities}
+#'   \item{\code{count}}{Number of entities with this pattern}
+#'   \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
+#'   \item{\code{cumulative}}{Cumulative proportion of entities}
 #' }
 #'
 #' \strong{When `format = "long"` and `detailed = TRUE`:}
 #' \describe{
-#'   \item{\code{Pattern}}{Pattern identifier (1, 2, 3, ...)}
+#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...)}
 #'   \item{\code{[time]}}{The time period variable (named according to the `time` argument)}
-#'   \item{\code{Participation}}{0/1 values indicating absence/presence in the period}
-#'   \item{\code{Count}}{Number of entities with this pattern}
-#'   \item{\code{Share}}{Proportion of entities with this pattern}
-#'   \item{\code{Cumul.}}{Cumulative proportion of entities}
+#'   \item{\code{participation}}{0/1 values indicating absence/presence in the period}
+#'   \item{\code{count}}{Number of entities with this pattern}
+#'   \item{\code{share}}{Proportion of entities with this pattern}
+#'   \item{\code{cumulative}}{Cumulative proportion of entities}
 #' }
 #'
 #' \strong{When `detailed = FALSE`:}
-#' Returns only the Pattern and time period columns (without Count, Share, or Cumul.).
+#' Returns only the Pattern and time period columns (without count, share, or cumulative).
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
@@ -155,7 +155,7 @@ describe_participation <- function(
 
   # Create result data frame
   result <- data.frame(
-    Pattern = seq_along(pattern_counts),
+    pattern = seq_along(pattern_counts),
     stringsAsFactors = FALSE
   )
 
@@ -165,17 +165,17 @@ describe_participation <- function(
   }
 
   # Add count and share columns
-  result$Count <- as.numeric(pattern_counts)
-  result$Share <- round(result$Count / sum(result$Count), 2)
+  result$count <- as.numeric(pattern_counts)
+  result$share <- round(result$count / sum(result$count), 4)
 
-  # FIX: Sort by count (descending) FIRST, then calculate cumulative sum
-  result <- result[order(-result$Count), ]
+  # Sort by count (descending) FIRST, then calculate cumulative sum
+  result <- result[order(-result$count), ]
 
   # Now calculate cumulative sum on the sorted data
-  result$Cumul. <- round(cumsum(result$Share), 2)
+  result$cumulative <- round(cumsum(result$share), 4)
 
   # Reset pattern numbers to follow the new sorted order
-  result$Pattern <- seq_len(nrow(result))
+  result$pattern <- seq_len(nrow(result))
   rownames(result) <- NULL
 
   # Convert to long format if requested
@@ -190,24 +190,24 @@ describe_participation <- function(
         long_result <- rbind(
           long_result,
           data.frame(
-            Pattern = pattern_row$Pattern,
-            Time = t,
-            Participation = as.integer(pattern_row[[t]]),
-            Count = pattern_row$Count,
-            Share = pattern_row$Share,
-            Cumul. = pattern_row$Cumul.,
+            pattern = pattern_row$pattern,
+            time = t,
+            participation = as.integer(pattern_row[[t]]),
+            count = pattern_row$count,
+            share = pattern_row$share,
+            cumulative = pattern_row$cumulative,
             stringsAsFactors = FALSE
           )
         )
       }
     }
 
-    # Rename the "Time" column to match the original time variable name
-    names(long_result)[names(long_result) == "Time"] <- time
+    # Rename the "time" column to match the original time variable name
+    names(long_result)[names(long_result) == "time"] <- time
 
     if (!detailed) {
-      # Return simplified version with only Pattern, time, and Participation columns
-      simplified_result <- long_result[c("Pattern", time, "Participation")]
+      # Return simplified version with only pattern, time, and participation columns
+      simplified_result <- long_result[c("pattern", time, "participation")]
       return(simplified_result)
     }
 
@@ -216,8 +216,8 @@ describe_participation <- function(
 
   # Wide format handling (original behavior)
   if (!detailed) {
-    # Return simplified version with only Pattern and time period columns
-    simplified_result <- result[c("Pattern", time_cols)]
+    # Return simplified version with only pattern and time period columns
+    simplified_result <- result[c("pattern", time_cols)]
     return(simplified_result)
   }
 

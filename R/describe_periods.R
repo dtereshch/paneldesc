@@ -12,9 +12,9 @@
 #' The data.frame contains the following columns:
 #' \describe{
 #'   \item{\code{[time]}}{Time period identifier (name matches the input `time` argument)}
-#'   \item{\code{Total}}{Total number of observations in each period (all rows)}
-#'   \item{\code{Balanced}}{Number of observations with at least one non-NA value in substantive variables}
-#'   \item{\code{Complete}}{Number of observations without any NA values in substantive variables}
+#'   \item{\code{total}}{Total number of observations in each period (all rows)}
+#'   \item{\code{balanced}}{Number of observations with at least one non-NA value in substantive variables}
+#'   \item{\code{complete}}{Number of observations without any NA values in substantive variables}
 #' }
 #'
 #' Time periods are sorted naturally (numeric values as numbers, others alphabetically).
@@ -112,13 +112,8 @@ describe_periods <- function(data, group, time) {
     stringsAsFactors = FALSE
   )
 
-  # Rename columns according to specification
-  names(result_df) <- c(
-    time,
-    "Total",
-    "Balanced",
-    "Complete"
-  )
+  # Rename first column to match the time variable name
+  names(result_df)[1] <- time
 
   return(result_df)
 }

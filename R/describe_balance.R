@@ -11,20 +11,20 @@
 #'
 #' \strong{Columns:}
 #' \describe{
-#'   \item{\code{Panel Info}}{Character vector describing the type of panel element.
-#'     Contains three values: "Observations", "Entities", and "Time Periods".}
-#'   \item{\code{Total}}{Numeric vector with total counts for each panel element.
-#'     For "Observations": total number of rows in the original data.
-#'     For "Entities": total number of unique groups present in the data.
-#'     For "Time Periods": total number of unique time periods present in the data.}
-#'   \item{\code{Balanced}}{Numeric vector with counts of balanced cases.
-#'     For "Observations": always NA (balance concept not applicable at observation level).
-#'     For "Entities": number of groups that are present in all time periods.
-#'     For "Time Periods": number of time periods where all groups are present.}
-#'   \item{\code{Complete}}{Numeric vector with counts of cases without missing values.
-#'     For "Observations": number of rows with no NAs in substantive variables.
-#'     For "Entities": number of groups with no NAs in any of their observations.
-#'     For "Time Periods": number of time periods with no NAs in any observation.}
+#'   \item{\code{panel_info}}{Character vector describing the type of panel element.
+#'     Contains three values: "observations", "entities", and "time_periods".}
+#'   \item{\code{total}}{Numeric vector with total counts for each panel element.
+#'     For "observations": total number of rows in the original data.
+#'     For "entities": total number of unique groups present in the data.
+#'     For "time_periods": total number of unique time periods present in the data.}
+#'   \item{\code{balanced}}{Numeric vector with counts of balanced cases.
+#'     For "observations": always NA (balance concept not applicable at observation level).
+#'     For "entities": number of groups that are present in all time periods.
+#'     For "time_periods": number of time periods where all groups are present.}
+#'   \item{\code{complete}}{Numeric vector with counts of cases without missing values.
+#'     For "observations": number of rows with no NAs in substantive variables.
+#'     For "entities": number of groups with no NAs in any of their observations.
+#'     For "time_periods": number of time periods with no NAs in any observation.}
 #' }
 #'
 #' \strong{Rows:}
@@ -154,19 +154,18 @@ describe_balance <- function(data, group, time) {
 
   # Create and return the simplified result data.frame
   result_df <- data.frame(
-    `Panel Info` = c("Observations", "Entities", "Time Periods"),
-    `Total` = c(total_obs, total_entities_count, total_periods_count),
-    `Balanced` = c(
+    panel_info = c("observations", "entities", "time_periods"),
+    total = c(total_obs, total_entities_count, total_periods_count),
+    balanced = c(
       balanced_obs,
       balanced_entities_count,
       balanced_periods_count
     ),
-    `Complete` = c(
+    complete = c(
       complete_obs,
       entities_complete_count,
       periods_complete_count
     ),
-    check.names = FALSE,
     stringsAsFactors = FALSE,
     row.names = NULL
   )

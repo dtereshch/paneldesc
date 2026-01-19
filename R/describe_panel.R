@@ -8,10 +8,10 @@
 #'
 #' @return A data.frame with four columns:
 #' \describe{
-#'   \item{\code{Entities}}{Number of unique groups/entities in the panel}
-#'   \item{\code{Time Periods}}{Number of unique time periods in the panel}
-#'   \item{\code{Observations}}{Total number of observations in the panel}
-#'   \item{\code{Status}}{Panel validity status: "Valid" or "Invalid"}
+#'   \item{\code{entities}}{Number of unique groups/entities in the panel}
+#'   \item{\code{time_periods}}{Number of unique time periods in the panel}
+#'   \item{\code{observations}}{Total number of observations in the panel}
+#'   \item{\code{status}}{Panel validity status: "valid" or "invalid"}
 #' }
 #'
 #' @details
@@ -24,18 +24,18 @@
 #'   \item Missing values in group/time variables
 #' }
 #'
-#' If the panel is marked as "Invalid", a message is printed to the console
+#' If the panel is marked as "invalid", a message is printed to the console
 #' recommending the use of \code{\link{explore_panel}} for more detailed analysis.
 #'
 #' @examples
-#' #' data(production)
+#' data(production)
 #'
 #' # Get panel description
 #' panel_desc <- describe_panel(production, group = "firm", time = "year")
 #' print(panel_desc)
 #'
-#' # If status is "Invalid", use explore_panel() for detailed analysis
-#' if (panel_desc$Status == "Invalid") {
+#' # If status is "invalid", use explore_panel() for detailed analysis
+#' if (panel_desc$status == "invalid") {
 #'   explore_panel(production, group = "firm", time = "year", detailed = TRUE)
 #' }
 #'
@@ -89,7 +89,7 @@ describe_panel <- function(data, group, time) {
   is_valid <- !any(unlist(validity_checks))
 
   # Create status
-  status <- ifelse(is_valid, "Valid", "Invalid")
+  status <- ifelse(is_valid, "valid", "invalid")
 
   # Print note to console if panel is not valid
   if (!is_valid) {
@@ -113,15 +113,12 @@ describe_panel <- function(data, group, time) {
 
   # Create result data.frame
   result <- data.frame(
-    Entities = n_groups,
-    Time_Periods = n_periods,
-    Observations = n_obs,
-    Status = status,
+    entities = n_groups,
+    time_periods = n_periods,
+    observations = n_obs,
+    status = status,
     stringsAsFactors = FALSE
   )
-
-  # Set column names with proper spacing
-  colnames(result) <- c("Entities", "Time Periods", "Observations", "Status")
 
   # Add class for potential future methods
   class(result) <- c("panel_description", "data.frame")
