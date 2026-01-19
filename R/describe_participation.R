@@ -6,7 +6,7 @@
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #' @param time A character string specifying the name of the time variable.
 #' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
-#' @param format A character string specifying the output format: "wide" (default) or "long".
+#' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param digits An integer specifying the number of decimal places for rounding share and cumulative proportion columns.
 #' Default = 3.
 #'

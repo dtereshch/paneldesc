@@ -22,7 +22,7 @@ describe_participation(
 
 \item{detailed}{A logical flag indicating whether to return detailed patterns. Default = TRUE.}
 
-\item{format}{A character string specifying the output format: "wide" (default) or "long".}
+\item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
 
 \item{digits}{An integer specifying the number of decimal places for rounding share and cumulative proportion columns.
 Default = 3.}
