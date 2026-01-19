@@ -258,35 +258,37 @@ explore_participation <- function(
     # Print time coverage statistics
     cat("Distribution of Entities by Time Periods Coverage\n")
     cat("-------------------------------------------------------------------\n")
-    cat("min 5% 25% 50% 75% 95% max\n")
 
-    # Use appropriate format based on data type
-    if (is.numeric(time_coverage_stats)) {
-      # For numeric values, use integer format
-      cat(sprintf(
-        "%d %d %d %d %d %d %d\n",
-        time_coverage_stats["min"],
-        time_coverage_stats["5%"],
-        time_coverage_stats["25%"],
-        time_coverage_stats["50%"],
-        time_coverage_stats["75%"],
-        time_coverage_stats["95%"],
-        time_coverage_stats["max"]
-      ))
-    } else {
-      # For non-numeric, use general format
-      cat(sprintf(
-        "%s %s %s %s %s %s %s\n",
-        as.character(time_coverage_stats["min"]),
-        as.character(time_coverage_stats["5%"]),
-        as.character(time_coverage_stats["25%"]),
-        as.character(time_coverage_stats["50%"]),
-        as.character(time_coverage_stats["75%"]),
-        as.character(time_coverage_stats["95%"]),
-        as.character(time_coverage_stats["max"])
-      ))
-    }
+    # Format the time coverage statistics - round them to nearest whole number
+    # since they represent counts of time periods
+    stats_values <- sapply(time_coverage_stats, function(x) {
+      if (is.numeric(x)) {
+        # Round to handle cases where quantiles give decimal values
+        round(x)
+      } else {
+        x
+      }
+    })
+
+    # Determine column width based on the maximum width of labels and values
+    label_widths <- nchar(names(time_coverage_stats))
+    value_widths <- nchar(as.character(stats_values))
+    max_width <- max(label_widths, value_widths, na.rm = TRUE)
+
+    # Print header with proper spacing
+    header_labels <- names(time_coverage_stats)
+    header_formatted <- sapply(header_labels, function(label) {
+      sprintf("%*s", max_width, label)
+    })
+    cat(paste(header_formatted, collapse = " "))
     cat("\n")
+
+    # Print values with proper spacing (right-aligned)
+    value_formatted <- sapply(stats_values, function(value) {
+      sprintf("%*s", max_width, as.character(value))
+    })
+    cat(paste(value_formatted, collapse = " "))
+    cat("\n\n")
 
     # Print formatted output
     n_to_display <- min(length(pattern_groups), max_patterns)
