@@ -25,9 +25,9 @@ For "observations": total number of rows in the original data.
 For "entities": total number of unique groups present in the data.
 For "time_periods": total number of unique time periods present in the data.}
 \item{\code{balanced}}{Numeric vector with counts of balanced cases.
-For "observations": always NA (balance concept not applicable at observation level).
-For "entities": number of groups that are present in all time periods.
-For "time_periods": number of time periods where all groups are present.}
+For "observations": number of rows with at least one substantive variable that is not NA.
+For "entities": number of groups where all time periods have at least one substantive variable that is not NA.
+For "time_periods": number of time periods where all groups have at least one substantive variable that is not NA.}
 \item{\code{complete}}{Numeric vector with counts of cases without missing values.
 For "observations": number of rows with no NAs in substantive variables.
 For "entities": number of groups with no NAs in any of their observations.

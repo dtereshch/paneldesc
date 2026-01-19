@@ -18,9 +18,9 @@
 #'     For "entities": total number of unique groups present in the data.
 #'     For "time_periods": total number of unique time periods present in the data.}
 #'   \item{\code{balanced}}{Numeric vector with counts of balanced cases.
-#'     For "observations": always NA (balance concept not applicable at observation level).
-#'     For "entities": number of groups that are present in all time periods.
-#'     For "time_periods": number of time periods where all groups are present.}
+#'     For "observations": number of rows with at least one substantive variable that is not NA.
+#'     For "entities": number of groups where all time periods have at least one substantive variable that is not NA.
+#'     For "time_periods": number of time periods where all groups have at least one substantive variable that is not NA.}
 #'   \item{\code{complete}}{Numeric vector with counts of cases without missing values.
 #'     For "observations": number of rows with no NAs in substantive variables.
 #'     For "entities": number of groups with no NAs in any of their observations.
@@ -89,6 +89,14 @@ describe_balance <- function(data, group, time) {
     dimnames = list(unique_groups, unique_periods)
   )
 
+  # Create balanced matrix (1 = observation has at least one non-NA substantive variable)
+  balanced_matrix <- matrix(
+    0,
+    nrow = total_entities,
+    ncol = total_periods,
+    dimnames = list(unique_groups, unique_periods)
+  )
+
   # Create NA matrix (1 = observation has no NAs in substantive variables)
   na_matrix <- matrix(
     0,
@@ -97,9 +105,18 @@ describe_balance <- function(data, group, time) {
     dimnames = list(unique_groups, unique_periods)
   )
 
-  # Fill presence and NA matrices
+  # Fill presence, balanced, and NA matrices
   group_vec <- as.character(data_for_balance[[group]])
   time_vec <- as.character(data_for_balance[[time]])
+
+  # Pre-compute which rows have at least one non-NA in substantive variables
+  has_at_least_one_non_na <- apply(
+    data_for_balance[substantive_vars],
+    1,
+    function(x) {
+      any(!is.na(x))
+    }
+  )
 
   # Pre-compute which rows have no NAs in substantive variables
   has_no_na <- apply(data_for_balance[substantive_vars], 1, function(x) {
@@ -110,6 +127,11 @@ describe_balance <- function(data, group, time) {
     row_idx <- which(unique_groups == group_vec[i])
     col_idx <- which(unique_periods == time_vec[i])
     presence_matrix[row_idx, col_idx] <- 1
+
+    if (has_at_least_one_non_na[i]) {
+      balanced_matrix[row_idx, col_idx] <- 1
+    }
+
     if (has_no_na[i]) {
       na_matrix[row_idx, col_idx] <- 1
     }
@@ -119,14 +141,14 @@ describe_balance <- function(data, group, time) {
 
   # 1. Observations
   total_obs <- nrow(data)
+  balanced_obs <- sum(has_at_least_one_non_na)
   complete_obs <- sum(has_no_na)
-  balanced_obs <- NA
 
   # 2. Entities
   total_entities_count <- total_entities
 
-  # Balanced entities (present in all periods)
-  balanced_entities_count <- sum(rowSums(presence_matrix) == total_periods)
+  # Balanced entities (present in all periods with at least one non-NA substantive variable)
+  balanced_entities_count <- sum(rowSums(balanced_matrix) == total_periods)
 
   # Entities without NA (all observations for entity have no NAs)
   entities_complete_count <- 0
@@ -140,8 +162,8 @@ describe_balance <- function(data, group, time) {
   # 3. Periods
   total_periods_count <- total_periods
 
-  # Balanced periods (all entities present)
-  balanced_periods_count <- sum(colSums(presence_matrix) == total_entities)
+  # Balanced periods (all entities present with at least one non-NA substantive variable)
+  balanced_periods_count <- sum(colSums(balanced_matrix) == total_entities)
 
   # Periods without NA (all observations in period have no NAs)
   periods_complete_count <- 0
