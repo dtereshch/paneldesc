@@ -393,7 +393,7 @@ explore_panel <- function(
     n_periods,
     " time periods, ",
     n_obs,
-    " observations, "
+    " observations"
   )
 
   if (length(issues) > 0) {
