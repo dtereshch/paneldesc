@@ -259,16 +259,33 @@ explore_participation <- function(
     cat("Distribution of Entities by Time Periods Coverage\n")
     cat("-------------------------------------------------------------------\n")
     cat("min 5% 25% 50% 75% 95% max\n")
-    cat(sprintf(
-      "%d %d %d %d %d %d %d\n",
-      time_coverage_stats["min"],
-      time_coverage_stats["5%"],
-      time_coverage_stats["25%"],
-      time_coverage_stats["50%"],
-      time_coverage_stats["75%"],
-      time_coverage_stats["95%"],
-      time_coverage_stats["max"]
-    ))
+
+    # Use appropriate format based on data type
+    if (is.numeric(time_coverage_stats)) {
+      # For numeric values, use integer format
+      cat(sprintf(
+        "%d %d %d %d %d %d %d\n",
+        time_coverage_stats["min"],
+        time_coverage_stats["5%"],
+        time_coverage_stats["25%"],
+        time_coverage_stats["50%"],
+        time_coverage_stats["75%"],
+        time_coverage_stats["95%"],
+        time_coverage_stats["max"]
+      ))
+    } else {
+      # For non-numeric, use general format
+      cat(sprintf(
+        "%s %s %s %s %s %s %s\n",
+        as.character(time_coverage_stats["min"]),
+        as.character(time_coverage_stats["5%"]),
+        as.character(time_coverage_stats["25%"]),
+        as.character(time_coverage_stats["50%"]),
+        as.character(time_coverage_stats["75%"]),
+        as.character(time_coverage_stats["95%"]),
+        as.character(time_coverage_stats["max"])
+      ))
+    }
     cat("\n")
 
     # Print formatted output
