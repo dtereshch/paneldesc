@@ -260,13 +260,13 @@ explore_participation <- function(
 
   # Print if requested
   if (print_result) {
-    cat("Panel Data Participation Analysis\n")
+    cat("PANEL DATA PARTICIPATION ANALYSIS\n")
     cat(
       "====================================================================\n\n"
     )
 
     # Print time coverage statistics
-    cat("Distribution of Entities by Time Periods Coverage\n")
+    cat("DISTRIBUTION OF ENTITIES BY TIME COVERAGE\n")
     cat(
       "--------------------------------------------------------------------\n"
     )
@@ -305,7 +305,7 @@ explore_participation <- function(
     # Print formatted output
     n_to_display <- min(length(pattern_groups), max_patterns)
     cat(sprintf(
-      "Information on Top %d Participation Patterns\n",
+      "INFORMATION ON TOP %d PARTICIPATION PATTERNS\n",
       n_to_display
     ))
     cat(
