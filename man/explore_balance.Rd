@@ -38,6 +38,12 @@ The returned list contains the following components:
 \item \code{n_entities}: Number of unique groups
 \item \code{n_balanced_entities}: Entities where all periods have at least one non-NA
 \item \code{n_entities_complete}: Entities with no NAs in any observation
+\item \code{min_balanced_per_entity}: Minimum number of balanced observations per entity
+\item \code{max_balanced_per_entity}: Maximum number of balanced observations per entity
+\item \code{avg_balanced_per_entity}: Average number of balanced observations per entity
+\item \code{min_balanced_per_period}: Minimum number of balanced observations per period
+\item \code{max_balanced_per_period}: Maximum number of balanced observations per period
+\item \code{avg_balanced_per_period}: Average number of balanced observations per period
 }
 }
 \item{\code{balanced_periods}}{Vector of time periods where all entities have at least one non-NA}
@@ -75,6 +81,11 @@ print(balanced_entities)
 # Entities with no missing values
 complete_entities <- balance_result$entities_complete
 print(complete_entities)
+
+# Get balanced observations statistics
+min_balanced_entity <- balance_result$summary$min_balanced_per_entity
+max_balanced_entity <- balance_result$summary$max_balanced_per_entity
+avg_balanced_entity <- balance_result$summary$avg_balanced_per_entity
 
 # Create a balanced subset
 balanced_data <- production[production$firm \%in\% balanced_entities, ]
