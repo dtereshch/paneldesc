@@ -389,7 +389,7 @@ explore_panel <- function(
   panel_summary <- paste0(
     "Panel structure: ",
     n_groups,
-    " groups, ",
+    " entities, ",
     n_periods,
     " time periods, ",
     n_obs,
