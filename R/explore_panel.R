@@ -491,18 +491,8 @@ explore_panel <- function(
 
       for (i in 1:nrow(result$exploration_results)) {
         row <- result$exploration_results[i, ]
-
-        # Color coding for status
-        status_str <- switch(
-          row$status,
-          PASS = paste0("\033[32m", row$status, "\033[0m"),
-          FAIL = paste0("\033[31m", row$status, "\033[0m"),
-          WARNING = paste0("\033[33m", row$status, "\033[0m"),
-          INFO = paste0("\033[34m", row$status, "\033[0m"),
-          row$status
-        )
-
-        cat(sprintf("  %-20s [%s] %s\n", row$variable, status_str, row$message))
+        # Simplified output without color coding
+        cat(sprintf("  %-20s [%s] %s\n", row$variable, row$status, row$message))
       }
       cat("\n")
     } else {
