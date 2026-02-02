@@ -214,31 +214,27 @@ plot_participation <- function(
   # Set up plot margins to accommodate legend at top and y-labels on right
   par(mar = c(5, 1, 4, 8) + 0.1) # Top margin for legend, right margin for y-labels
 
-  # FIX: Don't reverse colors - use them in the correct order
-  # The image() function expects values 0 and 1, where:
-  # - 0 maps to colors[1]
-  # - 1 maps to colors[2]
-  # Since our matrix has 1=present, 0=missing, we need to map:
-  # - 1 (present) should use colors[1]
-  # - 0 (missing) should use colors[2]
+  # FIX: Create a proper color mapping
+  # We need to be explicit about which color goes with which value
+  # Since image() maps lowest value to colors[1] and highest to colors[2],
+  # and we have 0=missing and 1=present, we want:
+  # - 0 (missing) -> colors[2] (orange by default) - but image() will map 0 to colors[1]
+  # - 1 (present) -> colors[1] (blue by default) - but image() will map 1 to colors[2]
 
-  # But actually, looking at the documentation, image() maps:
-  # - minimum value to colors[1]
-  # - maximum value to colors[2]
-  # So with values 0 and 1:
-  # - 0 (minimum) maps to colors[1]
-  # - 1 (maximum) maps to colors[2]
+  # The solution is to reverse the colors OR reverse the values in the matrix
+  # Let's reverse the matrix values so that:
+  # - present (1) becomes 0 (lowest) and gets colors[1] (blue)
+  # - missing (0) becomes 1 (highest) and gets colors[2] (orange)
 
-  # This is correct! We want:
-  # - present (1) to show as colors[1] (blue by default)
-  # - missing (0) to show as colors[2] (orange by default)
+  # Create a reversed version of the pattern matrix
+  pattern_matrix_rev <- 1 - pattern_matrix # 1->0, 0->1
 
   # Create heatmap using image function
   image(
-    x = seq_len(ncol(pattern_matrix)),
-    y = seq_len(nrow(pattern_matrix)),
-    z = t(pattern_matrix),
-    col = colors, # DON'T reverse - use colors in correct order
+    x = seq_len(ncol(pattern_matrix_rev)),
+    y = seq_len(nrow(pattern_matrix_rev)),
+    z = t(pattern_matrix_rev),
+    col = colors, # Now colors are in the correct order
     xlab = xlab,
     ylab = "",
     axes = FALSE,
@@ -247,24 +243,29 @@ plot_participation <- function(
   )
 
   # Add axes without ticks
-  axis(1, at = seq_len(ncol(pattern_matrix)), labels = time_cols, tick = FALSE)
+  axis(
+    1,
+    at = seq_len(ncol(pattern_matrix_rev)),
+    labels = time_cols,
+    tick = FALSE
+  )
   axis(
     4,
-    at = seq_len(nrow(pattern_matrix)),
+    at = seq_len(nrow(pattern_matrix_rev)),
     labels = y_labels,
     las = 2,
     tick = FALSE
   )
 
   # Add grid lines
-  abline(h = seq(0.5, nrow(pattern_matrix) + 0.5, 1), col = "gray", lty = 3)
-  abline(v = seq(0.5, ncol(pattern_matrix) + 0.5, 1), col = "gray", lty = 3)
+  abline(h = seq(0.5, nrow(pattern_matrix_rev) + 0.5, 1), col = "gray", lty = 3)
+  abline(v = seq(0.5, ncol(pattern_matrix_rev) + 0.5, 1), col = "gray", lty = 3)
 
-  # Add legend at the top - FIX: Update legend order to match actual mapping
+  # Add legend at the top
   legend(
     "top",
     legend = c("Present", "Missing"),
-    fill = colors, # Same order as in image()
+    fill = colors, # colors[1] for present, colors[2] for missing
     bg = "white",
     horiz = TRUE,
     xpd = TRUE,
@@ -276,6 +277,7 @@ plot_participation <- function(
   # Return the pattern matrix invisibly for further use
   invisible(list(
     pattern_matrix = pattern_matrix,
+    pattern_matrix_reversed = pattern_matrix_rev,
     time_periods = time_cols,
     pattern_labels = y_labels,
     counts = counts,
