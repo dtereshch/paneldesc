@@ -18,7 +18,7 @@
 #' \strong{When `format = "wide"` (default):}
 #' Returns a transition matrix as a data.frame with:
 #' \describe{
-#'   \item{\code{ }}{First column containing the "from" state labels}
+#'   \item{\code{from_to}}{The "from" state labels (combining from and to indicators)}
 #'   \item{\code{[state1]}}{Column with transition probabilities from each state to state1}
 #'   \item{\code{[state2]}}{Column with transition probabilities from each state to state2}
 #'   \item{...}{Additional columns for each possible "to" state}
@@ -249,8 +249,8 @@ summarize_transition <- function(
   )
 
   wide_result <- as.data.frame(wide_matrix)
-  # Add empty heading for first column
-  wide_result <- cbind(" " = all_levels, wide_result)
+  # Add from_to column with state labels
+  wide_result <- cbind(from_to = all_levels, wide_result)
   rownames(wide_result) <- NULL
 
   # Return the requested format

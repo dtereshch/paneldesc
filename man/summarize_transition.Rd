@@ -32,7 +32,7 @@ The output format depends on the \code{format} parameter:
 \strong{When \code{format = "wide"} (default):}
 Returns a transition matrix as a data.frame with:
 \describe{
-\item{\code{ }}{First column containing the "from" state labels}
+\item{\code{from_to}}{The "from" state labels (combining from and to indicators)}
 \item{\code{[state1]}}{Column with transition probabilities from each state to state1}
 \item{\code{[state2]}}{Column with transition probabilities from each state to state2}
 \item{...}{Additional columns for each possible "to" state}
