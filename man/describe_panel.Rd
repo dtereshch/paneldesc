@@ -14,29 +14,19 @@ describe_panel(data, group, time)
 \item{time}{A character string specifying the name of the time variable in panel data.}
 }
 \value{
-A data.frame with four columns:
+A data.frame with three columns:
 \describe{
 \item{\code{entities}}{Number of unique groups/entities in the panel}
 \item{\code{time_periods}}{Number of unique time periods in the panel}
 \item{\code{observations}}{Total number of observations in the panel}
-\item{\code{status}}{Panel validity status: "valid" or "invalid"}
 }
 }
 \description{
-This function provides a summary of panel data structure and validity.
+This function provides basic summary information about panel data structure.
 }
 \details{
-This function performs a simplified version of the exploration done by
-\code{\link{explore_panel}}. It checks for:
-\itemize{
-\item Basic data structure validity
-\item Presence of group and time variables
-\item Duplicate group-time combinations
-\item Missing values in group/time variables
-}
-
-If the panel is marked as "invalid", a message is printed to the console
-recommending the use of \code{\link{explore_panel}} for more detailed analysis.
+This function provides basic panel data structure information including
+the number of unique entities, time periods, and total observations.
 }
 \examples{
 data(production)
@@ -45,12 +35,7 @@ data(production)
 panel_desc <- describe_panel(production, group = "firm", time = "year")
 print(panel_desc)
 
-# If status is "invalid", use explore_panel() for detailed analysis
-if (panel_desc$status == "invalid") {
-  explore_panel(production, group = "firm", time = "year", detailed = TRUE)
-}
-
 }
 \seealso{
-\code{\link[=explore_panel]{explore_panel()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_participation]{describe_participation()}}
+\code{\link[=explore_panel]{explore_panel()}} for detailed panel analysis
 }
