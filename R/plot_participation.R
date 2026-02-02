@@ -148,30 +148,53 @@ plot_participation <- function(
 
   pattern_counts <- table(pattern_strings)
 
-  # Create pattern matrix for heatmap
-  pattern_matrix <- matrix(
-    0,
-    nrow = length(pattern_counts),
-    ncol = length(time_cols)
-  )
-  colnames(pattern_matrix) <- time_cols
+  # Handle single pattern case
+  n_patterns <- length(pattern_counts)
 
-  for (i in seq_along(pattern_counts)) {
-    pattern_matrix[i, ] <- as.numeric(strsplit(names(pattern_counts)[i], "")[[
-      1
-    ]])
+  if (n_patterns == 0) {
+    stop("No participation patterns found in the data")
   }
+
+  # Create pattern matrix for heatmap - FIX: Handle single row matrix properly
+  if (n_patterns == 1) {
+    # Single pattern case
+    pattern_matrix <- matrix(
+      as.numeric(strsplit(names(pattern_counts)[1], "")[[1]]),
+      nrow = 1,
+      ncol = length(time_cols)
+    )
+  } else {
+    # Multiple patterns case
+    pattern_matrix <- matrix(
+      0,
+      nrow = n_patterns,
+      ncol = length(time_cols)
+    )
+
+    for (i in seq_along(pattern_counts)) {
+      pattern_matrix[i, ] <- as.numeric(strsplit(names(pattern_counts)[i], "")[[
+        1
+      ]])
+    }
+  }
+
+  colnames(pattern_matrix) <- time_cols
 
   # Sort by count (descending) and create labels
   counts <- as.numeric(pattern_counts)
   sorted_order <- order(-counts)
-  pattern_matrix <- pattern_matrix[sorted_order, ]
+  pattern_matrix <- pattern_matrix[sorted_order, , drop = FALSE]
   counts <- counts[sorted_order]
 
-  # Apply max_patterns limit
+  # Apply max_patterns limit - FIX: Handle single pattern case
   n_patterns_to_display <- min(nrow(pattern_matrix), max_patterns)
-  pattern_matrix <- pattern_matrix[1:n_patterns_to_display, , drop = FALSE]
-  counts <- counts[1:n_patterns_to_display]
+
+  if (n_patterns_to_display > 0) {
+    pattern_matrix <- pattern_matrix[1:n_patterns_to_display, , drop = FALSE]
+    counts <- counts[1:n_patterns_to_display]
+  } else {
+    stop("No patterns to display after applying max_patterns filter")
+  }
 
   # Reverse the matrix to put most common pattern on top
   pattern_matrix <- pattern_matrix[
