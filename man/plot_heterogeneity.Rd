@@ -46,7 +46,7 @@ Plot labeling strategy:
 \item \strong{Single plot}: Variable names are used as axis labels, with a legend in the plot
 \item \strong{Multi-plot grid}:
 \itemize{
-\item Row variable names are displayed as y-axis labels on the left side
+\item Row variable names are displayed as vertical y-axis labels on the left side
 \item Column variable names are displayed as x-axis labels on the top
 \item Individual plot axes show only tick marks and values, not labels
 \item A single common horizontal legend is placed below the grid

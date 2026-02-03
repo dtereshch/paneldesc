@@ -25,7 +25,7 @@
 #' Plot labeling strategy:
 #' - **Single plot**: Variable names are used as axis labels, with a legend in the plot
 #' - **Multi-plot grid**:
-#'     - Row variable names are displayed as y-axis labels on the left side
+#'     - Row variable names are displayed as vertical y-axis labels on the left side
 #'     - Column variable names are displayed as x-axis labels on the top
 #'     - Individual plot axes show only tick marks and values, not labels
 #'     - A single common horizontal legend is placed below the grid
@@ -174,7 +174,8 @@ plot_heterogeneity <- function(
     y_var_name,
     group_var_name,
     show_axes_labels = TRUE,
-    show_legend = TRUE
+    show_legend = TRUE,
+    show_yaxis = TRUE
   ) {
     y_var <- data_sub[[y_var_name]]
     x_var <- data_sub[[group_var_name]]
@@ -215,11 +216,17 @@ plot_heterogeneity <- function(
       ylab = if (show_axes_labels) y_var_name else "",
       main = "",
       xaxt = "n",
+      yaxt = if (!show_yaxis) "n" else "s",
       frame.plot = FALSE
     )
 
     # Add x-axis with labels
     axis(1, at = seq_along(levels(x_var)), labels = levels(x_var))
+
+    # Add y-axis only if requested
+    if (show_yaxis) {
+      axis(2)
+    }
 
     # Add individual points with jitter
     x_jitter <- jitter(as.numeric(x_var), amount = 0.2)
@@ -305,23 +312,23 @@ plot_heterogeneity <- function(
       # Add an extra row at the bottom for the legend
       layout_matrix <- rbind(layout_matrix, rep(n_rows * n_cols + 1, n_cols))
 
-      # Set up the layout
+      # Set up the layout - no separate column needed for labels now
       layout(
         layout_matrix,
         heights = c(rep(1, n_rows), 0.3), # Legend gets 0.3 relative height
         widths = rep(1, n_cols)
       )
 
-      # Calculate left margin based on longest selection variable name
-      # Simple approach: base margin + 0.5 per character beyond 8
+      # Calculate left margin based on variable name length
+      # For vertical text, we need more left margin
       max_chars <- max(nchar(selection))
-      left_margin <- 4 # Base margin
-      if (max_chars > 8) {
-        left_margin <- left_margin + (max_chars - 8) * 0.5
+      left_margin <- 5 # Base margin for vertical text
+      if (max_chars > 10) {
+        left_margin <- left_margin + (max_chars - 10) * 0.3
       }
-      left_margin <- min(max(left_margin, 4), 8) # Keep between 4 and 8
+      left_margin <- min(max(left_margin, 5), 8) # Keep between 5 and 8
 
-      # Set margins - giving more left margin for labels
+      # Set margins - larger left margin for vertical text
       par(
         mar = c(2, left_margin, 3, 1) + 0.1,
         oma = c(0, 0, 0, 0),
@@ -348,13 +355,17 @@ plot_heterogeneity <- function(
         show_axes_labels <- !is_multiplot
         show_legend <- !is_multiplot
 
+        # For multi-plot, show y-axis on all plots since we have rotated labels
+        show_yaxis <- TRUE
+
         # Create plot for this combination
         group_stats <- create_single_plot(
           data,
           y_var_name,
           group_var_name,
           show_axes_labels = show_axes_labels,
-          show_legend = show_legend
+          show_legend = show_legend,
+          show_yaxis = show_yaxis
         )
 
         # Store statistics
@@ -365,19 +376,24 @@ plot_heterogeneity <- function(
 
         # Add variable labels for multi-plot grids
         if (is_multiplot) {
-          # Add row labels (selection variables) on the left side
+          # Add row labels (selection variables) on the left side as vertical text
           # Only for first column in each row
           if (j == 1) {
-            # Simple and reliable positioning
+            # Get current plot coordinates
+            usr <- par("usr")
+
+            # Calculate position: at the left edge of the plot area
+            # Use mtext with srt=90 for vertical text
             mtext(
               y_var_name,
               side = 2,
-              line = left_margin - 1.5, # Position inside the left margin
+              line = left_margin - 3, # Adjust based on margin
               outer = FALSE,
-              cex = 0.9,
+              cex = 1.0, # Slightly larger for vertical text
               font = 2,
+              las = 2, # Always vertical text
               adj = 0.5
-            ) # Center the text vertically
+            ) # Center vertically
           }
 
           # Add column labels (group variables) on the top
