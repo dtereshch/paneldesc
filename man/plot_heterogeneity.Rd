@@ -8,9 +8,7 @@ plot_heterogeneity(
   data,
   selection = NULL,
   group,
-  colors = c("#D55E00", "#0072B2"),
-  xlab = NULL,
-  ylab = NULL
+  colors = c("#D55E00", "#0072B2")
 )
 }
 \arguments{
@@ -23,12 +21,6 @@ If NULL (default), all numeric variables in the dataset will be used.}
 
 \item{colors}{A character vector of two colors: first for individual points, second for mean line and points.
 Default = c("#D55E00", "#0072B2").}
-
-\item{xlab}{A character string specifying the X-axis label (default: based on grouping variable).
-If multiple plots are created, this is ignored and variable names are used.}
-
-\item{ylab}{A character string specifying the Y-axis label (default: based on variable name).
-If multiple plots are created, this is ignored and variable names are used.}
 }
 \value{
 Invisibly returns a list with summary statistics. Creates plot(s) showing group heterogeneity.
@@ -46,6 +38,7 @@ When both \code{selection} and \code{group} contain multiple variables, plots ar
 \item Y-axis titles and tick labels are shown only for plots in the left column
 \item X-axis titles and tick labels are shown only for plots in the bottom row
 \item A single common legend is displayed below the grid
+\item Column names are always used as axis labels
 }
 
 When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.

@@ -10,10 +10,6 @@
 #' @param group A character vector specifying the grouping variable(s).
 #' @param colors A character vector of two colors: first for individual points, second for mean line and points.
 #'        Default = c("#D55E00", "#0072B2").
-#' @param xlab A character string specifying the X-axis label (default: based on grouping variable).
-#'        If multiple plots are created, this is ignored and variable names are used.
-#' @param ylab A character string specifying the Y-axis label (default: based on variable name).
-#'        If multiple plots are created, this is ignored and variable names are used.
 #'
 #' @return Invisibly returns a list with summary statistics. Creates plot(s) showing group heterogeneity.
 #'
@@ -24,6 +20,7 @@
 #' - Y-axis titles and tick labels are shown only for plots in the left column
 #' - X-axis titles and tick labels are shown only for plots in the bottom row
 #' - A single common legend is displayed below the grid
+#' - Column names are always used as axis labels
 #'
 #' When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
 #'
@@ -59,9 +56,7 @@ plot_heterogeneity <- function(
   data,
   selection = NULL,
   group,
-  colors = c("#D55E00", "#0072B2"),
-  xlab = NULL,
-  ylab = NULL
+  colors = c("#D55E00", "#0072B2")
 ) {
   # Input validation
   if (!is.data.frame(data)) {
@@ -153,8 +148,6 @@ plot_heterogeneity <- function(
     data_sub,
     y_var_name,
     group_var_name,
-    xlab_single = NULL,
-    ylab_single = NULL,
     show_xlab = TRUE,
     show_ylab = TRUE,
     draw_legend = FALSE
@@ -177,14 +170,6 @@ plot_heterogeneity <- function(
       x_var <- as.factor(x_var)
     }
 
-    # Set default labels if not provided
-    if (is.null(xlab_single)) {
-      xlab_single <- group_var_name
-    }
-    if (is.null(ylab_single)) {
-      ylab_single <- y_var_name
-    }
-
     # Create color with alpha
     point_col_rgb <- col2rgb(point_col) / 255
     point_col_alpha <- rgb(
@@ -202,8 +187,8 @@ plot_heterogeneity <- function(
       NA,
       xlim = c(0.5, length(levels(x_var)) + 0.5),
       ylim = range(y_var, na.rm = TRUE),
-      xlab = if (show_xlab) xlab_single else "",
-      ylab = if (show_ylab) ylab_single else "",
+      xlab = if (show_xlab) group_var_name else "",
+      ylab = if (show_ylab) y_var_name else "",
       main = "",
       xaxt = if (show_xlab) "n" else "n", # Always suppress default x-axis
       yaxt = if (show_ylab) "n" else "n", # Suppress default y-axis
@@ -297,11 +282,30 @@ plot_heterogeneity <- function(
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))
 
-    # Determine if we need a multi-plot layout with legend space
-    is_multiplot <- (n_rows > 1 || n_cols > 1)
+    # Determine if this is a single plot
+    is_single_plot <- (n_rows == 1 && n_cols == 1)
 
-    if (is_multiplot) {
-      # For multi-plot: adjust layout to leave space for legend at the bottom
+    if (is_single_plot) {
+      # Single plot - simpler layout
+      par(
+        mar = c(5, 4, 4, 2) + 0.1, # Standard margins for single plot
+        las = las
+      )
+
+      # Create single plot with legend inside
+      group_stats <- create_single_plot(
+        data,
+        selection[1],
+        group[1],
+        show_xlab = TRUE,
+        show_ylab = TRUE,
+        draw_legend = TRUE
+      )
+
+      # Store statistics
+      summary_stats$group_stats[[selection[1]]][[group[1]]] <- group_stats
+    } else {
+      # Multi-plot grid - use layout with space for legend
       # Create a matrix for layout: plots + 1 row for the legend
       layout_matrix <- matrix(
         1:(n_rows * n_cols),
@@ -316,10 +320,9 @@ plot_heterogeneity <- function(
       # Set layout with different heights: plots get more space, legend gets less
       layout(layout_matrix, heights = c(rep(4, n_rows), 1))
 
-      # Set inner margins (reduced margins for tighter layout)
+      # Set default minimal margins for all plots initially
       par(
-        mar = c(2.5, 3.5, 1.5, 1) + 0.1, # Reduced margins for multiplot
-        oma = c(0, 0, 0, 0), # No outer margins since we use layout
+        mar = c(1, 1, 0.5, 0.5), # Minimal margins initially
         las = las
       )
 
@@ -336,13 +339,18 @@ plot_heterogeneity <- function(
           show_ylab <- (j == 1)
           show_xlab <- (i == n_rows)
 
+          # Adjust margins based on whether we need axis labels
+          bottom_margin <- if (show_xlab) 3.5 else 1
+          left_margin <- if (show_ylab) 3.5 else 1
+
+          # Set margins for this specific plot
+          par(mar = c(bottom_margin, left_margin, 0.5, 0.5))
+
           # Create plot without legend (will add common legend later)
           group_stats <- create_single_plot(
             data,
             y_var_name,
             group_var_name,
-            xlab = NULL,
-            ylab = NULL,
             show_xlab = show_xlab,
             show_ylab = show_ylab,
             draw_legend = FALSE
@@ -372,32 +380,10 @@ plot_heterogeneity <- function(
         lty = c(NA, 1),
         pt.cex = c(0.8, 1.5),
         bty = "n",
-        cex = 0.9,
+        cex = 1,
         horiz = TRUE,
         xpd = TRUE # Allow drawing outside plot region
       )
-    } else {
-      # Single plot: use tighter margins to reduce empty space
-      par(
-        mar = c(3.5, 3.5, 2, 1) + 0.1, # Reduced margins for single plot
-        oma = c(0, 0, 0, 0),
-        las = las
-      )
-
-      # Create single plot with legend
-      group_stats <- create_single_plot(
-        data,
-        selection[1],
-        group[1],
-        xlab = if (!is.null(xlab)) xlab else NULL,
-        ylab = if (!is.null(ylab)) ylab else NULL,
-        show_xlab = TRUE,
-        show_ylab = TRUE,
-        draw_legend = TRUE
-      )
-
-      # Store statistics
-      summary_stats$group_stats[[selection[1]]][[group[1]]] <- group_stats
     }
   } else {
     # Calculate statistics without plotting
