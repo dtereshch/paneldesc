@@ -312,7 +312,7 @@ plot_heterogeneity <- function(
       # Add an extra row at the bottom for the legend
       layout_matrix <- rbind(layout_matrix, rep(n_rows * n_cols + 1, n_cols))
 
-      # Set up the layout - no separate column needed for labels now
+      # Set up the layout
       layout(
         layout_matrix,
         heights = c(rep(1, n_rows), 0.3), # Legend gets 0.3 relative height
@@ -379,21 +379,26 @@ plot_heterogeneity <- function(
           # Add row labels (selection variables) on the left side as vertical text
           # Only for first column in each row
           if (j == 1) {
-            # Get current plot coordinates
+            # Get the current plot coordinates
             usr <- par("usr")
 
-            # Calculate position: at the left edge of the plot area
-            # Use mtext with srt=90 for vertical text
-            mtext(
-              y_var_name,
-              side = 2,
-              line = left_margin - 3, # Adjust based on margin
-              outer = FALSE,
-              cex = 1.0, # Slightly larger for vertical text
-              font = 2,
-              las = 2, # Always vertical text
-              adj = 0.5
-            ) # Center vertically
+            # Calculate position for vertical text
+            # x position: left edge of plot area (usr[1])
+            # y position: middle of the plot (mean of usr[3] and usr[4])
+            x_pos <- usr[1] - (usr[2] - usr[1]) * 0.12 # Adjust this multiplier as needed
+            y_pos <- (usr[3] + usr[4]) / 2
+
+            # Add rotated text using text() function
+            text(
+              x = x_pos,
+              y = y_pos,
+              labels = y_var_name,
+              srt = 90, # Rotate 90 degrees
+              adj = c(0.5, 0.5), # Center text
+              cex = 1.0, # Slightly larger for readability
+              font = 2, # Bold
+              xpd = TRUE
+            ) # Allow drawing outside plot area
           }
 
           # Add column labels (group variables) on the top
