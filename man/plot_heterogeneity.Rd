@@ -8,7 +8,9 @@ plot_heterogeneity(
   data,
   selection = NULL,
   group,
-  colors = c("#D55E00", "#0072B2")
+  colors = c("#D55E00", "#0072B2"),
+  xlab = NULL,
+  ylab = NULL
 )
 }
 \arguments{
@@ -19,52 +21,79 @@ If NULL (default), all numeric variables in the dataset will be used.}
 
 \item{group}{A character vector specifying the grouping variable(s).}
 
-\item{colors}{A character vector of two colors: first for individual points, second for mean line and points.
-Default = c("#D55E00", "#0072B2").}
+\item{colors}{A character vector of two colors: first for individual points,
+second for mean line and points. Default = c("#D55E00", "#0072B2").}
+
+\item{xlab}{A character string specifying the X-axis label (default: based on
+grouping variable). Only used for single plots.}
+
+\item{ylab}{A character string specifying the Y-axis label (default: based on
+variable name). Only used for single plots.}
 }
 \value{
-Invisibly returns a list with summary statistics. Creates plot(s) showing group heterogeneity.
+Invisibly returns a list with summary statistics. Creates plot(s) showing
+group heterogeneity.
 }
 \description{
-This function creates visualizations of heterogeneity among groups. It can handle
-multiple numeric variables and multiple grouping variables, arranging them in a
-grid where selection variables form rows and group variables form columns.
+Creates visualizations of heterogeneity among groups. Handles multiple numeric
+variables and multiple grouping variables, arranging them in a grid where
+selection variables form rows and group variables form columns. For multi-plot
+grids, axis labels are omitted as variable names are displayed in the grid headers.
 }
 \details{
-When both \code{selection} and \code{group} contain multiple variables, plots are arranged in a grid:
+When both \code{selection} and \code{group} contain multiple variables, plots are arranged
+in a grid:
 \itemize{
-\item Rows correspond to variables in \code{selection}
-\item Columns correspond to variables in \code{group}
-\item Row titles show the selection variable names
-\item Column titles show the group variable names
+\item Rows correspond to variables in \code{selection} (Y-axis variables)
+\item Columns correspond to variables in \code{group} (X-axis grouping variables)
 }
 
-When only one variable is specified for either parameter, a single plot or single row/column is created.
-The legend is placed above all plots and is horizontal and centered.
+In multi-plot grids:
+\itemize{
+\item Row variable names are displayed as y-axis labels on the left side
+\item Column variable names are displayed as x-axis labels on the top
+\item Individual plot axes labels are omitted for cleaner presentation
+}
+
+When only one variable is specified for either parameter, a single plot or
+single row/column is created with appropriate axis labels.
 }
 \examples{
+\dontrun{
 data(production)
 
-# Plot labor by year (single plot)
+# Plot labor by year (single plot with axis labels)
 plot_heterogeneity(production, selection = "labor", group = "year")
 
-# Plot capital by firm (single plot)
+# Plot capital by firm (single plot with axis labels)
 plot_heterogeneity(production, selection = "capital", group = "firm")
 
 # Plot multiple variables with single grouping variable
-plot_heterogeneity(production, selection = c("sales", "labor", "capital"), group = "year")
+# Y-axis labels show variable names, x-axis shows group variable
+plot_heterogeneity(production,
+                   selection = c("sales", "labor", "capital"),
+                   group = "year")
 
 # Plot single variable with multiple grouping variables
-plot_heterogeneity(production, selection = "sales", group = c("firm", "year", "industry"))
+# Single y-axis label, x-axis labels show different grouping approaches
+plot_heterogeneity(production,
+                   selection = "sales",
+                   group = c("firm", "year", "industry"))
 
 # Plot multiple variables with multiple grouping variables (grid)
-plot_heterogeneity(production, selection = c("sales", "labor"), group = c("year", "industry"))
+# Row labels = selection variables, column labels = group variables
+# No individual plot axis labels for cleaner grid
+plot_heterogeneity(production,
+                   selection = c("sales", "labor"),
+                   group = c("year", "industry"))
 
 # Use all numeric variables with default
 plot_heterogeneity(production, group = "year")
 
 # Customize colors
-plot_heterogeneity(production, selection = "sales", group = "year", colors = c("gray", "black"))
+plot_heterogeneity(production, selection = "sales", group = "year",
+                   colors = c("gray", "black"))
+}
 
 }
 \seealso{
