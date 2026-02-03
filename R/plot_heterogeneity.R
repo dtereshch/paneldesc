@@ -286,9 +286,9 @@ plot_heterogeneity <- function(
     is_single_plot <- (n_rows == 1 && n_cols == 1)
 
     if (is_single_plot) {
-      # Single plot - simpler layout
+      # Single plot - reduced vertical space
       par(
-        mar = c(5, 4, 4, 2) + 0.1, # Standard margins for single plot
+        mar = c(4, 4, 1, 2) + 0.1, # Reduced top margin (from 4 to 1) to remove vertical space
         las = las
       )
 
@@ -320,11 +320,8 @@ plot_heterogeneity <- function(
       # Set layout with different heights: plots get more space, legend gets less
       layout(layout_matrix, heights = c(rep(4, n_rows), 1))
 
-      # Set default minimal margins for all plots initially
-      par(
-        mar = c(1, 1, 0.5, 0.5), # Minimal margins initially
-        las = las
-      )
+      # Set default margins for all plots initially
+      par(las = las)
 
       # Create plots in grid: rows = selection variables, columns = group variables
       for (i in seq_along(selection)) {
@@ -340,11 +337,13 @@ plot_heterogeneity <- function(
           show_xlab <- (i == n_rows)
 
           # Adjust margins based on whether we need axis labels
-          bottom_margin <- if (show_xlab) 3.5 else 1
-          left_margin <- if (show_ylab) 3.5 else 1
+          # Bottom margin needs extra space for x-axis labels (4 lines when showing)
+          # Left margin needs extra space for y-axis labels (4 lines when showing)
+          bottom_margin <- if (show_xlab) 4 else 1
+          left_margin <- if (show_ylab) 4 else 1.5
 
           # Set margins for this specific plot
-          par(mar = c(bottom_margin, left_margin, 0.5, 0.5))
+          par(mar = c(bottom_margin, left_margin, 1, 1))
 
           # Create plot without legend (will add common legend later)
           group_stats <- create_single_plot(
