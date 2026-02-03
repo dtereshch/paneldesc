@@ -17,6 +17,8 @@
 #' When both `selection` and `group` contain multiple variables, plots are arranged in a grid:
 #' - Rows correspond to variables in `selection`
 #' - Columns correspond to variables in `group`
+#' - Row titles show the selection variable names
+#' - Column titles show the group variable names
 #'
 #' When only one variable is specified for either parameter, a single plot or single row/column is created.
 #' The legend is placed above all plots and is horizontal and centered.
@@ -275,44 +277,100 @@ plot_heterogeneity <- function(
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))
 
-    # Create separate layout for legend and plots
-    if (n_rows == 1 && n_cols == 1) {
-      # Single plot - simple setup
-      layout_matrix <- matrix(1:2, nrow = 2, ncol = 1)
-      layout_heights <- c(0.15, 0.85)
-    } else {
-      # Multiple plots - create grid
-      layout_matrix <- matrix(
-        2:(n_rows * n_cols + 1), # Plots start at position 2
-        nrow = n_rows,
-        ncol = n_cols,
-        byrow = TRUE
-      )
+    # Create a more complex layout with spaces for titles
+    # Layout structure:
+    # Row 1: Legend (spanning all columns)
+    # Row 2: Column titles (if multi-column)
+    # Remaining rows: Plots with row titles on the side
 
-      # Add legend row at the top
-      layout_matrix <- rbind(
-        rep(1, n_cols), # Legend occupies the entire first row
-        layout_matrix
-      )
+    # Calculate layout dimensions
+    has_row_titles <- n_rows > 1
+    has_col_titles <- n_cols > 1
 
-      # Calculate heights - legend gets fixed proportion, plots share remaining space
-      layout_heights <- c(0.1, rep(0.9 / n_rows, n_rows))
+    # Total rows in layout: legend + column titles + plot rows
+    total_layout_rows <- 1 + as.integer(has_col_titles) + n_rows
+
+    # Total columns in layout: row titles + plot columns
+    total_layout_cols <- as.integer(has_row_titles) + n_cols
+
+    # Create empty layout matrix
+    layout_matrix <- matrix(
+      0,
+      nrow = total_layout_rows,
+      ncol = total_layout_cols
+    )
+
+    # Start numbering from 1 (legend)
+    current_idx <- 1
+
+    # --- Row 1: Legend (spanning all columns) ---
+    layout_matrix[1, ] <- current_idx
+    current_idx <- current_idx + 1
+
+    # --- Row 2: Column titles (if needed) ---
+    if (has_col_titles) {
+      # Skip row title column if present
+      start_col <- if (has_row_titles) 2 else 1
+
+      for (j in 1:n_cols) {
+        layout_matrix[2, start_col + j - 1] <- current_idx
+        current_idx <- current_idx + 1
+      }
     }
 
-    # Set layout
+    # --- Remaining rows: Plots with row titles ---
+    plot_row_start <- 2 + as.integer(has_col_titles)
+
+    for (i in 1:n_rows) {
+      current_row <- plot_row_start + i - 1
+
+      # Row title (if needed, first column)
+      if (has_row_titles) {
+        layout_matrix[current_row, 1] <- current_idx
+        current_idx <- current_idx + 1
+      }
+
+      # Plots
+      start_col <- if (has_row_titles) 2 else 1
+      for (j in 1:n_cols) {
+        layout_matrix[current_row, start_col + j - 1] <- current_idx
+        current_idx <- current_idx + 1
+      }
+    }
+
+    # Set layout widths and heights
+    layout_widths <- rep(1, total_layout_cols)
+    layout_heights <- rep(1, total_layout_rows)
+
+    # Adjust widths for row titles
+    if (has_row_titles) {
+      layout_widths[1] <- 0.3 # Narrower for row titles
+      layout_widths[-1] <- 0.7 / (n_cols) # Even distribution for plots
+    }
+
+    # Adjust heights
+    layout_heights[1] <- 0.1 # Legend row (10%)
+    if (has_col_titles) {
+      layout_heights[2] <- 0.05 # Column titles row (5%)
+    }
+    # Remaining rows (plots) share the rest
+    plot_rows_height <- 0.85
+    plot_rows <- total_layout_rows - 1 - as.integer(has_col_titles)
+    layout_heights[(total_layout_rows - plot_rows + 1):total_layout_rows] <-
+      plot_rows_height / plot_rows
+
+    # Apply layout
     layout(
       layout_matrix,
+      widths = layout_widths,
       heights = layout_heights
     )
 
-    # Set base margins (will be adjusted per plot)
+    # Set base margins for plots
     base_mar <- c(3, 3, 1, 1) + 0.1
 
     # --- Create Legend ---
-    # Set margins for legend
     par(mar = c(0, 0, 0, 0))
-
-    # Create empty plot for legend
     plot.new()
     plot.window(xlim = c(0, 1), ylim = c(0, 1))
 
@@ -331,12 +389,49 @@ plot_heterogeneity <- function(
       xpd = NA
     )
 
+    # --- Create Column Titles ---
+    if (has_col_titles) {
+      for (j in 1:n_cols) {
+        par(mar = c(0, 0, 0, 0))
+        plot.new()
+        plot.window(xlim = c(0, 1), ylim = c(0, 1))
+        text(
+          0.5,
+          0.5,
+          group[j],
+          cex = 1.2,
+          font = 2,
+          xpd = NA
+        )
+        box()
+      }
+    }
+
+    # --- Create Row Titles ---
+    if (has_row_titles) {
+      for (i in 1:n_rows) {
+        par(mar = c(0, 0, 0, 0))
+        plot.new()
+        plot.window(xlim = c(0, 1), ylim = c(0, 1))
+        text(
+          0.5,
+          0.5,
+          selection[i],
+          cex = 1.2,
+          font = 2,
+          srt = 90, # Rotate 90 degrees for vertical text
+          xpd = NA
+        )
+        box()
+      }
+    }
+
     # --- Create Plots ---
     # Create plots in grid: rows = selection variables, columns = group variables
-    for (i in seq_along(selection)) {
+    for (i in 1:n_rows) {
       y_var_name <- selection[i]
 
-      for (j in seq_along(group)) {
+      for (j in 1:n_cols) {
         group_var_name <- group[j]
 
         # Determine whether to show axis labels

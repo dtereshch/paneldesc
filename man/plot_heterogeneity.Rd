@@ -35,6 +35,8 @@ When both \code{selection} and \code{group} contain multiple variables, plots ar
 \itemize{
 \item Rows correspond to variables in \code{selection}
 \item Columns correspond to variables in \code{group}
+\item Row titles show the selection variable names
+\item Column titles show the group variable names
 }
 
 When only one variable is specified for either parameter, a single plot or single row/column is created.
