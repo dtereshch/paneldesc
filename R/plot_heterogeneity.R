@@ -174,7 +174,7 @@ plot_heterogeneity <- function(
     y_var_name,
     group_var_name,
     show_axes_labels = TRUE,
-    show_legend = TRUE # New parameter to control legend display
+    show_legend = TRUE
   ) {
     y_var <- data_sub[[y_var_name]]
     x_var <- data_sub[[group_var_name]]
@@ -294,28 +294,6 @@ plot_heterogeneity <- function(
     on.exit(par(old_par))
 
     if (is_multiplot) {
-      # Calculate dynamic left margin based on the longest selection variable name
-      # Get maximum character count among selection variable names
-      max_char_count <- max(nchar(selection))
-
-      # Calculate required margin:
-      # - Base margin of 4 lines
-      # - Add 0.3 lines per character beyond 8 characters
-      # - Minimum of 4 lines, but scales with long variable names
-      base_margin <- 4
-      if (max_char_count > 8) {
-        extra_chars <- max_char_count - 8
-        required_left_margin_lines <- base_margin + (extra_chars * 0.3)
-      } else {
-        required_left_margin_lines <- base_margin
-      }
-
-      # Round up and ensure reasonable bounds
-      required_left_margin_lines <- min(
-        max(ceiling(required_left_margin_lines), 4),
-        10
-      )
-
       # Create layout with space for common legend
       layout_matrix <- matrix(
         1:(n_rows * n_cols),
@@ -327,18 +305,26 @@ plot_heterogeneity <- function(
       # Add an extra row at the bottom for the legend
       layout_matrix <- rbind(layout_matrix, rep(n_rows * n_cols + 1, n_cols))
 
-      # Set up the layout with dynamic left margin
+      # Set up the layout
       layout(
         layout_matrix,
         heights = c(rep(1, n_rows), 0.3), # Legend gets 0.3 relative height
         widths = rep(1, n_cols)
       )
 
-      # Adjust margins for grid plots - use outer margins for the variable names
-      # This is the key fix: Use outer margins for labels and keep inner margins small
+      # Calculate left margin based on longest selection variable name
+      # Simple approach: base margin + 0.5 per character beyond 8
+      max_chars <- max(nchar(selection))
+      left_margin <- 4 # Base margin
+      if (max_chars > 8) {
+        left_margin <- left_margin + (max_chars - 8) * 0.5
+      }
+      left_margin <- min(max(left_margin, 4), 8) # Keep between 4 and 8
+
+      # Set margins - giving more left margin for labels
       par(
-        mar = c(2, 1, 3, 1) + 0.1, # Small inner margins
-        oma = c(0, required_left_margin_lines, 0, 0), # Outer left margin for labels
+        mar = c(2, left_margin, 3, 1) + 0.1,
+        oma = c(0, 0, 0, 0),
         las = las
       )
     } else {
@@ -359,9 +345,8 @@ plot_heterogeneity <- function(
         group_var_name <- group[j]
 
         # Determine if we should show axis labels and legend
-        # Only show legend in individual plots for single plot case
         show_axes_labels <- !is_multiplot
-        show_legend <- !is_multiplot # No legend in individual plots for multi-plot case
+        show_legend <- !is_multiplot
 
         # Create plot for this combination
         group_stats <- create_single_plot(
@@ -380,32 +365,29 @@ plot_heterogeneity <- function(
 
         # Add variable labels for multi-plot grids
         if (is_multiplot) {
-          # Add row labels (selection variables) on the left side in outer margin area
+          # Add row labels (selection variables) on the left side
+          # Only for first column in each row
           if (j == 1) {
-            # Calculate the exact position in the outer margin
-            # Each plot gets 1/n_rows of the total height in the layout
-            # We want to center the label in the middle of each row
-            plot_position <- (n_rows - i + 0.5) / n_rows
-
-            # Use outer=TRUE to place in outer margin area
+            # Simple and reliable positioning
             mtext(
               y_var_name,
               side = 2,
-              line = required_left_margin_lines - 2, # Position within outer margin
-              outer = TRUE, # Critical: place in outer margin, not inner
+              line = left_margin - 1.5, # Position inside the left margin
+              outer = FALSE,
               cex = 0.9,
               font = 2,
-              at = plot_position
-            ) # Position vertically within the outer margin
+              adj = 0.5
+            ) # Center the text vertically
           }
 
-          # Add column labels (group variables) on the top in inner margin
+          # Add column labels (group variables) on the top
+          # Only for first row in each column
           if (i == 1) {
             mtext(
               group_var_name,
               side = 3,
               line = 1,
-              outer = FALSE, # Keep in inner margin for top labels
+              outer = FALSE,
               cex = 0.9,
               font = 2
             )
@@ -431,7 +413,7 @@ plot_heterogeneity <- function(
         bty = "n",
         horiz = TRUE,
         cex = 1.2,
-        xpd = TRUE # Allow plotting outside the plot region
+        xpd = TRUE
       )
     }
   } else {
