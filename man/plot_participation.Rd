@@ -9,8 +9,7 @@ plot_participation(
   group,
   time,
   max_patterns = 10,
-  colors = c("#0072B2", "#D55E00"),
-  xlab = "Time Period"
+  colors = c("#0072B2", "#D55E00")
 )
 }
 \arguments{
@@ -25,8 +24,6 @@ Default = 10.}
 
 \item{colors}{A character vector of two colors for present and missing observations.
 Default = c("#0072B2", "#D55E00").}
-
-\item{xlab}{A character string specifying the X-axis label. Default = "Time Period".}
 }
 \value{
 Invisibly returns a list with summary statistics. Creates a plot showing participation patterns.

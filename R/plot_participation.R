@@ -10,7 +10,6 @@
 #'        Default = 10.
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#0072B2", "#D55E00").
-#' @param xlab A character string specifying the X-axis label. Default = "Time Period".
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a plot showing participation patterns.
 #'
@@ -38,8 +37,7 @@ plot_participation <- function(
   group,
   time,
   max_patterns = 10,
-  colors = c("#0072B2", "#D55E00"),
-  xlab = "Time Period"
+  colors = c("#0072B2", "#D55E00")
 ) {
   # Input validation
   if (!is.data.frame(data)) {
@@ -76,10 +74,6 @@ plot_participation <- function(
       "'colors' must be a character vector of length 2, not ",
       class(colors)[1]
     )
-  }
-
-  if (!is.character(xlab) || length(xlab) != 1) {
-    stop("'xlab' must be a single character string, not ", class(xlab)[1])
   }
 
   data <- .check_and_convert_data_robust(data, arg_name = "data")
@@ -211,20 +205,9 @@ plot_participation <- function(
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par))
 
-  # Set up plot margins to accommodate legend at top and y-labels on right
-  par(mar = c(5, 1, 4, 8) + 0.1) # Top margin for legend, right margin for y-labels
-
-  # FIX: Create a proper color mapping
-  # We need to be explicit about which color goes with which value
-  # Since image() maps lowest value to colors[1] and highest to colors[2],
-  # and we have 0=missing and 1=present, we want:
-  # - 0 (missing) -> colors[2] (orange by default) - but image() will map 0 to colors[1]
-  # - 1 (present) -> colors[1] (blue by default) - but image() will map 1 to colors[2]
-
-  # The solution is to reverse the colors OR reverse the values in the matrix
-  # Let's reverse the matrix values so that:
-  # - present (1) becomes 0 (lowest) and gets colors[1] (blue)
-  # - missing (0) becomes 1 (highest) and gets colors[2] (orange)
+  # Reduce bottom margin to eliminate space for x-axis label
+  # Top margin for legend, right margin for y-labels, reduced bottom margin
+  par(mar = c(3, 1, 4, 8) + 0.1)
 
   # Create a reversed version of the pattern matrix
   pattern_matrix_rev <- 1 - pattern_matrix # 1->0, 0->1
@@ -234,21 +217,24 @@ plot_participation <- function(
     x = seq_len(ncol(pattern_matrix_rev)),
     y = seq_len(nrow(pattern_matrix_rev)),
     z = t(pattern_matrix_rev),
-    col = colors, # Now colors are in the correct order
-    xlab = xlab,
+    col = colors,
+    xlab = "", # Empty x-axis label
     ylab = "",
     axes = FALSE,
     xaxs = "i",
     yaxs = "i"
   )
 
-  # Add axes without ticks
+  # Add x-axis with vertical labels
   axis(
     1,
     at = seq_len(ncol(pattern_matrix_rev)),
     labels = time_cols,
-    tick = FALSE
+    tick = FALSE,
+    las = 2 # Vertical text
   )
+
+  # Add y-axis labels on the right
   axis(
     4,
     at = seq_len(nrow(pattern_matrix_rev)),
@@ -265,12 +251,12 @@ plot_participation <- function(
   legend(
     "top",
     legend = c("Present", "Missing"),
-    fill = colors, # colors[1] for present, colors[2] for missing
+    fill = colors,
     bg = "white",
     horiz = TRUE,
     xpd = TRUE,
     bty = "n",
-    inset = c(0, -0.1), # Adjust position above plot
+    inset = c(0, -0.1),
     cex = 0.9
   )
 
