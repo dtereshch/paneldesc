@@ -376,29 +376,16 @@ explore_panel <- function(
     "PASS"
   )
 
-  # Create panel summary string
-  balance_status <- ifelse(is_balanced, "balanced", "unbalanced")
-  issues <- c()
-  if (has_duplicates) {
-    issues <- c(issues, "with duplicates")
-  }
-  if (has_irregular_intervals) {
-    issues <- c(issues, "with irregular intervals")
-  }
-
+  # Create panel summary string with new format: observations, entities, periods
   panel_summary <- paste0(
     "Panel structure: ",
+    n_obs,
+    " observations, ",
     n_groups,
     " entities, ",
     n_periods,
-    " time periods, ",
-    n_obs,
-    " observations"
+    " time periods"
   )
-
-  if (length(issues) > 0) {
-    panel_summary <- paste0(panel_summary, ", ", paste(issues, collapse = ", "))
-  }
 
   # Create result object with useful vectors for further analysis
   result <- list(
