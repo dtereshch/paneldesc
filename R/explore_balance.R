@@ -334,12 +334,12 @@ explore_balance <- function(
     cat("----------------------------------------------------\n")
     cat(sprintf("%6d  Total observations\n", total_obs))
     cat(sprintf(
-      "%6d  Observations with ≥1 non-NA value   (%5.1f%%)\n",
+      "%6d  Balanced observations (%5.1f%%)\n",
       obs_balanced,
       pct_balanced_obs
     ))
     cat(sprintf(
-      "%6d  Observations with no missing values (%5.1f%%)\n",
+      "%6d  Complete observations (%5.1f%%)\n",
       obs_complete,
       pct_complete_obs
     ))
@@ -348,21 +348,6 @@ explore_balance <- function(
     cat("ENTITIES\n")
     cat("----------------------------------------------------\n")
     cat(sprintf("%6d  Entities\n", n_entities))
-    # cat(sprintf("%6d  Minimum observations per period\n", min_obs_per_period))
-    # cat(sprintf("%6d  Maximum observations per period\n", max_obs_per_period))
-    # cat(sprintf("%6.1f  Average observations per period\n", avg_obs_per_period))
-    cat(sprintf(
-      "%6d  Minimum balanced observations per period\n",
-      min_balanced_per_period
-    ))
-    cat(sprintf(
-      "%6d  Maximum balanced observations per period\n",
-      max_balanced_per_period
-    ))
-    cat(sprintf(
-      "%6.1f  Average balanced observations per period\n",
-      avg_balanced_per_period
-    ))
     cat(sprintf(
       "%6d  Balanced entities (%5.1f%%)\n",
       n_balanced_entities,
@@ -374,25 +359,26 @@ explore_balance <- function(
       pct_entities_complete
     ))
     cat("\n")
+    # cat(sprintf("%6d  Minimum observations per period\n", min_obs_per_period))
+    # cat(sprintf("%6d  Maximum observations per period\n", max_obs_per_period))
+    # cat(sprintf("%6.1f  Average observations per period\n", avg_obs_per_period))
+    cat(sprintf(
+      "%6d  Minimum balanced entities per period\n",
+      min_balanced_per_period
+    ))
+    cat(sprintf(
+      "%6d  Maximum balanced entities per period\n",
+      max_balanced_per_period
+    ))
+    cat(sprintf(
+      "%6.1f  Average balanced entities per period\n",
+      avg_balanced_per_period
+    ))
+    cat("\n")
 
     cat("TIME PERIODS\n")
     cat("----------------------------------------------------\n")
     cat(sprintf("%6d  Time periods\n", n_periods))
-    # cat(sprintf("%6d  Minimum observations per entity\n", min_obs_per_entity))
-    # cat(sprintf("%6d  Maximum observations per entity\n", max_obs_per_entity))
-    # cat(sprintf("%6.1f  Average observations per entity\n", avg_obs_per_entity))
-    cat(sprintf(
-      "%6d  Minimum balanced observations per entity\n",
-      min_balanced_per_entity
-    ))
-    cat(sprintf(
-      "%6d  Maximum balanced observations per entity\n",
-      max_balanced_per_entity
-    ))
-    cat(sprintf(
-      "%6.1f  Average balanced observations per entity\n",
-      avg_balanced_per_entity
-    ))
     cat(sprintf(
       "%6d  Balanced periods (all entities have ≥1 non-NA)\n",
       n_balanced_periods
@@ -400,6 +386,22 @@ explore_balance <- function(
     cat(sprintf(
       "%6d  Complete periods (no missing values)\n",
       n_periods_complete
+    ))
+    cat("\n")
+    # cat(sprintf("%6d  Minimum observations per entity\n", min_obs_per_entity))
+    # cat(sprintf("%6d  Maximum observations per entity\n", max_obs_per_entity))
+    # cat(sprintf("%6.1f  Average observations per entity\n", avg_obs_per_entity))
+    cat(sprintf(
+      "%6d  Minimum balanced periods per entity\n",
+      min_balanced_per_entity
+    ))
+    cat(sprintf(
+      "%6d  Maximum balanced periods per entity\n",
+      max_balanced_per_entity
+    ))
+    cat(sprintf(
+      "%6.1f  Average balanced periods per entity\n",
+      avg_balanced_per_entity
     ))
     cat("\n")
   }
