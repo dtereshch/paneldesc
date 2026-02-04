@@ -26,7 +26,7 @@ This function provides a descriptive table of entities with incomplete observati
 When incomplete entities exist, returns a data.frame with:
 \describe{
 \item{\code{[group]}}{The entity/group identifier (name matches input \code{group})}
-\item{\code{n_vars_with_na}}{Number of variables with at least one missing value for that entity}
+\item{\code{vars_with_na}}{Number of variables with at least one missing value for that entity}
 \item{\code{total_na}}{Total number of missing observations for the entity}
 }
 

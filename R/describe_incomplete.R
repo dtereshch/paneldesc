@@ -14,7 +14,7 @@
 #' When incomplete entities exist, returns a data.frame with:
 #' \describe{
 #'   \item{\code{[group]}}{The entity/group identifier (name matches input `group`)}
-#'   \item{\code{n_vars_with_na}}{Number of variables with at least one missing value for that entity}
+#'   \item{\code{vars_with_na}}{Number of variables with at least one missing value for that entity}
 #'   \item{\code{total_na}}{Total number of missing observations for the entity}
 #' }
 #'
@@ -130,7 +130,7 @@ describe_incomplete <- function(
   # Initialize base results with original group type
   result <- data.frame(
     group = unique_groups,
-    n_vars_with_na = 0,
+    vars_with_na = 0,
     total_na = 0,
     stringsAsFactors = FALSE
   )
@@ -161,7 +161,7 @@ describe_incomplete <- function(
     # Count total number of NA observations
     total_na <- sum(vapply(group_data, function(x) sum(is.na(x)), numeric(1)))
 
-    result$n_vars_with_na[i] <- vars_with_na
+    result$vars_with_na[i] <- vars_with_na
     result$total_na[i] <- total_na
 
     # If detailed = TRUE, add NA counts for each variable
@@ -173,7 +173,7 @@ describe_incomplete <- function(
   }
 
   # Filter groups with any missing variables and arrange
-  result <- result[result$n_vars_with_na > 0, ]
+  result <- result[result$vars_with_na > 0, ]
 
   # Check if there are any incomplete groups
   if (nrow(result) == 0) {
@@ -181,7 +181,7 @@ describe_incomplete <- function(
   }
 
   # Sort by primary and secondary criteria
-  result <- result[order(-result$n_vars_with_na, -result$total_na), ]
+  result <- result[order(-result$vars_with_na, -result$total_na), ]
 
   # Reset row names
   rownames(result) <- NULL
