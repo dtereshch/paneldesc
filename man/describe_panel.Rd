@@ -16,9 +16,9 @@ describe_panel(data, group, time)
 \value{
 A data.frame with three columns:
 \describe{
-\item{\code{entities}}{Number of unique groups/entities in the panel}
-\item{\code{time_periods}}{Number of unique time periods in the panel}
 \item{\code{observations}}{Total number of observations in the panel}
+\item{\code{entities}}{Number of unique groups/entities in the panel}
+\item{\code{periods}}{Number of unique time periods in the panel}
 }
 }
 \description{

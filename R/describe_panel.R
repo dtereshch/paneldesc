@@ -8,9 +8,9 @@
 #'
 #' @return A data.frame with three columns:
 #' \describe{
-#'   \item{\code{entities}}{Number of unique groups/entities in the panel}
-#'   \item{\code{time_periods}}{Number of unique time periods in the panel}
 #'   \item{\code{observations}}{Total number of observations in the panel}
+#'   \item{\code{entities}}{Number of unique groups/entities in the panel}
+#'   \item{\code{periods}}{Number of unique time periods in the panel}
 #' }
 #'
 #' @details
@@ -59,11 +59,11 @@ describe_panel <- function(data, group, time) {
   n_periods <- length(unique(data[[time]]))
   n_obs <- nrow(data)
 
-  # Create result data.frame
+  # Create result data.frame with updated column names and order
   result <- data.frame(
-    entities = n_groups,
-    time_periods = n_periods,
     observations = n_obs,
+    entities = n_groups,
+    periods = n_periods,
     stringsAsFactors = FALSE
   )
 
