@@ -37,11 +37,11 @@ When both \code{selection} and \code{group} contain multiple variables, plots ar
 \item Columns correspond to variables in \code{group}
 \item Y-axis titles and tick labels are shown only for plots in the left column
 \item X-axis titles and tick labels are shown only for plots in the bottom row
-\item A single common legend is displayed in the bottom-right corner below the grid
+\item A single common legend is displayed below the grid
 \item Column names are always used as axis labels
 }
 
-When only one variable is specified for either parameter, a single plot is created as a 1x1 grid.
+When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
 }
 \examples{
 data(production)

@@ -19,10 +19,10 @@
 #' - Columns correspond to variables in `group`
 #' - Y-axis titles and tick labels are shown only for plots in the left column
 #' - X-axis titles and tick labels are shown only for plots in the bottom row
-#' - A single common legend is displayed in the bottom-right corner below the grid
+#' - A single common legend is displayed below the grid
 #' - Column names are always used as axis labels
 #'
-#' When only one variable is specified for either parameter, a single plot is created as a 1x1 grid.
+#' When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
 #'
 #' @seealso
 #' [summarize_panel()], [plot_participation()]
@@ -143,13 +143,14 @@ plot_heterogeneity <- function(
   las <- 1
   plot <- TRUE
 
-  # Function to create single plot - no legend in individual plots
+  # Function to create single plot
   create_single_plot <- function(
     data_sub,
     y_var_name,
     group_var_name,
     show_xlab = TRUE,
-    show_ylab = TRUE
+    show_ylab = TRUE,
+    draw_legend = FALSE
   ) {
     y_var <- data_sub[[y_var_name]]
     x_var <- data_sub[[group_var_name]]
@@ -234,6 +235,20 @@ plot_heterogeneity <- function(
     # Add grid
     grid()
 
+    # Add legend only if requested (for single plot)
+    if (draw_legend) {
+      legend(
+        "topright",
+        legend = c("Individual observations", "Group means"),
+        col = c(point_col, mean_col),
+        pch = c(16, 18),
+        lty = c(NA, 1),
+        pt.cex = c(0.8, 1.5),
+        bty = "n",
+        cex = 0.8 * cex
+      )
+    }
+
     # Return summary statistics for this combination
     list(
       means = group_means,
@@ -267,85 +282,109 @@ plot_heterogeneity <- function(
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))
 
-    # Use outer margins to create space around the entire plot area
-    # This ensures labels fit properly
-    par(oma = c(3, 3, 1, 1), las = las)
+    # Determine if this is a single plot
+    is_single_plot <- (n_rows == 1 && n_cols == 1)
 
-    # Create a layout with one extra row at the bottom for the legend
-    layout_matrix <- matrix(
-      1:(n_rows * n_cols),
-      nrow = n_rows,
-      ncol = n_cols,
-      byrow = TRUE
-    )
+    if (is_single_plot) {
+      # Single plot - simpler layout
+      par(
+        mar = c(5, 4, 4, 2) + 0.1, # Standard margins for single plot
+        las = las
+      )
 
-    # Add extra space at the bottom for legend - make it taller for better fit
-    layout_matrix <- rbind(layout_matrix, rep(n_rows * n_cols + 1, n_cols))
+      # Create single plot with legend inside
+      group_stats <- create_single_plot(
+        data,
+        selection[1],
+        group[1],
+        show_xlab = TRUE,
+        show_ylab = TRUE,
+        draw_legend = TRUE
+      )
 
-    # Set layout - give plots more space, legend gets dedicated row
-    layout(layout_matrix, heights = c(rep(5, n_rows), 1))
+      # Store statistics
+      summary_stats$group_stats[[selection[1]]][[group[1]]] <- group_stats
+    } else {
+      # Multi-plot grid - use layout with space for legend
+      # Create a matrix for layout: plots + 1 row for the legend
+      layout_matrix <- matrix(
+        1:(n_rows * n_cols),
+        nrow = n_rows,
+        ncol = n_cols,
+        byrow = TRUE
+      )
 
-    # Create plots in grid: rows = selection variables, columns = group variables
-    for (i in seq_along(selection)) {
-      y_var_name <- selection[i]
+      # Add an extra row at the bottom for the legend
+      layout_matrix <- rbind(layout_matrix, rep(n_rows * n_cols + 1, n_cols))
 
-      for (j in seq_along(group)) {
-        group_var_name <- group[j]
+      # Set layout with different heights: plots get more space, legend gets less
+      layout(layout_matrix, heights = c(rep(4, n_rows), 1))
 
-        # Determine if we should show x and y labels and ticks
-        # Show Y-axis title and tick labels only for left column (j == 1)
-        # Show X-axis title and tick labels only for bottom row (i == n_rows)
-        show_ylab <- (j == 1)
-        show_xlab <- (i == n_rows)
+      # Set default minimal margins for all plots initially
+      par(
+        mar = c(1, 1, 0.5, 0.5), # Minimal margins initially
+        las = las
+      )
 
-        # Set margins for each plot
-        # Use more space for bottom/top to accommodate axis labels
-        top_margin <- if (i == 1) 2 else 1
-        bottom_margin <- if (show_xlab) 4 else 2
-        left_margin <- if (show_ylab) 4 else 2
-        right_margin <- 1
+      # Create plots in grid: rows = selection variables, columns = group variables
+      for (i in seq_along(selection)) {
+        y_var_name <- selection[i]
 
-        par(mar = c(bottom_margin, left_margin, top_margin, right_margin))
+        for (j in seq_along(group)) {
+          group_var_name <- group[j]
 
-        # Create plot
-        group_stats <- create_single_plot(
-          data,
-          y_var_name,
-          group_var_name,
-          show_xlab = show_xlab,
-          show_ylab = show_ylab
-        )
+          # Determine if we should show x and y labels and ticks
+          # Show Y-axis title and tick labels only for left column (j == 1)
+          # Show X-axis title and tick labels only for bottom row (i == n_rows)
+          show_ylab <- (j == 1)
+          show_xlab <- (i == n_rows)
 
-        # Store statistics
-        if (!y_var_name %in% names(summary_stats$group_stats)) {
-          summary_stats$group_stats[[y_var_name]] <- list()
+          # Adjust margins based on whether we need axis labels
+          bottom_margin <- if (show_xlab) 3.5 else 1
+          left_margin <- if (show_ylab) 3.5 else 1
+
+          # Set margins for this specific plot
+          par(mar = c(bottom_margin, left_margin, 0.5, 0.5))
+
+          # Create plot without legend (will add common legend later)
+          group_stats <- create_single_plot(
+            data,
+            y_var_name,
+            group_var_name,
+            show_xlab = show_xlab,
+            show_ylab = show_ylab,
+            draw_legend = FALSE
+          )
+
+          # Store statistics
+          if (!y_var_name %in% names(summary_stats$group_stats)) {
+            summary_stats$group_stats[[y_var_name]] <- list()
+          }
+          summary_stats$group_stats[[y_var_name]][[
+            group_var_name
+          ]] <- group_stats
         }
-        summary_stats$group_stats[[y_var_name]][[group_var_name]] <- group_stats
       }
+
+      # Now create the legend in the dedicated space
+      # Set up a new plotting region for the legend
+      par(mar = c(0, 0, 0, 0))
+      plot.new()
+
+      # Create a horizontal legend aligned to the right
+      legend(
+        "right",
+        legend = c("Individual observations", "Group means"),
+        col = c(point_col, mean_col),
+        pch = c(16, 18),
+        lty = c(NA, 1),
+        pt.cex = c(0.8, 1.5),
+        bty = "n",
+        cex = 1,
+        horiz = TRUE,
+        xpd = TRUE # Allow drawing outside plot region
+      )
     }
-
-    # Create the legend in the dedicated space at the bottom
-    # Reset margins for the legend area
-    par(mar = c(0, 0, 0, 0))
-    plot.new()
-
-    # Create legend in the bottom-right corner of the legend area
-    # Use 'bottomright' position and adjust with xpd=TRUE to allow drawing outside
-    legend(
-      x = 1,
-      y = 0.3, # Position at bottom-right of the legend area
-      legend = c("Individual observations", "Group means"),
-      col = c(point_col, mean_col),
-      pch = c(16, 18),
-      lty = c(NA, 1),
-      pt.cex = c(0.8, 1.5),
-      bty = "n",
-      cex = 0.9,
-      horiz = TRUE,
-      xjust = 1, # Right-justify
-      yjust = 0, # Bottom-justify
-      xpd = TRUE # Allow drawing in outer margin area
-    )
   } else {
     # Calculate statistics without plotting
     for (y_var_name in selection) {
