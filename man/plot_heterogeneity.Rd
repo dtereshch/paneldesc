@@ -15,7 +15,7 @@ plot_heterogeneity(
 \item{data}{A data.frame containing the variables for analysis.}
 
 \item{selection}{A character vector specifying the numeric variable(s) of interest.
-If NULL (default), all numeric variables in the dataset will be used.}
+If not specified, all numeric variables in the dataset will be used.}
 
 \item{group}{A character vector specifying the grouping variable(s).}
 
@@ -37,11 +37,11 @@ When both \code{selection} and \code{group} contain multiple variables, plots ar
 \item Columns correspond to variables in \code{group}
 \item Y-axis titles and tick labels are shown only for plots in the left column
 \item X-axis titles and tick labels are shown only for plots in the bottom row
-\item A single common legend is displayed centered below the grid
+\item A single common legend is displayed below the grid
 \item Column names are always used as axis labels
 }
 
-When only one variable is specified for either parameter, a single plot is created as a 1x1 grid.
+When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
 }
 \examples{
 data(production)
