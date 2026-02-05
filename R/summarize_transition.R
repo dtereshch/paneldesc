@@ -103,14 +103,9 @@ summarize_transition <- function(
     stop('format must be either "long" or "wide", not "', format, '"')
   }
 
-  if (!is.numeric(digits) || length(digits) != 1 || digits < 0) {
-    stop(
-      "'digits' must be a single non-negative integer, not ",
-      class(digits)[1]
-    )
+  if (!is.numeric(digits) || length(digits) != 1) {
+    stop("'digits' must be a single numeric value, not ", class(digits)[1])
   }
-
-  data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Validate format argument
   if (!format %in% c("long", "wide")) {
@@ -119,12 +114,10 @@ summarize_transition <- function(
 
   # Validate digits argument
   if (
-    !is.numeric(digits) ||
-      length(digits) != 1 ||
-      digits < 0 ||
-      digits != round(digits)
+    !is.na(digits) &&
+      (!is.numeric(digits) || digits < 0 || digits != round(digits))
   ) {
-    stop("'digits' must be a single non-negative integer")
+    stop("'digits' must be a non-negative integer or NA for no rounding")
   }
 
   # Convert to data frame and ensure proper ordering
@@ -132,10 +125,11 @@ summarize_transition <- function(
 
   # Check if variable is factor and convert if necessary
   if (!is.factor(df[[selection]])) {
-    warning(
-      "Variable '",
+    message(
+      "Converting variable '",
       selection,
-      "' is not a factor. Converting to factor."
+      "' to factor. Original class: ",
+      class(df[[selection]])[1]
     )
     df[[selection]] <- factor(df[[selection]])
   }
@@ -159,7 +153,7 @@ summarize_transition <- function(
   # Remove rows with NA in the variable of interest
   complete_cases <- !is.na(df[[selection]])
   if (sum(!complete_cases) > 0) {
-    warning(
+    message(
       "Removing ",
       sum(!complete_cases),
       " rows with NA values in '",
