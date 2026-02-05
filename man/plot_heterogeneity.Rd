@@ -44,6 +44,16 @@ When both \code{selection} and \code{group} contain multiple variables, plots ar
 \item \code{group}: Maximum 4 variables
 }
 
+\strong{Font Size Scaling:}
+Font sizes are dynamically adjusted based on the number of plots:
+\itemize{
+\item Single plot: Base font size
+\item 2-4 plots: 90\% of base size
+\item 5-9 plots: 80\% of base size
+\item 10+ plots: 70\% of base size
+Additional adjustments are made for very dense grids
+}
+
 These limits ensure visual clarity and prevent graphical device errors.
 
 When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
@@ -67,7 +77,8 @@ plot_heterogeneity(production, selection = "sales", group = c("firm", "year", "i
 plot_heterogeneity(production, selection = c("sales", "labor"), group = c("year", "industry"))
 
 # Customize colors
-plot_heterogeneity(production, selection = "sales", group = "year", colors = c("gray", "black"))
+plot_heterogeneity(production, selection = "sales", group = "year",
+                   colors = c("gray", "black"))
 
 }
 \seealso{

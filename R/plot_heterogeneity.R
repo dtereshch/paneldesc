@@ -28,6 +28,14 @@
 #' - `selection`: Maximum 6 variables (required, must be numeric)
 #' - `group`: Maximum 4 variables
 #'
+#' **Font Size Scaling:**
+#' Font sizes are dynamically adjusted based on the number of plots:
+#' - Single plot: Base font size
+#' - 2-4 plots: 90% of base size
+#' - 5-9 plots: 80% of base size
+#' - 10+ plots: 70% of base size
+#' Additional adjustments are made for very dense grids
+#'
 #' These limits ensure visual clarity and prevent graphical device errors.
 #'
 #' When only one variable is specified for either parameter, a single plot with a legend in the top-right corner is created.
@@ -54,7 +62,8 @@
 #' plot_heterogeneity(production, selection = c("sales", "labor"), group = c("year", "industry"))
 #'
 #' # Customize colors
-#' plot_heterogeneity(production, selection = "sales", group = "year", colors = c("gray", "black"))
+#' plot_heterogeneity(production, selection = "sales", group = "year",
+#'                    colors = c("gray", "black"))
 #'
 #' @export
 plot_heterogeneity <- function(
@@ -170,16 +179,70 @@ plot_heterogeneity <- function(
     )
   }
 
+  # --- Calculate font scaling factors ---
+  n_rows <- length(selection)
+  n_cols <- length(group)
+  total_plots <- n_rows * n_cols
+
+  # Set base font size (internal, not user-configurable)
+  base_font_size <- 12
+
+  # Calculate scaling factors based on grid dimensions
+  # More aggressive scaling for larger grids
+  if (total_plots == 1) {
+    # Single plot: use base font size
+    axis_font_scale <- 1.0
+    tick_font_scale <- 1.0
+    point_cex_scale <- 1.0
+    legend_font_scale <- 1.0
+  } else if (total_plots <= 4) {
+    # Small grid (2x2, 1x4, 4x1): moderate scaling
+    axis_font_scale <- 0.9
+    tick_font_scale <- 0.85
+    point_cex_scale <- 0.8
+    legend_font_scale <- 0.85
+  } else if (total_plots <= 9) {
+    # Medium grid (3x3, 2x4, 4x2): stronger scaling
+    axis_font_scale <- 0.8
+    tick_font_scale <- 0.75
+    point_cex_scale <- 0.7
+    legend_font_scale <- 0.75
+  } else {
+    # Large grid (up to 6x4 = 24): strongest scaling
+    axis_font_scale <- 0.7
+    tick_font_scale <- 0.65
+    point_cex_scale <- 0.6
+    legend_font_scale <- 0.65
+  }
+
+  # Apply additional scaling based on number of columns (for axis labels)
+  if (n_cols > 2) {
+    axis_font_scale <- axis_font_scale * 0.9
+  }
+
+  if (n_rows > 2) {
+    axis_font_scale <- axis_font_scale * 0.9
+  }
+
+  # Calculate final font sizes
+  axis_font_size <- base_font_size * axis_font_scale
+  tick_font_size <- base_font_size * tick_font_scale
+  legend_font_size <- base_font_size * legend_font_scale
+
+  # Ensure minimum font sizes for readability
+  axis_font_size <- max(axis_font_size, 8)
+  tick_font_size <- max(tick_font_size, 7)
+  legend_font_size <- max(legend_font_size, 7)
+
   # --- Check for potential grid size warnings ---
-  total_plots <- length(selection) * length(group)
   if (total_plots > 24) {
     warning(
       "Creating ",
       total_plots,
       " plots in a ",
-      length(selection),
+      n_rows,
       "x",
-      length(group),
+      n_cols,
       " grid.\n",
       "Individual plots may be small. Consider reducing the number of variables.",
       call. = FALSE,
@@ -194,7 +257,6 @@ plot_heterogeneity <- function(
   # Set default parameter values
   point_alpha <- 0.6
   mean_lwd <- 2
-  cex <- 1
   las <- 1
   plot <- TRUE
 
@@ -205,7 +267,12 @@ plot_heterogeneity <- function(
     group_var_name,
     show_xlab = TRUE,
     show_ylab = TRUE,
-    draw_legend = FALSE
+    draw_legend = FALSE,
+    font_sizes = list(
+      axis = axis_font_size,
+      tick = tick_font_size,
+      point_cex = point_cex_scale
+    )
   ) {
     y_var <- data_sub[[y_var_name]]
     x_var <- data_sub[[group_var_name]]
@@ -247,12 +314,19 @@ plot_heterogeneity <- function(
       main = "",
       xaxt = if (show_xlab) "n" else "n", # Always suppress default x-axis
       yaxt = if (show_ylab) "n" else "n", # Suppress default y-axis
-      frame.plot = FALSE
+      frame.plot = FALSE,
+      cex.lab = font_sizes$axis / 12, # Scale relative to base 12
+      cex.axis = font_sizes$tick / 12
     )
 
     # Add x-axis ticks and labels only if show_xlab is TRUE
     if (show_xlab) {
-      axis(1, at = seq_along(levels(x_var)), labels = levels(x_var))
+      axis(
+        1,
+        at = seq_along(levels(x_var)),
+        labels = levels(x_var),
+        cex.axis = font_sizes$tick / 12
+      )
     } else {
       # No ticks or labels for non-bottom row plots
       axis(1, at = seq_along(levels(x_var)), labels = FALSE, tick = FALSE)
@@ -260,7 +334,7 @@ plot_heterogeneity <- function(
 
     # Add y-axis ticks and labels only if show_ylab is TRUE
     if (show_ylab) {
-      axis(2)
+      axis(2, cex.axis = font_sizes$tick / 12)
     } else {
       # No ticks or labels for non-left column plots
       axis(2, labels = FALSE, tick = FALSE)
@@ -273,7 +347,7 @@ plot_heterogeneity <- function(
       y_var,
       col = point_col_alpha,
       pch = 16,
-      cex = 0.8 * cex
+      cex = 0.8 * font_sizes$point_cex
     )
 
     # Add mean line and points
@@ -284,7 +358,7 @@ plot_heterogeneity <- function(
       lwd = mean_lwd,
       type = "o",
       pch = 18,
-      cex = 1.5 * cex
+      cex = 1.5 * font_sizes$point_cex
     )
 
     # Add grid
@@ -298,9 +372,9 @@ plot_heterogeneity <- function(
         col = c(point_col, mean_col),
         pch = c(16, 18),
         lty = c(NA, 1),
-        pt.cex = c(0.8, 1.5),
+        pt.cex = c(0.8, 1.5) * font_sizes$point_cex,
         bty = "n",
-        cex = 0.8 * cex
+        cex = font_sizes$tick / 12 # Use tick font size for legend
       )
     }
 
@@ -319,7 +393,12 @@ plot_heterogeneity <- function(
     variable_counts = list(
       selection = length(selection),
       group = length(group),
-      total_plots = length(selection) * length(group)
+      total_plots = total_plots
+    ),
+    font_sizes = list(
+      axis = axis_font_size,
+      tick = tick_font_size,
+      legend = legend_font_size
     )
   )
 
@@ -334,10 +413,6 @@ plot_heterogeneity <- function(
   }
 
   if (plot) {
-    # Set up plotting layout
-    n_rows <- length(selection)
-    n_cols <- length(group)
-
     # Save current par settings
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))
@@ -346,10 +421,17 @@ plot_heterogeneity <- function(
     is_single_plot <- (n_rows == 1 && n_cols == 1)
 
     if (is_single_plot) {
-      # Single plot - reduced vertical space
+      # Single plot - use normal margins with base font size
       par(
         mar = c(4, 4, 1, 2) + 0.1,
         las = las
+      )
+
+      # Create font size list for single plot
+      font_sizes_single <- list(
+        axis = base_font_size,
+        tick = base_font_size,
+        point_cex = 1.0
       )
 
       # Create single plot with legend inside
@@ -359,7 +441,8 @@ plot_heterogeneity <- function(
         group[1],
         show_xlab = TRUE,
         show_ylab = TRUE,
-        draw_legend = TRUE
+        draw_legend = TRUE,
+        font_sizes = font_sizes_single
       )
 
       # Store statistics
@@ -380,8 +463,15 @@ plot_heterogeneity <- function(
       # Set layout with different heights: plots get more space, legend gets less
       layout(layout_matrix, heights = c(rep(4, n_rows), 1))
 
-      # Set default margins for all plots initially
+      # Set default las for all plots
       par(las = las)
+
+      # Create font size list for multi-plot
+      font_sizes_multi <- list(
+        axis = axis_font_size,
+        tick = tick_font_size,
+        point_cex = point_cex_scale
+      )
 
       # Create plots in grid: rows = selection variables, columns = group variables
       for (i in seq_along(selection)) {
@@ -397,8 +487,9 @@ plot_heterogeneity <- function(
           show_xlab <- (i == n_rows)
 
           # Adjust margins based on whether we need axis labels
-          bottom_margin <- if (show_xlab) 4 else 1
-          left_margin <- if (show_ylab) 4 else 1.5
+          # For multi-plot grids, we need more space for axis labels when showing them
+          bottom_margin <- if (show_xlab) 4 * (axis_font_size / 12) else 1
+          left_margin <- if (show_ylab) 4 * (axis_font_size / 12) else 1.5
 
           # Set margins for this specific plot
           par(mar = c(bottom_margin, left_margin, 1, 1))
@@ -410,7 +501,8 @@ plot_heterogeneity <- function(
             group_var_name,
             show_xlab = show_xlab,
             show_ylab = show_ylab,
-            draw_legend = FALSE
+            draw_legend = FALSE,
+            font_sizes = font_sizes_multi
           )
 
           # Store statistics
@@ -435,9 +527,9 @@ plot_heterogeneity <- function(
         col = c(point_col, mean_col),
         pch = c(16, 18),
         lty = c(NA, 1),
-        pt.cex = c(0.8, 1.5),
+        pt.cex = c(0.8, 1.5) * point_cex_scale,
         bty = "n",
-        cex = 1,
+        cex = legend_font_size / 12,
         horiz = TRUE,
         xpd = TRUE
       )
