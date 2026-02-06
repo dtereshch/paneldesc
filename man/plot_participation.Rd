@@ -8,6 +8,7 @@ plot_participation(
   data,
   group,
   time,
+  type = "balanced",
   max_patterns = 10,
   colors = c("#0072B2", "#D55E00")
 )
@@ -18,6 +19,11 @@ plot_participation(
 \item{group}{A character string specifying the name of the entity/group variable in panel data.}
 
 \item{time}{A character string specifying the name of the time variable.}
+
+\item{type}{A character string specifying how to define entity presence. Must be one of:
+"balanced" (default): entity is present if it has at least one non-NA substantive variable,
+"observed": entity is present if it has a row in the data (even with only panel ID variables),
+"complete": entity is present only if it has no NA values in all substantive variables.}
 
 \item{max_patterns}{An integer specifying the maximum number of patterns to display.
 Default = 10.}
@@ -37,6 +43,10 @@ data(production)
 
 # Basic usage with top 10 patterns shown
 plot_participation(production, group = "firm", time = "year")
+
+# Use different presence types
+plot_participation(production, group = "firm", time = "year", type = "observed")
+plot_participation(production, group = "firm", time = "year", type = "complete")
 
 # Show only top 5 patterns
 plot_participation(production, group = "firm", time = "year", max_patterns = 5)
