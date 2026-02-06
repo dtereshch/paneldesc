@@ -11,7 +11,8 @@
 #' @param print_result A logical flag indicating whether to print the exploration results.
 #' Default = TRUE.
 #'
-#' @return A list containing panel exploration results.
+#' @return Invisibly returns a list containing panel structure diagnostics and validation results.
+#' Prints panel dimensions and any structural issues found.
 #'
 #' @details
 #' The returned list contains the following components:

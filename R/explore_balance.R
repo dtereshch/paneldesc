@@ -10,7 +10,8 @@
 #' @param print_result A logical flag indicating whether to print the validation results.
 #' Default = TRUE.
 #'
-#' @return A list with panel balance analysis results.
+#' @return Invisibly returns a list containing panel balance statistics and diagnostics.
+#' Prints a summary of balanced vs. incomplete observations, entities, and periods.
 #'
 #' @details
 #' The returned list contains the following components:

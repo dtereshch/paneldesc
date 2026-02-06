@@ -17,7 +17,8 @@ explore_balance(data, group, time, print_result = TRUE)
 Default = TRUE.}
 }
 \value{
-A list with panel balance analysis results.
+Invisibly returns a list containing panel balance statistics and diagnostics.
+Prints a summary of balanced vs. incomplete observations, entities, and periods.
 }
 \description{
 This function provides detailed analysis of panel data balance, including

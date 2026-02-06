@@ -28,7 +28,8 @@ explore_participation(
 Default = TRUE.}
 }
 \value{
-A list with detailed participation pattern analysis.
+Invisibly returns a list containing detailed participation pattern analysis.
+Prints time coverage distribution and common participation patterns.
 }
 \description{
 Provides detailed analysis of participation patterns in panel data, including

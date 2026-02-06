@@ -11,7 +11,8 @@
 #' @param print_result A logical flag indicating whether to print the validation results.
 #' Default = TRUE.
 #'
-#' @return A list with detailed participation pattern analysis.
+#' @return Invisibly returns a list containing detailed participation pattern analysis.
+#' Prints time coverage distribution and common participation patterns.
 #'
 #' @details
 #' \strong{Type} parameter definitions:

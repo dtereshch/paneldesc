@@ -20,7 +20,8 @@ Default = FALSE.}
 Default = TRUE.}
 }
 \value{
-A list containing panel exploration results.
+Invisibly returns a list containing panel structure diagnostics and validation results.
+Prints panel dimensions and any structural issues found.
 }
 \description{
 This function performs exploration of panel data structure,
