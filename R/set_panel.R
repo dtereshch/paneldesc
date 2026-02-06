@@ -1,7 +1,7 @@
 #' Add Panel Attributes to Data
 #'
 #' Adds panel structure attributes to a data.frame, storing group and time variable names.
-#' This allows panel functions like describe_panel() to automatically detect panel structure.
+#' This allows panel functions to automatically detect panel structure.
 #'
 #' @param data A data.frame containing panel data.
 #' @param group A character string specifying the name of the entity/group variable.
@@ -16,6 +16,9 @@
 #' requiring explicit specification of group and time variables in each function call.
 #' The original data.frame structure is preserved.
 #'
+#' @seealso
+#' [check_panel()], [get_attributes()], [describe_panel()], [explore_panel()]
+#'
 #' @examples
 #' data(production)
 #'
@@ -28,9 +31,6 @@
 #'
 #' # Use with describe_panel()
 #' describe_panel(panel_data)
-#'
-#' @seealso
-#' [describe_panel()] for summarizing panel structure
 #'
 #' @export
 set_panel <- function(data, group, time) {

@@ -18,7 +18,7 @@ The input data.frame with two additional attributes: panel_group and panel_time.
 }
 \description{
 Adds panel structure attributes to a data.frame, storing group and time variable names.
-This allows panel functions like describe_panel() to automatically detect panel structure.
+This allows panel functions to automatically detect panel structure.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
@@ -42,5 +42,5 @@ describe_panel(panel_data)
 
 }
 \seealso{
-\code{\link[=describe_panel]{describe_panel()}} for summarizing panel structure
+\code{\link[=check_panel]{check_panel()}}, \code{\link[=get_attributes]{get_attributes()}}, \code{\link[=describe_panel]{describe_panel()}}, \code{\link[=explore_panel]{explore_panel()}}
 }
