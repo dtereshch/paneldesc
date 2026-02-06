@@ -101,7 +101,7 @@ check_panel <- function(data) {
 #'
 #' @export
 get_attributes <- function(data) {
-  if (is_panel(data)) {
+  if (check_panel(data)) {
     list(
       panel_group = attr(data, "panel_group"),
       panel_time = attr(data, "panel_time")
