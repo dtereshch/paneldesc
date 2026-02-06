@@ -8,6 +8,7 @@ describe_participation(
   data,
   group,
   time,
+  type = "balanced",
   detailed = TRUE,
   format = "wide",
   digits = 3
@@ -19,6 +20,11 @@ describe_participation(
 \item{group}{A character string specifying the name of the entity/group variable in panel data.}
 
 \item{time}{A character string specifying the name of the time variable.}
+
+\item{type}{A character string specifying how to define entity presence. Must be one of:
+"balanced" (default): entity is present if it has at least one non-NA substantive variable,
+"observed": entity is present if it has a row in the data (even with only panel ID variables),
+"complete": entity is present only if it has no NA values in all substantive variables.}
 
 \item{detailed}{A logical flag indicating whether to return detailed patterns. Default = TRUE.}
 
@@ -66,6 +72,10 @@ data(production)
 
 # Basic usage
 describe_participation(production, group = "firm", time = "year")
+
+# Use different presence types
+describe_participation(production, group = "firm", time = "year", type = "observed")
+describe_participation(production, group = "firm", time = "year", type = "complete")
 
 # Simplified version
 describe_participation(production, group = "firm", time = "year", detailed = FALSE)
