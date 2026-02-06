@@ -30,6 +30,35 @@
 #'
 #' Patterns are sorted by frequency (most common first) and the most common pattern appears at the top of the plot.
 #'
+#' The returned list contains the following components:
+#' \describe{
+#'   \item{\code{summary}}{List with summary statistics including:
+#'     \itemize{
+#'       \item \code{n_patterns_displayed}: Number of patterns displayed in the plot
+#'       \item \code{total_patterns}: Total number of patterns found
+#'       \item \code{type}: Presence type used for analysis
+#'       \item \code{max_patterns}: Maximum number of patterns to display
+#'     }
+#'   }
+#'   \item{\code{patterns}}{List with pattern information including:
+#'     \itemize{
+#'       \item \code{pattern_matrix}: Matrix showing presence patterns
+#'       \item \code{pattern_matrix_reversed}: Matrix with reversed values (for plotting)
+#'       \item \code{pattern_labels}: Labels for each pattern
+#'       \item \code{counts}: Number of entities in each pattern
+#'     }
+#'   }
+#'   \item{\code{metadata}}{List with analysis parameters including:
+#'     \itemize{
+#'       \item \code{group_var}: The group variable name
+#'       \item \code{time_var}: The time variable name
+#'       \item \code{type}: The presence type used for analysis
+#'       \item \code{max_patterns}: Maximum number of patterns to display
+#'       \item \code{colors}: Colors used for plotting
+#'     }
+#'   }
+#' }
+#'
 #' @seealso
 #' [describe_participation()], [explore_participation()], [plot_heterogeneity()]
 #'
@@ -342,16 +371,30 @@ plot_participation <- function(
     cex = 0.9
   )
 
+  # Create unified return object
+  result <- list(
+    summary = list(
+      n_patterns_displayed = n_patterns_to_display,
+      total_patterns = length(pattern_counts),
+      type = type,
+      max_patterns = max_patterns
+    ),
+    patterns = list(
+      pattern_matrix = pattern_matrix,
+      pattern_matrix_reversed = pattern_matrix_rev,
+      pattern_labels = y_labels,
+      counts = counts,
+      time_periods = time_cols
+    ),
+    metadata = list(
+      group_var = group,
+      time_var = time,
+      type = type,
+      max_patterns = max_patterns,
+      colors = colors
+    )
+  )
+
   # Return the pattern matrix invisibly for further use
-  invisible(list(
-    pattern_matrix = pattern_matrix,
-    pattern_matrix_reversed = pattern_matrix_rev,
-    time_periods = time_cols,
-    pattern_labels = y_labels,
-    counts = counts,
-    type = type,
-    max_patterns = max_patterns,
-    n_patterns_displayed = n_patterns_to_display,
-    total_patterns = length(pattern_counts)
-  ))
+  invisible(result)
 }

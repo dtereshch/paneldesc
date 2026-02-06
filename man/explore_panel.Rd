@@ -29,31 +29,42 @@ checking for common issues that could affect panel data analysis.
 \details{
 The returned list contains the following components:
 \describe{
-\item{\code{panel_summary}}{Character string summarizing panel structure}
-\item{\code{exploration_status}}{Overall exploration status ("PASS", "WARNING", or "FAIL")}
-\item{\code{exploration_message}}{Descriptive message about exploration status}
-\item{\code{exploration_results}}{Data frame with detailed exploration results}
-\item{\code{detailed}}{Logical indicating whether detailed results were requested}
-\item{\code{panel_info}}{List with panel structure information including:
+\item{\code{summary}}{List with summary statistics including:
 \itemize{
 \item \code{n_groups}: Number of unique groups
 \item \code{n_periods}: Number of unique time periods
 \item \code{n_observations}: Total number of observations
+\item \code{avg_obs_per_group}: Average observations per group
 \item \code{is_balanced}: Logical indicating if panel is balanced
 \item \code{has_duplicates}: Logical indicating duplicate group-time pairs
 \item \code{has_irregular_intervals}: Logical indicating irregular time intervals
 \item \code{has_irregular_time_sequence}: Logical indicating irregular time sequence in entire panel
 }
 }
-\item{\code{panel_details}}{List containing useful vectors for further analysis including:
+\item{\code{details}}{List with detailed results including:
 \itemize{
 \item \code{duplicate_indices}: Indices of duplicate observations
+\item \code{duplicate_rows}: Data frame of duplicate rows
+\item \code{duplicate_summary}: Summary of duplicate combinations
 \item \code{unbalanced_groups}: Groups causing imbalance
 \item \code{irregular_groups}: Groups with irregular time intervals
+\item \code{interval_details}: Details of time intervals for each group
 \item \code{observations_per_group}: Table of observations per group
 \item \code{time_sequence_regular}: Logical indicating if the entire time sequence is regular
+\item \code{all_unique_times}: All unique time values
+\item \code{global_time_intervals}: Time intervals across all groups
 }
 }
+\item{\code{metadata}}{List with analysis parameters including:
+\itemize{
+\item \code{group_var}: The group variable name
+\item \code{time_var}: The time variable name
+\item \code{detailed}: Whether detailed results were requested
+}
+}
+\item{\code{results}}{Data frame with detailed exploration results (check, status, message)}
+\item{\code{status}}{Overall exploration status ("PASS", "WARNING", or "FAIL")}
+\item{\code{message}}{Descriptive message about exploration status}
 }
 }
 \examples{
@@ -69,16 +80,16 @@ explore_panel(production, group = "firm", time = "year", detailed = TRUE)
 panel_result <- explore_panel(production, group = "firm", time = "year", print_result = FALSE)
 
 # Access useful vectors for further analysis
-duplicate_rows <- panel_result$panel_details$duplicate_rows
-unbalanced_firms <- panel_result$panel_details$unbalanced_groups
-irregular_firms <- panel_result$panel_details$irregular_groups
-obs_per_firm <- panel_result$panel_details$observations_per_group
+duplicate_rows <- panel_result$details$duplicate_rows
+unbalanced_firms <- panel_result$details$unbalanced_groups
+irregular_firms <- panel_result$details$irregular_groups
+obs_per_firm <- panel_result$details$observations_per_group
 
 # Identify problematic observations
 problematic_indices <- unique(c(
-panel_result$panel_details$duplicate_indices,
-panel_result$panel_details$missing_groups,
-panel_result$panel_details$missing_times
+panel_result$details$duplicate_indices,
+panel_result$details$missing_groups,
+panel_result$details$missing_times
 ))
 
 }

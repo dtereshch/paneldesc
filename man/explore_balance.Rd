@@ -46,15 +46,27 @@ The returned list contains the following components:
 \item \code{avg_balanced_per_period}: Average number of balanced observations per period
 }
 }
-\item{\code{balanced_periods}}{Vector of time periods where all entities have at least one non-NA}
-\item{\code{periods_complete}}{Vector of time periods with no missing values}
-\item{\code{balanced_entities}}{Vector of entities where all time periods have at least one non-NA}
-\item{\code{entities_complete}}{Vector of entities with no missing values}
-\item{\code{presence_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0)}
-\item{\code{balanced_matrix}}{Binary matrix showing which entity-period pairs have at least one non-NA}
-\item{\code{complete_matrix}}{Binary matrix showing which entity-period combinations have no NAs}
-\item{\code{group_var}}{The group variable name}
-\item{\code{time_var}}{The time variable name}
+\item{\code{details}}{List with detailed results including:
+\itemize{
+\item \code{balanced_periods}: Vector of time periods where all entities have at least one non-NA
+\item \code{periods_complete}: Vector of time periods with no missing values
+\item \code{balanced_entities}: Vector of entities where all time periods have at least one non-NA
+\item \code{entities_complete}: Vector of entities with no missing values
+}
+}
+\item{\code{matrices}}{List with computed matrices including:
+\itemize{
+\item \code{presence_matrix}: Binary matrix (entities × periods) showing presence (1) or absence (0)
+\item \code{balanced_matrix}: Binary matrix showing which entity-period pairs have at least one non-NA
+\item \code{complete_matrix}: Binary matrix showing which entity-period combinations have no NAs
+}
+}
+\item{\code{metadata}}{List with analysis parameters including:
+\itemize{
+\item \code{group_var}: The group variable name
+\item \code{time_var}: The time variable name
+}
+}
 }
 }
 \examples{
@@ -67,19 +79,19 @@ explore_balance(production, group = "firm", time = "year")
 balance_result <- explore_balance(production, group = "firm", time = "year", print_result = FALSE)
 
 # Balanced periods (all entities have at least one non-NA)
-balanced_periods <- balance_result$balanced_periods
+balanced_periods <- balance_result$details$balanced_periods
 print(balanced_periods)
 
 # Time periods with no missing values
-complete_periods <- balance_result$periods_complete
+complete_periods <- balance_result$details$periods_complete
 print(complete_periods)
 
 # Balanced entities (all periods have at least one non-NA)
-balanced_entities <- balance_result$balanced_entities
+balanced_entities <- balance_result$details$balanced_entities
 print(balanced_entities)
 
 # Entities with no missing values
-complete_entities <- balance_result$entities_complete
+complete_entities <- balance_result$details$entities_complete
 print(complete_entities)
 
 # Get balanced observations statistics

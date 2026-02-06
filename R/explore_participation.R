@@ -23,26 +23,36 @@
 #'
 #' The returned list contains the following components:
 #' \describe{
-#'   \item{\code{pattern_matrix}}{Matrix showing presence patterns (rows = patterns, columns = time periods)}
-#'   \item{\code{pattern_groups}}{List of entities belonging to each pattern}
-#'   \item{\code{pattern_stats}}{Data.frame with pattern statistics including:
+#'   \item{\code{summary}}{List with summary statistics including:
 #'     \itemize{
-#'       \item \code{pattern_id}: Pattern identifier
-#'       \item \code{pattern_string}: Binary string representation
-#'       \item \code{n_entities}: Number of entities with this pattern
-#'       \item \code{percent_entities}: Percentage of entities with this pattern
-#'       \item \code{time_coverage}: Number of time periods covered by this pattern
-#'       \item \code{entities}: List of entity identifiers with this pattern
+#'       \item \code{total_entities}: Total number of unique entities
+#'       \item \code{n_patterns}: Number of unique participation patterns
+#'       \item \code{type}: Presence type used for analysis
 #'     }
 #'   }
-#'   \item{\code{entities_by_pattern}}{Named vector with number of entities in each pattern}
-#'   \item{\code{presence_matrix}}{Original presence matrix used for analysis}
-#'   \item{\code{group_var}}{The group variable name}
-#'   \item{\code{time_var}}{The time variable name}
-#'   \item{\code{type}}{The presence type used for analysis}
-#'   \item{\code{filtered_data}}{The filtered data used for analysis (depending on type)}
-#'   \item{\code{time_coverage_stats}}{Named vector with quantiles (min, 5%, 25%, 50%, 75%, 95%, max) of time periods covered across all entities}
-#'   \item{\code{time_coverage_by_entity}}{Named vector with number of time periods covered for each entity}
+#'   \item{\code{patterns}}{List with pattern analysis including:
+#'     \itemize{
+#'       \item \code{pattern_matrix}: Matrix showing presence patterns (rows = patterns, columns = time periods)
+#'       \item \code{pattern_groups}: List of entities belonging to each pattern
+#'       \item \code{pattern_stats}: Data.frame with pattern statistics
+#'       \item \code{entities_by_pattern}: Named vector with number of entities in each pattern
+#'       \item \code{presence_matrix}: Original presence matrix used for analysis
+#'     }
+#'   }
+#'   \item{\code{coverage}}{List with time coverage statistics including:
+#'     \itemize{
+#'       \item \code{time_coverage_stats}: Named vector with quantiles of time periods covered
+#'       \item \code{time_coverage_by_entity}: Named vector with number of time periods covered for each entity
+#'     }
+#'   }
+#'   \item{\code{metadata}}{List with analysis parameters including:
+#'     \itemize{
+#'       \item \code{group_var}: The group variable name
+#'       \item \code{time_var}: The time variable name
+#'       \item \code{type}: The presence type used for analysis
+#'       \item \code{max_patterns}: Maximum number of patterns to display
+#'     }
+#'   }
 #' }
 #'
 #' Patterns are sorted by frequency (most common first).
@@ -68,15 +78,15 @@
 #' print_result = FALSE)
 #'
 #' # Access the number of entities per pattern
-#' entities_per_pattern <- participation_result$entities_by_pattern
+#' entities_per_pattern <- participation_result$patterns$entities_by_pattern
 #' print(entities_per_pattern)
 #'
 #' # Access time coverage statistics
-#' coverage_stats <- participation_result$time_coverage_stats
+#' coverage_stats <- participation_result$coverage$time_coverage_stats
 #' print(coverage_stats)
 #'
 #' # Access individual entity coverage
-#' entity_coverage <- participation_result$time_coverage_by_entity
+#' entity_coverage <- participation_result$coverage$time_coverage_by_entity
 #' print(entity_coverage[1:5])  # First 5 entities
 #'
 #' @export
@@ -309,19 +319,30 @@ explore_participation <- function(
     stringsAsFactors = FALSE
   )
 
-  # Return results
+  # Create unified return object
   result <- list(
-    pattern_matrix = pattern_matrix,
-    pattern_groups = pattern_groups,
-    pattern_stats = pattern_stats,
-    entities_by_pattern = entities_by_pattern,
-    presence_matrix = presence_matrix,
-    group_var = group,
-    time_var = time,
-    type = type,
-    filtered_data = filtered_data,
-    time_coverage_stats = time_coverage_stats,
-    time_coverage_by_entity = time_coverage_by_entity
+    summary = list(
+      total_entities = total_entities,
+      n_patterns = length(pattern_groups),
+      type = type
+    ),
+    patterns = list(
+      pattern_matrix = pattern_matrix,
+      pattern_groups = pattern_groups,
+      pattern_stats = pattern_stats,
+      entities_by_pattern = entities_by_pattern,
+      presence_matrix = presence_matrix
+    ),
+    coverage = list(
+      time_coverage_stats = time_coverage_stats,
+      time_coverage_by_entity = time_coverage_by_entity
+    ),
+    metadata = list(
+      group_var = group,
+      time_var = time,
+      type = type,
+      max_patterns = max_patterns
+    )
   )
 
   # Print if requested

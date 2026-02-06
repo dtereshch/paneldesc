@@ -34,15 +34,27 @@
 #'       \item \code{avg_balanced_per_period}: Average number of balanced observations per period
 #'     }
 #'   }
-#'   \item{\code{balanced_periods}}{Vector of time periods where all entities have at least one non-NA}
-#'   \item{\code{periods_complete}}{Vector of time periods with no missing values}
-#'   \item{\code{balanced_entities}}{Vector of entities where all time periods have at least one non-NA}
-#'   \item{\code{entities_complete}}{Vector of entities with no missing values}
-#'   \item{\code{presence_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0)}
-#'   \item{\code{balanced_matrix}}{Binary matrix showing which entity-period pairs have at least one non-NA}
-#'   \item{\code{complete_matrix}}{Binary matrix showing which entity-period combinations have no NAs}
-#'   \item{\code{group_var}}{The group variable name}
-#'   \item{\code{time_var}}{The time variable name}
+#'   \item{\code{details}}{List with detailed results including:
+#'     \itemize{
+#'       \item \code{balanced_periods}: Vector of time periods where all entities have at least one non-NA
+#'       \item \code{periods_complete}: Vector of time periods with no missing values
+#'       \item \code{balanced_entities}: Vector of entities where all time periods have at least one non-NA
+#'       \item \code{entities_complete}: Vector of entities with no missing values
+#'     }
+#'   }
+#'   \item{\code{matrices}}{List with computed matrices including:
+#'     \itemize{
+#'       \item \code{presence_matrix}: Binary matrix (entities × periods) showing presence (1) or absence (0)
+#'       \item \code{balanced_matrix}: Binary matrix showing which entity-period pairs have at least one non-NA
+#'       \item \code{complete_matrix}: Binary matrix showing which entity-period combinations have no NAs
+#'     }
+#'   }
+#'   \item{\code{metadata}}{List with analysis parameters including:
+#'     \itemize{
+#'       \item \code{group_var}: The group variable name
+#'       \item \code{time_var}: The time variable name
+#'     }
+#'   }
 #' }
 #'
 #' @seealso
@@ -58,19 +70,19 @@
 #' balance_result <- explore_balance(production, group = "firm", time = "year", print_result = FALSE)
 #'
 #' # Balanced periods (all entities have at least one non-NA)
-#' balanced_periods <- balance_result$balanced_periods
+#' balanced_periods <- balance_result$details$balanced_periods
 #' print(balanced_periods)
 #'
 #' # Time periods with no missing values
-#' complete_periods <- balance_result$periods_complete
+#' complete_periods <- balance_result$details$periods_complete
 #' print(complete_periods)
 #'
 #' # Balanced entities (all periods have at least one non-NA)
-#' balanced_entities <- balance_result$balanced_entities
+#' balanced_entities <- balance_result$details$balanced_entities
 #' print(balanced_entities)
 #'
 #' # Entities with no missing values
-#' complete_entities <- balance_result$entities_complete
+#' complete_entities <- balance_result$details$entities_complete
 #' print(complete_entities)
 #'
 #' # Get balanced observations statistics
@@ -280,7 +292,7 @@ explore_balance <- function(
     0
   )
 
-  # Create invisible return object
+  # Create unified return object
   result <- list(
     summary = list(
       total_observations = total_obs,
@@ -307,15 +319,21 @@ explore_balance <- function(
       n_entities_complete = n_entities_complete,
       pct_entities_complete = pct_entities_complete
     ),
-    balanced_periods = balanced_periods,
-    periods_complete = complete_periods,
-    balanced_entities = balanced_entities,
-    entities_complete = complete_entities,
-    presence_matrix = presence_matrix,
-    balanced_matrix = balanced_matrix,
-    complete_matrix = complete_matrix,
-    group_var = group,
-    time_var = time
+    details = list(
+      balanced_periods = balanced_periods,
+      periods_complete = complete_periods,
+      balanced_entities = balanced_entities,
+      entities_complete = complete_entities
+    ),
+    matrices = list(
+      presence_matrix = presence_matrix,
+      balanced_matrix = balanced_matrix,
+      complete_matrix = complete_matrix
+    ),
+    metadata = list(
+      group_var = group,
+      time_var = time
+    )
   )
 
   class(result) <- "balance_exploration"
@@ -359,9 +377,6 @@ explore_balance <- function(
       pct_entities_complete
     ))
     cat("\n")
-    # cat(sprintf("%6d  Minimum observations per period\n", min_obs_per_period))
-    # cat(sprintf("%6d  Maximum observations per period\n", max_obs_per_period))
-    # cat(sprintf("%6.1f  Average observations per period\n", avg_obs_per_period))
     cat(sprintf(
       "%6d  Minimum balanced entities per period\n",
       min_balanced_per_period
@@ -388,9 +403,6 @@ explore_balance <- function(
       n_periods_complete
     ))
     cat("\n")
-    # cat(sprintf("%6d  Minimum observations per entity\n", min_obs_per_entity))
-    # cat(sprintf("%6d  Maximum observations per entity\n", max_obs_per_entity))
-    # cat(sprintf("%6.1f  Average observations per entity\n", avg_obs_per_entity))
     cat(sprintf(
       "%6d  Minimum balanced periods per entity\n",
       min_balanced_per_entity

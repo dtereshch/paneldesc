@@ -22,6 +22,32 @@ Invisibly returns a list with summary statistics. Creates a plot showing group h
 \description{
 This function creates visualizations of heterogeneity among groups.
 }
+\details{
+The returned list contains the following components:
+\describe{
+\item{\code{summary}}{List with overall summary statistics including:
+\itemize{
+\item \code{overall_mean}: Mean of the selected variable across all data
+\item \code{overall_sd}: Standard deviation of the selected variable across all data
+\item \code{n_observations}: Total number of observations
+}
+}
+\item{\code{group_stats}}{List with statistics for each grouping variable including:
+\itemize{
+\item \code{means}: Group means
+\item \code{sd}: Group standard deviations
+\item \code{n}: Number of observations per group
+}
+}
+\item{\code{metadata}}{List with analysis parameters including:
+\itemize{
+\item \code{selection_var}: The selected variable name
+\item \code{group_vars}: The grouping variable name(s)
+\item \code{colors}: Colors used for plotting
+}
+}
+}
+}
 \examples{
 data(production)
 
