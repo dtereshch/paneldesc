@@ -99,6 +99,15 @@ summarize_transition <- function(
     }
   }
 
+  # Check for duplicate variable selection (selection cannot be group or time)
+  if (selection == group) {
+    stop("'selection' cannot be the same as 'group' variable ('", group, "')")
+  }
+
+  if (selection == time) {
+    stop("'selection' cannot be the same as 'time' variable ('", time, "')")
+  }
+
   # Common validation
   if (!is.character(selection) || length(selection) != 1) {
     stop(
