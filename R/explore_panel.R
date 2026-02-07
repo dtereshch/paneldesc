@@ -548,23 +548,21 @@ explore_panel <- function(
 
   # Print if requested
   if (print_result) {
+    full_width <- getOption("width", 80)
+    width <- floor(full_width * 0.75)
+    separator <- paste(rep("-", width), collapse = "")
+
     if (result$metadata$detailed) {
       cat("PANEL DATA STRUCTURE EXPLORATION\n")
-      cat(
-        "====================================================================\n\n"
-      )
+      cat(paste(rep("=", width), collapse = ""), "\n\n")
 
       cat("SUMMARY\n")
-      cat(
-        "--------------------------------------------------------------------\n"
-      )
+      cat(separator, "\n")
       cat(" ", panel_summary, "\n")
       cat("  Exploration Status:", result$message, "\n\n")
 
       cat("EXPLORATION RESULTS\n")
-      cat(
-        "--------------------------------------------------------------------\n"
-      )
+      cat(separator, "\n")
 
       for (i in 1:nrow(result$results)) {
         row <- result$results[i, ]

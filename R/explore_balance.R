@@ -358,8 +358,12 @@ explore_balance <- function(
 
   # Print if requested
   if (print_result) {
+    full_width <- getOption("width", 80)
+    width <- floor(full_width * 0.75)
+    separator <- paste(rep("-", width), collapse = "")
+
     cat("PANEL DATA BALANCE EXPLORATION\n")
-    cat("====================================================\n\n")
+    cat(paste(rep("=", width), collapse = ""), "\n\n")
 
     # Calculate percentages
     pct_balanced_obs <- ifelse(total_obs > 0, obs_balanced / total_obs * 100, 0)
@@ -367,7 +371,7 @@ explore_balance <- function(
 
     # SIMPLIFIED OUTPUT
     cat("BASIC INFORMATION\n")
-    cat("----------------------------------------------------\n")
+    cat(separator, "\n")
     cat(sprintf("%6d  Total observations\n", total_obs))
     cat(sprintf(
       "%6d  Balanced observations (%5.1f%%)\n",
@@ -382,7 +386,7 @@ explore_balance <- function(
     cat("\n")
 
     cat("ENTITIES\n")
-    cat("----------------------------------------------------\n")
+    cat(separator, "\n")
     cat(sprintf("%6d  Entities\n", n_entities))
     cat(sprintf(
       "%6d  Balanced entities (%5.1f%%)\n",
@@ -410,7 +414,7 @@ explore_balance <- function(
     cat("\n")
 
     cat("TIME PERIODS\n")
-    cat("----------------------------------------------------\n")
+    cat(separator, "\n")
     cat(sprintf("%6d  Time periods\n", n_periods))
     cat(sprintf(
       "%6d  Balanced periods (all entities have ≥1 non-NA)\n",
