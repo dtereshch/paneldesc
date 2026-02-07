@@ -22,6 +22,12 @@ A data.frame with three columns:
 \item{\code{entities}}{Number of unique groups/entities in the panel}
 \item{\code{periods}}{Number of unique time periods in the panel}
 }
+
+The data.frame has additional attributes:
+\describe{
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+}
 }
 \description{
 This function provides basic summary information about panel data structure.

@@ -33,6 +33,15 @@
 #' If no entities have incomplete data, returns the character message:
 #' "There are no incomplete groups/entities in the data."
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name (if provided)}
+#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
+#'   \item{\code{panel_n_entities_total}}{Total number of unique entities/groups}
+#'   \item{\code{panel_n_entities_incomplete}}{Number of entities with incomplete data}
+#' }
+#'
 #' @seealso
 #' [explore_participation()], [describe_participation()], [explore_balance()], [describe_balance()]
 #'
@@ -106,8 +115,8 @@ describe_incomplete <- function(
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
 
-  # Convert data if needed (removed .check_and_convert_data_robust call as it's not defined)
-  # data <- data
+  # Convert data if needed
+  data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Validate detailed parameter
   if (!is.logical(detailed) || length(detailed) != 1) {
@@ -210,6 +219,13 @@ describe_incomplete <- function(
 
   # Reset row names
   rownames(result) <- NULL
+
+  # Add standardized attributes
+  attr(result, "panel_group") <- group
+  attr(result, "panel_time") <- time
+  attr(result, "panel_detailed") <- detailed
+  attr(result, "panel_n_entities_total") <- length(unique_groups)
+  attr(result, "panel_n_entities_incomplete") <- nrow(result)
 
   return(result)
 }

@@ -72,6 +72,19 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 Returns only the Pattern and time period columns (without count, share, or cumulative).
 
 Patterns are sorted by frequency (most common first).
+
+The data.frame has additional attributes:
+\describe{
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+\item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+\item{\code{panel_format}}{Output format ("wide" or "long")}
+\item{\code{panel_detailed}}{Logical indicating detailed output}
+\item{\code{panel_digits}}{Number of decimal places used for rounding}
+\item{\code{panel_n_entities}}{Total number of unique entities/groups}
+\item{\code{panel_n_periods}}{Total number of unique time periods}
+\item{\code{panel_n_patterns}}{Number of distinct participation patterns}
+}
 }
 \examples{
 data(production)

@@ -38,6 +38,16 @@
 #' When no grouping variable is specified, statistics are calculated overall.
 #' When a grouping variable is specified, statistics are calculated for each group.
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name (if provided)}
+#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
+#'   \item{\code{panel_n_variables}}{Number of variables analyzed}
+#'   \item{\code{panel_n_groups}}{Number of unique groups (if grouping variable provided)}
+#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#' }
+#'
 #' @seealso
 #' [summarize_panel()], [summarize_transition()]
 #'
@@ -169,6 +179,10 @@ summarize_data <- function(
       stop('variable "', group, '" not found in data')
     }
   }
+
+  # Get group information for attributes
+  n_groups <- if (!is.null(group)) length(unique(data[[group]])) else NULL
+  total_obs <- nrow(data)
 
   # Helper function to count non-NA values
   count_non_na <- function(x) {
@@ -339,6 +353,14 @@ summarize_data <- function(
 
   # Reset row names
   rownames(result_df) <- NULL
+
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_detailed") <- detailed
+  attr(result_df, "panel_digits") <- digits
+  attr(result_df, "panel_n_variables") <- length(selection)
+  attr(result_df, "panel_n_groups") <- n_groups
+  attr(result_df, "panel_total_obs") <- total_obs
 
   return(result_df)
 }

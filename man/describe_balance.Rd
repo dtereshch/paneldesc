@@ -35,6 +35,15 @@ For "observations": number of rows with no NAs in substantive variables.
 For "entities": number of groups with no NAs in any of their observations.
 For "periods": number of time periods with no NAs in any observation.}
 }
+
+The data.frame has additional attributes:
+\describe{
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+\item{\code{panel_n_entities}}{Total number of unique entities/groups}
+\item{\code{panel_n_periods}}{Total number of unique time periods}
+\item{\code{panel_total_obs}}{Total number of observations in the data}
+}
 }
 \description{
 Provides simplified summary statistics for panel data structure with focus on balance

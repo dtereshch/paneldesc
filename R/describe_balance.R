@@ -29,6 +29,15 @@
 #'     For "periods": number of time periods with no NAs in any observation.}
 #' }
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
+#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
+#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#' }
+#'
 #' @details
 #' This function provides basic panel data structure information including
 #' the number of unique entities, time periods, and total observations.
@@ -110,6 +119,7 @@ describe_balance <- function(data, group = NULL, time = NULL) {
 
   total_entities <- length(unique_groups)
   total_periods <- length(unique_periods)
+  total_obs <- nrow(data)
 
   # Create presence matrix (1 = observation exists for entity-time pair)
   presence_matrix <- matrix(
@@ -221,6 +231,13 @@ describe_balance <- function(data, group = NULL, time = NULL) {
     stringsAsFactors = FALSE,
     row.names = NULL
   )
+
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_time") <- time
+  attr(result_df, "panel_n_entities") <- total_entities_count
+  attr(result_df, "panel_n_periods") <- total_periods_count
+  attr(result_df, "panel_total_obs") <- total_obs
 
   return(result_df)
 }

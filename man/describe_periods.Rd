@@ -31,6 +31,15 @@ The data.frame contains the following columns:
 }
 
 Time periods are sorted naturally (numeric values as numbers, others alphabetically).
+
+The data.frame has additional attributes:
+\describe{
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+\item{\code{panel_n_entities}}{Total number of unique entities/groups}
+\item{\code{panel_n_periods}}{Total number of unique time periods}
+\item{\code{panel_total_obs}}{Total number of observations in the data}
+}
 }
 \examples{
 data(production)

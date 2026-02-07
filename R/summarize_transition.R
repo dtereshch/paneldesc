@@ -38,6 +38,15 @@
 #'
 #' Includes all possible state combinations, even those with zero transitions.
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_variable}}{The analyzed categorical variable name}
+#'   \item{\code{panel_format}}{Output format ("wide" or "long")}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
+#' }
+#'
 #' @references
 #' For Stata users: This corresponds to the `xttrans` command.
 #'
@@ -272,8 +281,17 @@ summarize_transition <- function(
 
   # Return the requested format
   if (format == "wide") {
-    return(wide_result)
+    result_df <- wide_result
   } else {
-    return(long_result)
+    result_df <- long_result
   }
+
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_time") <- time
+  attr(result_df, "panel_variable") <- selection
+  attr(result_df, "panel_format") <- format
+  attr(result_df, "panel_digits") <- digits
+
+  return(result_df)
 }

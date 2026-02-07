@@ -58,6 +58,15 @@ Returns a data.frame with:
 }
 
 Includes all possible state combinations, even those with zero transitions.
+
+The data.frame has additional attributes:
+\describe{
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+\item{\code{panel_variable}}{The analyzed categorical variable name}
+\item{\code{panel_format}}{Output format ("wide" or "long")}
+\item{\code{panel_digits}}{Number of decimal places used for rounding}
+}
 }
 \examples{
 data(production)

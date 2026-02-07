@@ -50,6 +50,19 @@
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+#'   \item{\code{panel_format}}{Output format ("wide" or "long")}
+#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
+#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
+#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
+#'   \item{\code{panel_n_patterns}}{Number of distinct participation patterns}
+#' }
+#'
 #' @seealso
 #' [plot_participation()], [explore_participation()], [describe_periods()], [describe_incomplete()], [describe_balance()]
 #'
@@ -153,14 +166,25 @@ describe_participation <- function(
 
   digits <- as.integer(digits)
 
-  # Convert data if needed (removed .check_and_convert_data_robust call)
-  # data <- .check_and_convert_data_robust(data, arg_name = "data")
+  # Convert data if needed
+  data <- .check_and_convert_data_robust(data, arg_name = "data")
 
   # Identify data columns (excluding group and time)
   data_cols <- setdiff(names(data), c(group, time))
 
   if (length(data_cols) == 0) {
     stop("no data columns found (excluding group and time variables)")
+  }
+
+  # Get unique groups and periods for attributes
+  unique_groups <- unique(as.character(data[[group]]))
+  unique_periods <- unique(as.character(data[[time]]))
+
+  # Sort time periods if they appear numeric
+  if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", unique_periods))) {
+    unique_periods <- as.character(sort(as.numeric(unique_periods)))
+  } else {
+    unique_periods <- sort(unique_periods)
   }
 
   # Filter data based on type
@@ -325,8 +349,31 @@ describe_participation <- function(
     if (!detailed) {
       # Return simplified version with only pattern, time, and participation columns
       simplified_result <- long_result[c("pattern", time, "participation")]
+
+      # Add standardized attributes to simplified result
+      attr(simplified_result, "panel_group") <- group
+      attr(simplified_result, "panel_time") <- time
+      attr(simplified_result, "panel_type") <- type
+      attr(simplified_result, "panel_format") <- format
+      attr(simplified_result, "panel_detailed") <- detailed
+      attr(simplified_result, "panel_digits") <- digits
+      attr(simplified_result, "panel_n_entities") <- length(unique_groups)
+      attr(simplified_result, "panel_n_periods") <- length(unique_periods)
+      attr(simplified_result, "panel_n_patterns") <- nrow(result)
+
       return(simplified_result)
     }
+
+    # Add standardized attributes to long result
+    attr(long_result, "panel_group") <- group
+    attr(long_result, "panel_time") <- time
+    attr(long_result, "panel_type") <- type
+    attr(long_result, "panel_format") <- format
+    attr(long_result, "panel_detailed") <- detailed
+    attr(long_result, "panel_digits") <- digits
+    attr(long_result, "panel_n_entities") <- length(unique_groups)
+    attr(long_result, "panel_n_periods") <- length(unique_periods)
+    attr(long_result, "panel_n_patterns") <- nrow(result)
 
     return(long_result)
   }
@@ -335,8 +382,31 @@ describe_participation <- function(
   if (!detailed) {
     # Return simplified version with only pattern and time period columns
     simplified_result <- result[c("pattern", time_cols)]
+
+    # Add standardized attributes to simplified result
+    attr(simplified_result, "panel_group") <- group
+    attr(simplified_result, "panel_time") <- time
+    attr(simplified_result, "panel_type") <- type
+    attr(simplified_result, "panel_format") <- format
+    attr(simplified_result, "panel_detailed") <- detailed
+    attr(simplified_result, "panel_digits") <- digits
+    attr(simplified_result, "panel_n_entities") <- length(unique_groups)
+    attr(simplified_result, "panel_n_periods") <- length(unique_periods)
+    attr(simplified_result, "panel_n_patterns") <- nrow(result)
+
     return(simplified_result)
   }
+
+  # Add standardized attributes to result
+  attr(result, "panel_group") <- group
+  attr(result, "panel_time") <- time
+  attr(result, "panel_type") <- type
+  attr(result, "panel_format") <- format
+  attr(result, "panel_detailed") <- detailed
+  attr(result, "panel_digits") <- digits
+  attr(result, "panel_n_entities") <- length(unique_groups)
+  attr(result, "panel_n_periods") <- length(unique_periods)
+  attr(result, "panel_n_patterns") <- nrow(result)
 
   return(result)
 }

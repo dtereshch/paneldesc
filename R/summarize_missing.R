@@ -36,13 +36,13 @@
 #'
 #' The data.frame has additional attributes:
 #' \describe{
-#'   \item{\code{group_var}}{The grouping variable name}
-#'   \item{\code{time_var}}{The time variable name}
-#'   \item{\code{detailed}}{Logical indicating detailed output}
-#'   \item{\code{digits}}{Number of decimal places used for rounding na_share}
-#'   \item{\code{total_observations}}{Total number of observations in the data}
-#'   \item{\code{total_entities}}{Total number of unique entities/groups}
-#'   \item{\code{total_periods}}{Total number of unique time periods}
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding na_share}
+#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
+#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
 #' }
 #'
 #' @seealso
@@ -249,14 +249,14 @@ summarize_missing <- function(
   result_df <- do.call(rbind, results)
   rownames(result_df) <- NULL
 
-  # Add attributes
-  attr(result_df, "group_var") <- group
-  attr(result_df, "time_var") <- time
-  attr(result_df, "detailed") <- detailed
-  attr(result_df, "digits") <- digits
-  attr(result_df, "total_observations") <- total_obs
-  attr(result_df, "total_entities") <- total_entities
-  attr(result_df, "total_periods") <- total_periods
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_time") <- time
+  attr(result_df, "panel_detailed") <- detailed
+  attr(result_df, "panel_digits") <- digits
+  attr(result_df, "panel_total_obs") <- total_obs
+  attr(result_df, "panel_n_entities") <- total_entities
+  attr(result_df, "panel_n_periods") <- total_periods
 
   return(result_df)
 }

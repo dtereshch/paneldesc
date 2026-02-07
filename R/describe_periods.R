@@ -21,6 +21,15 @@
 #'
 #' Time periods are sorted naturally (numeric values as numbers, others alphabetically).
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
+#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
+#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#' }
+#'
 #' @seealso
 #' [describe_balance()], [explore_balance()], [describe_participation()]
 #'
@@ -78,6 +87,7 @@ describe_periods <- function(data, group = NULL, time = NULL) {
 
   # Get unique values
   unique_times <- unique(time_var)
+  unique_groups <- unique(group_var)
 
   # Order time periods
   if (all(grepl("^-?\\d+\\.?\\d*$", unique_times))) {
@@ -137,6 +147,13 @@ describe_periods <- function(data, group = NULL, time = NULL) {
 
   # Rename first column to match the time variable name
   names(result_df)[1] <- time
+
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_time") <- time
+  attr(result_df, "panel_n_entities") <- length(unique_groups)
+  attr(result_df, "panel_n_periods") <- length(ordered_times)
+  attr(result_df, "panel_total_obs") <- nrow(data)
 
   return(result_df)
 }

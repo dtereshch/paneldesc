@@ -57,13 +57,13 @@ When \code{detailed = TRUE}, additional columns are included:
 
 The data.frame has additional attributes:
 \describe{
-\item{\code{group_var}}{The grouping variable name}
-\item{\code{time_var}}{The time variable name}
-\item{\code{detailed}}{Logical indicating detailed output}
-\item{\code{digits}}{Number of decimal places used for rounding na_share}
-\item{\code{total_observations}}{Total number of observations in the data}
-\item{\code{total_entities}}{Total number of unique entities/groups}
-\item{\code{total_periods}}{Total number of unique time periods}
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_time}}{The time variable name}
+\item{\code{panel_detailed}}{Logical indicating detailed output}
+\item{\code{panel_digits}}{Number of decimal places used for rounding na_share}
+\item{\code{panel_total_obs}}{Total number of observations in the data}
+\item{\code{panel_n_entities}}{Total number of unique entities/groups}
+\item{\code{panel_n_periods}}{Total number of unique time periods}
 }
 }
 \examples{

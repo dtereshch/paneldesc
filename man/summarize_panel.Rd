@@ -57,10 +57,10 @@ When \code{detailed = FALSE}, returns a simplified data.frame with columns:
 
 The data.frame has additional attributes:
 \describe{
-\item{\code{group_var}}{The grouping variable name}
-\item{\code{n_groups}}{Number of unique groups}
-\item{\code{detailed}}{Logical indicating detailed output}
-\item{\code{digits}}{Number of decimal places used for rounding}
+\item{\code{panel_group}}{The grouping variable name}
+\item{\code{panel_n_groups}}{Number of unique groups}
+\item{\code{panel_detailed}}{Logical indicating detailed output}
+\item{\code{panel_digits}}{Number of decimal places used for rounding}
 }
 }
 \examples{

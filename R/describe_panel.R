@@ -15,6 +15,12 @@
 #'   \item{\code{periods}}{Number of unique time periods in the panel}
 #' }
 #'
+#' The data.frame has additional attributes:
+#' \describe{
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_time}}{The time variable name}
+#' }
+#'
 #' @details
 #' This function provides basic panel data structure information including
 #' the number of unique entities, time periods, and total observations.
@@ -94,8 +100,9 @@ describe_panel <- function(data, group = NULL, time = NULL) {
     stringsAsFactors = FALSE
   )
 
-  # Add class for potential future methods
-  class(result) <- c("panel_description", "data.frame")
+  # Add standardized attributes
+  attr(result, "panel_group") <- group
+  attr(result, "panel_time") <- time
 
   return(result)
 }

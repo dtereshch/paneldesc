@@ -38,10 +38,10 @@
 #'
 #' The data.frame has additional attributes:
 #' \describe{
-#'   \item{\code{group_var}}{The grouping variable name}
-#'   \item{\code{n_groups}}{Number of unique groups}
-#'   \item{\code{detailed}}{Logical indicating detailed output}
-#'   \item{\code{digits}}{Number of decimal places used for rounding}
+#'   \item{\code{panel_group}}{The grouping variable name}
+#'   \item{\code{panel_n_groups}}{Number of unique groups}
+#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
 #' }
 #'
 #' @references
@@ -331,11 +331,11 @@ summarize_panel <- function(
   result_df <- do.call(rbind, results)
   rownames(result_df) <- NULL
 
-  # Add data source information as attribute
-  attr(result_df, "group_var") <- group
-  attr(result_df, "n_groups") <- n_groups
-  attr(result_df, "detailed") <- detailed
-  attr(result_df, "digits") <- digits
+  # Add standardized attributes
+  attr(result_df, "panel_group") <- group
+  attr(result_df, "panel_n_groups") <- n_groups
+  attr(result_df, "panel_detailed") <- detailed
+  attr(result_df, "panel_digits") <- digits
 
   return(result_df)
 }
