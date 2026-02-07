@@ -553,6 +553,7 @@ explore_panel <- function(
     separator <- paste(rep("-", width), collapse = "")
 
     if (result$metadata$detailed) {
+      cat("\n")
       cat("PANEL DATA STRUCTURE EXPLORATION\n")
       cat(paste(rep("=", width), collapse = ""), "\n\n")
 

@@ -140,6 +140,9 @@ summarize_missing <- function(
   # Get data for analysis
   data_df <- data # Using original data as .check_and_convert_data_robust is not defined
 
+  # Track if any messages were printed
+  messages_printed <- FALSE
+
   # If selection is not specified, use all variables except group and time
   if (is.null(selection)) {
     selection <- setdiff(names(data_df), c(group, time))
@@ -152,6 +155,7 @@ summarize_missing <- function(
       "Analyzing all variable(s): ",
       paste(selection, collapse = ", ")
     )
+    messages_printed <- TRUE
   }
 
   # Validate selection
@@ -257,6 +261,11 @@ summarize_missing <- function(
   attr(result_df, "panel_total_obs") <- total_obs
   attr(result_df, "panel_n_entities") <- total_entities
   attr(result_df, "panel_n_periods") <- total_periods
+
+  # Add empty line before returning data.frame if messages were printed
+  if (messages_printed) {
+    cat("\n")
+  }
 
   return(result_df)
 }

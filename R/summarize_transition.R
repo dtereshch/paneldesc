@@ -152,6 +152,9 @@ summarize_transition <- function(
     stop("'digits' must be a non-negative integer or NA for no rounding")
   }
 
+  # Track if any messages were printed
+  messages_printed <- FALSE
+
   # Convert to data frame and ensure proper ordering
   df <- as.data.frame(data)
 
@@ -163,6 +166,7 @@ summarize_transition <- function(
       "' to factor. Original class: ",
       class(df[[selection]])[1]
     )
+    messages_printed <- TRUE
     df[[selection]] <- factor(df[[selection]])
   }
 
@@ -192,6 +196,7 @@ summarize_transition <- function(
       selection,
       "'"
     )
+    messages_printed <- TRUE
     df <- df[complete_cases, ]
   }
 
@@ -292,6 +297,11 @@ summarize_transition <- function(
   attr(result_df, "panel_variable") <- selection
   attr(result_df, "panel_format") <- format
   attr(result_df, "panel_digits") <- digits
+
+  # Add empty line before returning data.frame if messages were printed
+  if (messages_printed) {
+    cat("\n")
+  }
 
   return(result_df)
 }

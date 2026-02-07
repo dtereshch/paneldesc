@@ -121,6 +121,9 @@ summarize_data <- function(
     )
   }
 
+  # Track if any messages were printed
+  messages_printed <- FALSE
+
   # If selection is NULL, use all numeric variables with message
   if (is.null(selection)) {
     # Use vapply for more robust type checking
@@ -145,6 +148,7 @@ summarize_data <- function(
       "Analyzing all numeric variable(s): ",
       paste(selection, collapse = ", ")
     )
+    messages_printed <- TRUE
   }
 
   # Validate selection
@@ -361,6 +365,11 @@ summarize_data <- function(
   attr(result_df, "panel_n_variables") <- length(selection)
   attr(result_df, "panel_n_groups") <- n_groups
   attr(result_df, "panel_total_obs") <- total_obs
+
+  # Add empty line before returning data.frame if messages were printed
+  if (messages_printed) {
+    cat("\n")
+  }
 
   return(result_df)
 }

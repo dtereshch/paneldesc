@@ -115,6 +115,9 @@ summarize_categorical <- function(
     stop("'digits' must be a non-negative integer or NA for no rounding")
   }
 
+  # Track if any messages were printed
+  messages_printed <- FALSE
+
   # If selection is not specified, use only factor variables (not character)
   if (is.null(selection)) {
     # Check for factor variables
@@ -137,6 +140,7 @@ summarize_categorical <- function(
       "Analyzing all factor variables: ",
       paste(selection, collapse = ", ")
     )
+    messages_printed <- TRUE
   }
 
   # Validate selection
@@ -158,6 +162,7 @@ summarize_categorical <- function(
         "' to factor. Original class: ",
         class(data[[var]])[1]
       )
+      messages_printed <- TRUE
       data[[var]] <- factor(data[[var]])
     }
   }
@@ -279,6 +284,11 @@ summarize_categorical <- function(
   attr(result_df, "panel_group") <- group
   attr(result_df, "panel_n_groups") <- n_groups
   attr(result_df, "panel_digits") <- digits
+
+  # Add empty line before returning data.frame if messages were printed
+  if (messages_printed) {
+    cat("\n")
+  }
 
   return(result_df)
 }

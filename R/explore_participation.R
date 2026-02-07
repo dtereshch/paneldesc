@@ -375,6 +375,7 @@ explore_participation <- function(
     width <- floor(full_width * 0.75)
     separator <- paste(rep("-", width), collapse = "")
 
+    cat("\n")
     cat("PANEL DATA PARTICIPATION ANALYSIS\n")
     cat(paste(rep("=", width), collapse = ""), "\n\n")
 

@@ -149,6 +149,9 @@ summarize_panel <- function(
     )
   }
 
+  # Track if any messages were printed
+  messages_printed <- FALSE
+
   # If selection is not specified, use all numeric variables
   if (is.null(selection)) {
     numeric_vars <- vapply(data_df, is.numeric, FUN.VALUE = logical(1))
@@ -167,6 +170,7 @@ summarize_panel <- function(
       "Analyzing all numeric variables: ",
       paste(selection, collapse = ", ")
     )
+    messages_printed <- TRUE
   }
 
   # Validate selection
@@ -336,6 +340,11 @@ summarize_panel <- function(
   attr(result_df, "panel_n_groups") <- n_groups
   attr(result_df, "panel_detailed") <- detailed
   attr(result_df, "panel_digits") <- digits
+
+  # Add empty line before returning data.frame if messages were printed
+  if (messages_printed) {
+    cat("\n")
+  }
 
   return(result_df)
 }
