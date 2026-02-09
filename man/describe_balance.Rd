@@ -4,7 +4,13 @@
 \alias{describe_balance}
 \title{Panel Data Balance Description}
 \usage{
-describe_balance(data, group = NULL, time = NULL)
+describe_balance(
+  data,
+  group = NULL,
+  time = NULL,
+  type = "balanced",
+  digits = 3
+)
 }
 \arguments{
 \item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
@@ -14,35 +20,56 @@ Not required if data has panel attributes.}
 
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
+
+\item{type}{A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".}
+
+\item{digits}{An integer specifying the number of decimal places for rounding mean values.
+Default = 3.}
 }
 \value{
-A data.frame with 4 columns and 3 rows containing panel data summary statistics:
+A data.frame with 5 columns and 3 rows containing panel data summary statistics:
 
 \strong{Columns:}
 \describe{
 \item{\code{panel_info}}{Character vector describing the type of panel element.
 Contains three values: "observations", "entities", and "periods".}
-\item{\code{total}}{Numeric vector with total counts for each panel element.
-For "observations": total number of rows in the original data.
-For "entities": total number of unique groups present in the data.
-For "periods": total number of unique time periods present in the data.}
-\item{\code{balanced}}{Numeric vector with counts of balanced cases.
-For "observations": number of rows with at least one substantive variable that is not NA.
-For "entities": number of groups where all time periods have at least one substantive variable that is not NA.
-For "periods": number of time periods where all groups have at least one substantive variable that is not NA.}
-\item{\code{complete}}{Numeric vector with counts of cases without missing values.
-For "observations": number of rows with no NAs in substantive variables.
-For "entities": number of groups with no NAs in any of their observations.
-For "periods": number of time periods with no NAs in any observation.}
+\item{\code{overall}}{Numeric vector with total counts for each panel element.
+For "observations": number of rows meeting the type criteria.
+For "entities": number of entities meeting the type criteria.
+For "periods": number of time periods meeting the type criteria.}
+\item{\code{mean}}{Numeric vector with mean counts.
+For "observations": not applicable (NA).
+For "entities": mean number of time periods per entity meeting the type criteria.
+For "periods": mean number of entities per period meeting the type criteria.}
+\item{\code{min}}{Numeric vector with minimum counts.
+For "observations": not applicable (NA).
+For "entities": minimum number of time periods per entity meeting the type criteria.
+For "periods": minimum number of entities per period meeting the type criteria.}
+\item{\code{max}}{Numeric vector with maximum counts.
+For "observations": not applicable (NA).
+For "entities": maximum number of time periods per entity meeting the type criteria.
+For "periods": maximum number of entities per period meeting the type criteria.}
+}
+
+\strong{Type parameter definitions:}
+\describe{
+\item{\code{"observed"}}{Entity/time is present if it has a row in the data (even with only panel ID variables)}
+\item{\code{"balanced"}}{Entity/time is present if it has at least one non-NA substantive variable (default)}
+\item{\code{"complete"}}{Entity/time is present only if it has no NA values in all substantive variables}
 }
 
 The data.frame has additional attributes:
 \describe{
 \item{\code{panel_group}}{The grouping variable name}
 \item{\code{panel_time}}{The time variable name}
+\item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+\item{\code{panel_digits}}{Number of decimal places used for rounding}
 \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 \item{\code{panel_n_periods}}{Total number of unique time periods}
 \item{\code{panel_total_obs}}{Total number of observations in the data}
+\item{\code{panel_entities}}{Vector of unique entity IDs}
+\item{\code{panel_periods}}{Vector of unique time period IDs}
+\item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified type}
 }
 }
 \description{
@@ -62,6 +89,13 @@ describe_balance(production, group = "firm", time = "year")
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")
 describe_balance(panel_data)
+
+# Use different presence types
+describe_balance(production, group = "firm", time = "year", type = "observed")
+describe_balance(production, group = "firm", time = "year", type = "complete")
+
+# With custom rounding
+describe_balance(production, group = "firm", time = "year", digits = 4)
 
 }
 \seealso{

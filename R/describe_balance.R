@@ -8,34 +8,53 @@
 #'              Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'             Not required if data has panel attributes.
+#' @param type A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".
+#' @param digits An integer specifying the number of decimal places for rounding mean values.
+#'               Default = 3.
 #'
-#' @return A data.frame with 4 columns and 3 rows containing panel data summary statistics:
+#' @return A data.frame with 5 columns and 3 rows containing panel data summary statistics:
 #'
 #' \strong{Columns:}
 #' \describe{
 #'   \item{\code{panel_info}}{Character vector describing the type of panel element.
 #'     Contains three values: "observations", "entities", and "periods".}
-#'   \item{\code{total}}{Numeric vector with total counts for each panel element.
-#'     For "observations": total number of rows in the original data.
-#'     For "entities": total number of unique groups present in the data.
-#'     For "periods": total number of unique time periods present in the data.}
-#'   \item{\code{balanced}}{Numeric vector with counts of balanced cases.
-#'     For "observations": number of rows with at least one substantive variable that is not NA.
-#'     For "entities": number of groups where all time periods have at least one substantive variable that is not NA.
-#'     For "periods": number of time periods where all groups have at least one substantive variable that is not NA.}
-#'   \item{\code{complete}}{Numeric vector with counts of cases without missing values.
-#'     For "observations": number of rows with no NAs in substantive variables.
-#'     For "entities": number of groups with no NAs in any of their observations.
-#'     For "periods": number of time periods with no NAs in any observation.}
+#'   \item{\code{overall}}{Numeric vector with total counts for each panel element.
+#'     For "observations": number of rows meeting the type criteria.
+#'     For "entities": number of entities meeting the type criteria.
+#'     For "periods": number of time periods meeting the type criteria.}
+#'   \item{\code{mean}}{Numeric vector with mean counts.
+#'     For "observations": not applicable (NA).
+#'     For "entities": mean number of time periods per entity meeting the type criteria.
+#'     For "periods": mean number of entities per period meeting the type criteria.}
+#'   \item{\code{min}}{Numeric vector with minimum counts.
+#'     For "observations": not applicable (NA).
+#'     For "entities": minimum number of time periods per entity meeting the type criteria.
+#'     For "periods": minimum number of entities per period meeting the type criteria.}
+#'   \item{\code{max}}{Numeric vector with maximum counts.
+#'     For "observations": not applicable (NA).
+#'     For "entities": maximum number of time periods per entity meeting the type criteria.
+#'     For "periods": maximum number of entities per period meeting the type criteria.}
+#' }
+#'
+#' \strong{Type parameter definitions:}
+#' \describe{
+#'   \item{\code{"observed"}}{Entity/time is present if it has a row in the data (even with only panel ID variables)}
+#'   \item{\code{"balanced"}}{Entity/time is present if it has at least one non-NA substantive variable (default)}
+#'   \item{\code{"complete"}}{Entity/time is present only if it has no NA values in all substantive variables}
 #' }
 #'
 #' The data.frame has additional attributes:
 #' \describe{
 #'   \item{\code{panel_group}}{The grouping variable name}
 #'   \item{\code{panel_time}}{The time variable name}
+#'   \item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
 #'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 #'   \item{\code{panel_n_periods}}{Total number of unique time periods}
 #'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#'   \item{\code{panel_entities}}{Vector of unique entity IDs}
+#'   \item{\code{panel_periods}}{Vector of unique time period IDs}
+#'   \item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified type}
 #' }
 #'
 #' @details
@@ -55,8 +74,21 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #' describe_balance(panel_data)
 #'
+#' # Use different presence types
+#' describe_balance(production, group = "firm", time = "year", type = "observed")
+#' describe_balance(production, group = "firm", time = "year", type = "complete")
+#'
+#' # With custom rounding
+#' describe_balance(production, group = "firm", time = "year", digits = 4)
+#'
 #' @export
-describe_balance <- function(data, group = NULL, time = NULL) {
+describe_balance <- function(
+  data,
+  group = NULL,
+  time = NULL,
+  type = "balanced",
+  digits = 3
+) {
   # Check if data has panel attributes
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
     !is.null(attr(data, "panel_time"))
@@ -95,6 +127,23 @@ describe_balance <- function(data, group = NULL, time = NULL) {
     stop('variable "', time, '" not found in data')
   }
 
+  if (!is.character(type) || length(type) != 1) {
+    stop("'type' must be a single character string")
+  }
+
+  if (!type %in% c("observed", "balanced", "complete")) {
+    stop('type must be one of: "observed", "balanced", "complete"')
+  }
+
+  if (!is.numeric(digits) || length(digits) != 1 || digits < 0) {
+    stop(
+      "'digits' must be a single non-negative integer, not ",
+      class(digits)[1]
+    )
+  }
+
+  digits <- as.integer(digits)
+
   # Get substantive variables (all except group and time)
   substantive_vars <- setdiff(names(data), c(group, time))
 
@@ -102,14 +151,15 @@ describe_balance <- function(data, group = NULL, time = NULL) {
     stop("no substantive variables found (besides group and time variables)")
   }
 
-  # Use original data for balance analysis (structural completeness)
-  data_for_balance <- data
+  # Convert to character for consistent handling
+  group_vec <- as.character(data[[group]])
+  time_vec <- as.character(data[[time]])
 
-  # Get unique groups and periods from ALL data
-  unique_groups <- unique(as.character(data_for_balance[[group]]))
-  unique_periods <- unique(as.character(data_for_balance[[time]]))
+  # Get unique groups and periods
+  unique_groups <- unique(group_vec)
+  unique_periods <- unique(time_vec)
 
-  # Sort time periods if they appear numeric (matching explore_balance behavior)
+  # Sort time periods if they appear numeric
   if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", unique_periods))) {
     unique_periods <- sort(as.numeric(unique_periods))
     unique_periods <- as.character(unique_periods)
@@ -121,7 +171,7 @@ describe_balance <- function(data, group = NULL, time = NULL) {
   total_periods <- length(unique_periods)
   total_obs <- nrow(data)
 
-  # Create presence matrix (1 = observation exists for entity-time pair)
+  # Create matrices based on type
   presence_matrix <- matrix(
     0,
     nrow = total_entities,
@@ -129,105 +179,145 @@ describe_balance <- function(data, group = NULL, time = NULL) {
     dimnames = list(unique_groups, unique_periods)
   )
 
-  # Create balanced matrix (1 = observation has at least one non-NA substantive variable)
-  balanced_matrix <- matrix(
-    0,
-    nrow = total_entities,
-    ncol = total_periods,
-    dimnames = list(unique_groups, unique_periods)
-  )
+  # Create appropriate matrix based on type
+  if (type == "observed") {
+    # For observed type, any row presence counts
+    type_matrix <- matrix(
+      0,
+      nrow = total_entities,
+      ncol = total_periods,
+      dimnames = list(unique_groups, unique_periods)
+    )
 
-  # Create NA matrix (1 = observation has no NAs in substantive variables)
-  na_matrix <- matrix(
-    0,
-    nrow = total_entities,
-    ncol = total_periods,
-    dimnames = list(unique_groups, unique_periods)
-  )
-
-  # Fill presence, balanced, and NA matrices
-  group_vec <- as.character(data_for_balance[[group]])
-  time_vec <- as.character(data_for_balance[[time]])
-
-  # Pre-compute which rows have at least one non-NA in substantive variables
-  has_at_least_one_non_na <- apply(
-    data_for_balance[substantive_vars],
-    1,
-    function(x) {
-      any(!is.na(x))
+    # Fill both matrices
+    for (i in seq_along(group_vec)) {
+      row_idx <- which(unique_groups == group_vec[i])
+      col_idx <- which(unique_periods == time_vec[i])
+      presence_matrix[row_idx, col_idx] <- 1
+      type_matrix[row_idx, col_idx] <- 1
     }
-  )
+  } else if (type == "balanced") {
+    # For balanced type, need to check if at least one substantive variable is non-NA
+    type_matrix <- matrix(
+      0,
+      nrow = total_entities,
+      ncol = total_periods,
+      dimnames = list(unique_groups, unique_periods)
+    )
 
-  # Pre-compute which rows have no NAs in substantive variables
-  has_no_na <- apply(data_for_balance[substantive_vars], 1, function(x) {
-    all(!is.na(x))
-  })
+    # Pre-compute which rows have at least one non-NA in substantive variables
+    has_at_least_one_non_na <- apply(
+      data[substantive_vars],
+      1,
+      function(x) {
+        any(!is.na(x))
+      }
+    )
 
-  for (i in seq_along(group_vec)) {
-    row_idx <- which(unique_groups == group_vec[i])
-    col_idx <- which(unique_periods == time_vec[i])
-    presence_matrix[row_idx, col_idx] <- 1
+    # Fill matrices
+    for (i in seq_along(group_vec)) {
+      row_idx <- which(unique_groups == group_vec[i])
+      col_idx <- which(unique_periods == time_vec[i])
+      presence_matrix[row_idx, col_idx] <- 1
 
-    if (has_at_least_one_non_na[i]) {
-      balanced_matrix[row_idx, col_idx] <- 1
+      if (has_at_least_one_non_na[i]) {
+        type_matrix[row_idx, col_idx] <- 1
+      }
     }
+  } else if (type == "complete") {
+    # For complete type, need to check if all substantive variables are non-NA
+    type_matrix <- matrix(
+      0,
+      nrow = total_entities,
+      ncol = total_periods,
+      dimnames = list(unique_groups, unique_periods)
+    )
 
-    if (has_no_na[i]) {
-      na_matrix[row_idx, col_idx] <- 1
+    # Pre-compute which rows have no NAs in substantive variables
+    has_no_na <- apply(data[substantive_vars], 1, function(x) {
+      all(!is.na(x))
+    })
+
+    # Fill matrices
+    for (i in seq_along(group_vec)) {
+      row_idx <- which(unique_groups == group_vec[i])
+      col_idx <- which(unique_periods == time_vec[i])
+      presence_matrix[row_idx, col_idx] <- 1
+
+      if (has_no_na[i]) {
+        type_matrix[row_idx, col_idx] <- 1
+      }
     }
   }
 
   # Calculate statistics for output data.frame
 
   # 1. Observations
-  total_obs <- nrow(data)
-  balanced_obs <- sum(has_at_least_one_non_na)
-  complete_obs <- sum(has_no_na)
+  if (type == "observed") {
+    overall_obs <- total_obs
+  } else if (type == "balanced") {
+    overall_obs <- sum(apply(data[substantive_vars], 1, function(x) {
+      any(!is.na(x))
+    }))
+  } else if (type == "complete") {
+    overall_obs <- sum(apply(data[substantive_vars], 1, function(x) {
+      all(!is.na(x))
+    }))
+  }
 
   # 2. Entities
-  total_entities_count <- total_entities
-
-  # Balanced entities (present in all periods with at least one non-NA substantive variable)
-  balanced_entities_count <- sum(rowSums(balanced_matrix) == total_periods)
-
-  # Entities without NA (all observations for entity have no NAs)
-  entities_complete_count <- 0
-  for (i in 1:total_entities) {
-    entity_rows <- which(presence_matrix[i, ] == 1)
-    if (length(entity_rows) > 0 && all(na_matrix[i, entity_rows] == 1)) {
-      entities_complete_count <- entities_complete_count + 1
-    }
+  # Calculate per-entity statistics based on type_matrix
+  per_entity_counts <- rowSums(type_matrix)
+  overall_entities <- sum(per_entity_counts > 0)
+  mean_entities <- if (overall_entities > 0) {
+    round(mean(per_entity_counts[per_entity_counts > 0], na.rm = TRUE), digits)
+  } else {
+    NA
   }
+  min_entities <- if (overall_entities > 0) {
+    min(per_entity_counts[per_entity_counts > 0])
+  } else {
+    NA
+  }
+  max_entities <- if (overall_entities > 0) {
+    max(per_entity_counts[per_entity_counts > 0])
+  } else {
+    NA
+  }
+
+  # Balanced entities (present in all periods according to type)
+  balanced_entities_count <- sum(rowSums(type_matrix) == total_periods)
 
   # 3. Periods
-  total_periods_count <- total_periods
-
-  # Balanced periods (all entities present with at least one non-NA substantive variable)
-  balanced_periods_count <- sum(colSums(balanced_matrix) == total_entities)
-
-  # Periods without NA (all observations in period have no NAs)
-  periods_complete_count <- 0
-  for (j in 1:total_periods) {
-    period_cols <- which(presence_matrix[, j] == 1)
-    if (length(period_cols) > 0 && all(na_matrix[period_cols, j] == 1)) {
-      periods_complete_count <- periods_complete_count + 1
-    }
+  # Calculate per-period statistics based on type_matrix
+  per_period_counts <- colSums(type_matrix)
+  overall_periods <- sum(per_period_counts > 0)
+  mean_periods <- if (overall_periods > 0) {
+    round(mean(per_period_counts[per_period_counts > 0], na.rm = TRUE), digits)
+  } else {
+    NA
   }
+  min_periods <- if (overall_periods > 0) {
+    min(per_period_counts[per_period_counts > 0])
+  } else {
+    NA
+  }
+  max_periods <- if (overall_periods > 0) {
+    max(per_period_counts[per_period_counts > 0])
+  } else {
+    NA
+  }
+
+  # Balanced periods (all entities present according to type)
+  balanced_periods_count <- sum(colSums(type_matrix) == total_entities)
 
   # Create and return the simplified result data.frame
   result_df <- data.frame(
     panel_info = c("observations", "entities", "periods"),
-    total = c(total_obs, total_entities_count, total_periods_count),
-    balanced = c(
-      balanced_obs,
-      balanced_entities_count,
-      balanced_periods_count
-    ),
-    complete = c(
-      complete_obs,
-      entities_complete_count,
-      periods_complete_count
-    ),
+    overall = c(overall_obs, overall_entities, overall_periods),
+    mean = c(NA, mean_entities, mean_periods),
+    min = c(NA, min_entities, min_periods),
+    max = c(NA, max_entities, max_periods),
     stringsAsFactors = FALSE,
     row.names = NULL
   )
@@ -235,9 +325,14 @@ describe_balance <- function(data, group = NULL, time = NULL) {
   # Add standardized attributes
   attr(result_df, "panel_group") <- group
   attr(result_df, "panel_time") <- time
-  attr(result_df, "panel_n_entities") <- total_entities_count
-  attr(result_df, "panel_n_periods") <- total_periods_count
+  attr(result_df, "panel_type") <- type
+  attr(result_df, "panel_digits") <- digits
+  attr(result_df, "panel_n_entities") <- total_entities
+  attr(result_df, "panel_n_periods") <- total_periods
   attr(result_df, "panel_total_obs") <- total_obs
+  attr(result_df, "panel_entities") <- unique_groups
+  attr(result_df, "panel_periods") <- unique_periods
+  attr(result_df, "panel_matrix") <- type_matrix
 
   return(result_df)
 }
