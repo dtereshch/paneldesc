@@ -1,0 +1,520 @@
+#' Panel Data Description and Validation
+#'
+#' This function performs a comprehensive validation of panel data structure and returns
+#' a data.frame with test results along with panel attributes for further analysis.
+#'
+#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param group A character string specifying the name of the entity/group variable in panel data.
+#'              Not required if data has panel attributes.
+#' @param time A character string specifying the name of the time variable in panel data.
+#'             Not required if data has panel attributes.
+#'
+#' @return A data.frame with three columns: "test", "status", "message" containing validation
+#' test results. The data.frame has additional attributes extracted from the exploration:
+#' \describe{
+#'   \item{\code{summary}}{Panel summary statistics (n_groups, n_periods, etc.)}
+#'   \item{\code{details}}{Detailed exploration results (duplicates, unbalanced groups, etc.)}
+#'   \item{\code{metadata}}{Analysis parameters (group_var, time_var)}
+#' }
+#'
+#' @details
+#' The returned data.frame includes:
+#' \itemize{
+#'   \item First row: Overall panel status and message
+#'   \item Subsequent rows: Individual validation test results
+#' }
+#'
+#' Attributes contain comprehensive panel information:
+#' \itemize{
+#'   \item \code{attr(, "summary")}: Panel summary statistics
+#'   \item \code{attr(, "details")}: Detailed exploration results
+#'   \item \code{attr(, "metadata")}: Analysis parameters
+#' }
+#'
+#' @seealso
+#' [explore_panel()], [explore_balance()], [explore_participation()]
+#'
+#' @examples
+#' data(production)
+#'
+#' # Basic usage
+#' panel_desc <- describe_panel(production, group = "firm", time = "year")
+#'
+#' # View test results
+#' print(panel_desc)
+#'
+#' # Access test results as data.frame
+#' test_results <- as.data.frame(panel_desc)
+#'
+#' # Access attributes for detailed information
+#' summary_info <- attr(panel_desc, "summary")
+#' details_info <- attr(panel_desc, "details")
+#' meta_info <- attr(panel_desc, "metadata")
+#'
+#' # Get specific details
+#' n_groups <- attr(panel_desc, "summary")$n_groups
+#' duplicate_rows <- attr(panel_desc, "details")$duplicate_rows
+#' unbalanced_groups <- attr(panel_desc, "details")$unbalanced_groups
+#'
+#' # With panel attributes
+#' panel_data <- set_panel(production, group = "firm", time = "year")
+#' panel_desc2 <- describe_panel(panel_data)
+#'
+#' @export
+describe_panel <- function(data, group = NULL, time = NULL) {
+  # Check if data has panel attributes
+  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
+    !is.null(attr(data, "panel_time"))
+
+  if (has_panel_attrs) {
+    # Extract group and time from attributes
+    group <- attr(data, "panel_group")
+    time <- attr(data, "panel_time")
+  } else {
+    # Handle regular data.frame
+    if (!is.data.frame(data)) {
+      stop("'data' must be a data.frame, not ", class(data)[1])
+    }
+
+    if (is.null(group) || is.null(time)) {
+      stop(
+        "For regular data.frames, both 'group' and 'time' arguments must be provided"
+      )
+    }
+  }
+
+  # Common validation
+  if (!is.character(group) || length(group) != 1) {
+    stop("'group' must be a single character string")
+  }
+
+  if (!group %in% names(data)) {
+    stop('group variable "', group, '" not found in data')
+  }
+
+  if (!is.character(time) || length(time) != 1) {
+    stop("'time' must be a single character string")
+  }
+
+  if (!time %in% names(data)) {
+    stop('time variable "', time, '" not found in data')
+  }
+
+  if (time == group) {
+    stop("'time' and 'group' cannot be the same variable")
+  }
+
+  # Check for missing values
+  if (any(is.na(data[[group]]))) {
+    warning("group variable '", group, "' contains missing values")
+  }
+
+  if (any(is.na(data[[time]]))) {
+    warning("time variable '", time, "' contains missing values")
+  }
+
+  # Initialize exploration results
+  exploration_results <- data.frame(
+    variable = character(),
+    status = character(),
+    message = character(),
+    stringsAsFactors = FALSE
+  )
+
+  # Panel structure
+  n_groups <- length(unique(data[[group]]))
+  n_periods <- length(unique(data[[time]]))
+  n_obs <- nrow(data)
+
+  # Get group and time vectors
+  group_vector <- data[[group]]
+  time_vector <- data[[time]]
+
+  # Create combo identifier
+  combos <- paste(group_vector, time_vector, sep = "|")
+
+  # Check for duplicate group-time combinations
+  has_duplicates <- any(duplicated(combos))
+
+  # Identify duplicate indices
+  duplicate_indices <- which(
+    duplicated(combos) | duplicated(combos, fromLast = TRUE)
+  )
+  duplicate_rows <- data[duplicate_indices, ]
+
+  # Create unique identifier for duplicates
+  duplicate_combos <- unique(combos[duplicated(combos)])
+  duplicate_summary <- data.frame(
+    combo = duplicate_combos,
+    count = sapply(duplicate_combos, function(x) sum(combos == x)),
+    stringsAsFactors = FALSE
+  )
+
+  # Split combos into group and time for the summary
+  if (nrow(duplicate_summary) > 0) {
+    split_combos <- strsplit(duplicate_summary$combo, "\\|")
+    duplicate_summary$group <- sapply(split_combos, function(x) x[1])
+    duplicate_summary$time <- sapply(split_combos, function(x) x[2])
+  }
+
+  # Check for balanced panel
+  time_by_group <- split(time_vector, group_vector)
+  unique_time_sets <- lapply(time_by_group, unique)
+  time_set_lengths <- sapply(unique_time_sets, length)
+
+  if (length(unique(time_set_lengths)) == 1) {
+    all_time_sets <- unique(unique_time_sets)
+    is_balanced <- length(all_time_sets) == 1
+  } else {
+    is_balanced <- FALSE
+  }
+
+  # Identify groups with missing time points (if unbalanced)
+  if (!is_balanced) {
+    # Find all unique time points across all groups
+    all_times <- sort(unique(time_vector))
+
+    # For each group, identify missing time points
+    missing_time_info <- list()
+    for (grp in names(time_by_group)) {
+      group_times <- unique(time_by_group[[grp]])
+      missing_times <- setdiff(all_times, group_times)
+      if (length(missing_times) > 0) {
+        missing_time_info[[grp]] <- missing_times
+      }
+    }
+  } else {
+    missing_time_info <- list()
+  }
+
+  # Check for irregular time sequence in entire panel
+  has_irregular_time_sequence <- FALSE
+  time_sequence_regular <- TRUE
+
+  if (
+    is.numeric(time_vector) ||
+      inherits(time_vector, "Date") ||
+      inherits(time_vector, "POSIXt")
+  ) {
+    # Check entire time sequence (across all groups)
+    all_unique_times <- sort(unique(time_vector))
+
+    if (length(all_unique_times) > 1) {
+      global_intervals <- diff(all_unique_times)
+      if (length(unique(global_intervals)) > 1) {
+        has_irregular_time_sequence <- TRUE
+        time_sequence_regular <- FALSE
+      }
+    }
+  }
+
+  # Check for irregular time intervals within groups
+  has_irregular_intervals <- FALSE
+  irregular_groups <- character()
+  interval_details <- list()
+
+  if (
+    is.numeric(time_vector) ||
+      inherits(time_vector, "Date") ||
+      inherits(time_vector, "POSIXt")
+  ) {
+    for (grp in names(time_by_group)) {
+      times <- time_by_group[[grp]]
+      unique_times <- sort(unique(times))
+      if (length(unique_times) > 1) {
+        intervals <- diff(unique_times)
+        if (length(unique(intervals)) > 1) {
+          has_irregular_intervals <- TRUE
+          irregular_groups <- c(irregular_groups, grp)
+          interval_details[[grp]] <- list(
+            times = unique_times,
+            intervals = intervals,
+            is_regular = FALSE
+          )
+        } else {
+          interval_details[[grp]] <- list(
+            times = unique_times,
+            intervals = intervals,
+            is_regular = TRUE
+          )
+        }
+      } else {
+        interval_details[[grp]] <- list(
+          times = unique_times,
+          intervals = numeric(0),
+          is_regular = TRUE
+        )
+      }
+    }
+  }
+
+  # Calculate observations per group
+  group_table <- table(data[[group]])
+  avg_obs_per_group <- mean(group_table)
+
+  # Get groups with minimum and maximum observations
+  min_obs <- min(group_table)
+  max_obs <- max(group_table)
+  groups_with_min_obs <- names(group_table)[group_table == min_obs]
+  groups_with_max_obs <- names(group_table)[group_table == max_obs]
+
+  # Build exploration results
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "data",
+      status = "PASS",
+      message = "Valid data.frame structure",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "group",
+      status = "PASS",
+      message = paste("Group variable '", group, "' found", sep = ""),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "group_completeness",
+      status = ifelse(any(is.na(data[[group]])), "WARNING", "PASS"),
+      message = ifelse(
+        any(is.na(data[[group]])),
+        paste("Group variable has", sum(is.na(data[[group]])), "NAs"),
+        "No missing values in group"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "time",
+      status = "PASS",
+      message = paste("Time variable '", time, "' found", sep = ""),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "time_completeness",
+      status = ifelse(any(is.na(data[[time]])), "WARNING", "PASS"),
+      message = ifelse(
+        any(is.na(data[[time]])),
+        paste("Time variable has", sum(is.na(data[[time]])), "NAs"),
+        "No missing values in time"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "group_time_distinct",
+      status = "PASS",
+      message = "Group and time are distinct variables",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "duplicates",
+      status = ifelse(has_duplicates, "FAIL", "PASS"),
+      message = ifelse(
+        has_duplicates,
+        paste(sum(duplicated(combos)), "duplicate group-time pairs"),
+        "No duplicate group-time pairs"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "balance",
+      status = ifelse(is_balanced, "PASS", "FAIL"),
+      message = ifelse(is_balanced, "Panel is balanced", "Panel is unbalanced"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  # Check time sequence regularity (entire panel)
+  if (
+    is.numeric(time_vector) ||
+      inherits(time_vector, "Date") ||
+      inherits(time_vector, "POSIXt")
+  ) {
+    exploration_results <- rbind(
+      exploration_results,
+      data.frame(
+        variable = "time_sequence",
+        status = ifelse(has_irregular_time_sequence, "FAIL", "PASS"),
+        message = ifelse(
+          has_irregular_time_sequence,
+          "Irregular time sequence in entire panel",
+          "Regular time sequence in entire panel"
+        ),
+        stringsAsFactors = FALSE
+      )
+    )
+  } else {
+    exploration_results <- rbind(
+      exploration_results,
+      data.frame(
+        variable = "time_sequence",
+        status = "INFO",
+        message = "Time variable is not numeric/Date-like",
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+
+  # Check interval regularity within groups
+  if (
+    is.numeric(time_vector) ||
+      inherits(time_vector, "Date") ||
+      inherits(time_vector, "POSIXt")
+  ) {
+    exploration_results <- rbind(
+      exploration_results,
+      data.frame(
+        variable = "group_intervals",
+        status = ifelse(has_irregular_intervals, "FAIL", "PASS"),
+        message = ifelse(
+          has_irregular_intervals,
+          "Irregular time intervals within groups",
+          "Regular time intervals within groups"
+        ),
+        stringsAsFactors = FALSE
+      )
+    )
+  } else {
+    exploration_results <- rbind(
+      exploration_results,
+      data.frame(
+        variable = "group_intervals",
+        status = "INFO",
+        message = "Time variable is not numeric/Date-like",
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+
+  # Determine overall status
+  overall_status <- ifelse(
+    any(exploration_results$status %in% c("FAIL", "WARNING")),
+    ifelse(any(exploration_results$status == "FAIL"), "FAIL", "WARNING"),
+    "PASS"
+  )
+
+  # Create the result list structure
+  result <- list(
+    summary = list(
+      n_groups = n_groups,
+      n_periods = n_periods,
+      n_observations = n_obs,
+      avg_obs_per_group = round(avg_obs_per_group, 2),
+      is_balanced = is_balanced,
+      has_duplicates = has_duplicates,
+      has_irregular_intervals = has_irregular_intervals,
+      has_irregular_time_sequence = has_irregular_time_sequence
+    ),
+    details = list(
+      # All group and time vectors
+      group_vector = group_vector,
+      time_vector = time_vector,
+      combo_vector = combos,
+
+      # Duplicate information
+      duplicate_indices = duplicate_indices,
+      duplicate_rows = duplicate_rows,
+      duplicate_summary = duplicate_summary,
+      duplicate_combos = duplicate_combos,
+
+      # Balance information
+      all_groups = unique(group_vector),
+      all_times = unique(time_vector),
+      missing_time_info = missing_time_info,
+      unbalanced_groups = if (!is_balanced) {
+        names(missing_time_info)
+      } else {
+        character()
+      },
+
+      # Time sequence information (entire panel)
+      time_sequence_regular = time_sequence_regular,
+      all_unique_times = sort(unique(time_vector)),
+      global_time_intervals = if (length(unique(time_vector)) > 1) {
+        diff(sort(unique(time_vector)))
+      } else {
+        numeric(0)
+      },
+
+      # Time interval information within groups
+      irregular_groups = irregular_groups,
+      interval_details = interval_details,
+
+      # Group statistics
+      observations_per_group = group_table,
+      groups_with_min_obs = groups_with_min_obs,
+      groups_with_max_obs = groups_with_max_obs,
+      min_observations = min_obs,
+      max_observations = max_obs,
+
+      # Missing value information
+      missing_groups = which(is.na(group_vector)),
+      missing_times = which(is.na(time_vector)),
+      na_group_count = sum(is.na(group_vector)),
+      na_time_count = sum(is.na(time_vector))
+    ),
+    metadata = list(
+      group_var = group,
+      time_var = time
+    ),
+    results = exploration_results,
+    status = overall_status,
+    message = ifelse(
+      overall_status == "PASS",
+      "Panel structure is valid",
+      "Panel structure has issues"
+    )
+  )
+
+  # Create the output data.frame with test results
+  test_results <- result$results
+
+  # Add overall status as first row
+  overall_row <- data.frame(
+    test = "overall",
+    status = result$status,
+    message = result$message,
+    stringsAsFactors = FALSE
+  )
+
+  # Rename columns and combine
+  names(test_results) <- c("test", "status", "message")
+  final_results <- rbind(overall_row, test_results)
+
+  # Add attributes
+  attr(final_results, "summary") <- result$summary
+  attr(final_results, "details") <- result$details
+  attr(final_results, "metadata") <- result$metadata
+
+  # Add class for better printing
+  class(final_results) <- c("panel_description", "data.frame")
+
+  return(final_results)
+}
