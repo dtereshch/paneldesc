@@ -151,61 +151,43 @@ describe_balance <- function(
     stop("no substantive variables found (besides group and time variables)")
   }
 
+  # Get all unique groups and periods from the data
+  all_groups <- unique(as.character(data[[group]]))
+  all_times <- unique(as.character(data[[time]]))
+
+  # Sort time periods if they appear numeric
+  if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", all_times))) {
+    all_times <- as.character(sort(as.numeric(all_times)))
+  } else {
+    all_times <- sort(all_times)
+  }
+
+  total_entities <- length(all_groups)
+  total_periods <- length(all_times)
+  total_obs <- nrow(data)
+
+  # Create type matrix (initialize with 0)
+  type_matrix <- matrix(
+    0,
+    nrow = total_entities,
+    ncol = total_periods,
+    dimnames = list(all_groups, all_times)
+  )
+
   # Convert to character for consistent handling
   group_vec <- as.character(data[[group]])
   time_vec <- as.character(data[[time]])
 
-  # Get unique groups and periods
-  unique_groups <- unique(group_vec)
-  unique_periods <- unique(time_vec)
-
-  # Sort time periods if they appear numeric
-  if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", unique_periods))) {
-    unique_periods <- sort(as.numeric(unique_periods))
-    unique_periods <- as.character(unique_periods)
-  } else {
-    unique_periods <- sort(unique_periods)
-  }
-
-  total_entities <- length(unique_groups)
-  total_periods <- length(unique_periods)
-  total_obs <- nrow(data)
-
-  # Create matrices based on type
-  presence_matrix <- matrix(
-    0,
-    nrow = total_entities,
-    ncol = total_periods,
-    dimnames = list(unique_groups, unique_periods)
-  )
-
-  # Create appropriate matrix based on type
+  # Fill type matrix based on type
   if (type == "observed") {
     # For observed type, any row presence counts
-    type_matrix <- matrix(
-      0,
-      nrow = total_entities,
-      ncol = total_periods,
-      dimnames = list(unique_groups, unique_periods)
-    )
-
-    # Fill both matrices
     for (i in seq_along(group_vec)) {
-      row_idx <- which(unique_groups == group_vec[i])
-      col_idx <- which(unique_periods == time_vec[i])
-      presence_matrix[row_idx, col_idx] <- 1
+      row_idx <- which(all_groups == group_vec[i])
+      col_idx <- which(all_times == time_vec[i])
       type_matrix[row_idx, col_idx] <- 1
     }
   } else if (type == "balanced") {
     # For balanced type, need to check if at least one substantive variable is non-NA
-    type_matrix <- matrix(
-      0,
-      nrow = total_entities,
-      ncol = total_periods,
-      dimnames = list(unique_groups, unique_periods)
-    )
-
-    # Pre-compute which rows have at least one non-NA in substantive variables
     has_at_least_one_non_na <- apply(
       data[substantive_vars],
       1,
@@ -214,37 +196,23 @@ describe_balance <- function(
       }
     )
 
-    # Fill matrices
     for (i in seq_along(group_vec)) {
-      row_idx <- which(unique_groups == group_vec[i])
-      col_idx <- which(unique_periods == time_vec[i])
-      presence_matrix[row_idx, col_idx] <- 1
-
       if (has_at_least_one_non_na[i]) {
+        row_idx <- which(all_groups == group_vec[i])
+        col_idx <- which(all_times == time_vec[i])
         type_matrix[row_idx, col_idx] <- 1
       }
     }
   } else if (type == "complete") {
     # For complete type, need to check if all substantive variables are non-NA
-    type_matrix <- matrix(
-      0,
-      nrow = total_entities,
-      ncol = total_periods,
-      dimnames = list(unique_groups, unique_periods)
-    )
-
-    # Pre-compute which rows have no NAs in substantive variables
     has_no_na <- apply(data[substantive_vars], 1, function(x) {
       all(!is.na(x))
     })
 
-    # Fill matrices
     for (i in seq_along(group_vec)) {
-      row_idx <- which(unique_groups == group_vec[i])
-      col_idx <- which(unique_periods == time_vec[i])
-      presence_matrix[row_idx, col_idx] <- 1
-
       if (has_no_na[i]) {
+        row_idx <- which(all_groups == group_vec[i])
+        col_idx <- which(all_times == time_vec[i])
         type_matrix[row_idx, col_idx] <- 1
       }
     }
@@ -285,9 +253,6 @@ describe_balance <- function(
     NA
   }
 
-  # Balanced entities (present in all periods according to type)
-  balanced_entities_count <- sum(rowSums(type_matrix) == total_periods)
-
   # 3. Periods
   # Calculate per-period statistics based on type_matrix
   per_period_counts <- colSums(type_matrix)
@@ -308,9 +273,6 @@ describe_balance <- function(
     NA
   }
 
-  # Balanced periods (all entities present according to type)
-  balanced_periods_count <- sum(colSums(type_matrix) == total_entities)
-
   # Create and return the simplified result data.frame
   result_df <- data.frame(
     panel_info = c("observations", "entities", "periods"),
@@ -330,8 +292,8 @@ describe_balance <- function(
   attr(result_df, "panel_n_entities") <- total_entities
   attr(result_df, "panel_n_periods") <- total_periods
   attr(result_df, "panel_total_obs") <- total_obs
-  attr(result_df, "panel_entities") <- unique_groups
-  attr(result_df, "panel_periods") <- unique_periods
+  attr(result_df, "panel_entities") <- all_groups
+  attr(result_df, "panel_periods") <- all_times
   attr(result_df, "panel_matrix") <- type_matrix
 
   return(result_df)
