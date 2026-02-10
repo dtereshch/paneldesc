@@ -137,15 +137,12 @@ summarize_missing <- function(
 
   digits <- as.integer(digits)
 
-  # Get data for analysis
-  data_df <- data # Using original data as .check_and_convert_data_robust is not defined
-
   # Track if any messages were printed
   messages_printed <- FALSE
 
   # If selection is not specified, use all variables except group and time
   if (is.null(selection)) {
-    selection <- setdiff(names(data_df), c(group, time))
+    selection <- setdiff(names(data), c(group, time))
 
     if (length(selection) == 0) {
       stop("no variables found to analyze (besides group and time variables)")
@@ -159,7 +156,7 @@ summarize_missing <- function(
   }
 
   # Validate selection
-  missing_vars <- selection[!selection %in% names(data_df)]
+  missing_vars <- selection[!selection %in% names(data)]
   if (length(missing_vars) > 0) {
     stop(
       "the following variables were not found in data: ",
@@ -174,7 +171,7 @@ summarize_missing <- function(
   }
 
   # Get unique time periods and sort them
-  time_values <- as.character(data_df[[time]])
+  time_values <- as.character(data[[time]])
   unique_periods <- unique(time_values)
 
   # Sort time periods if they appear numeric
@@ -185,10 +182,10 @@ summarize_missing <- function(
   }
 
   # Get unique groups
-  unique_groups <- unique(as.character(data_df[[group]]))
+  unique_groups <- unique(as.character(data[[group]]))
 
   # Total counts for attributes
-  total_obs <- nrow(data_df)
+  total_obs <- nrow(data)
   total_entities <- length(unique_groups)
   total_periods <- length(ordered_periods)
 
@@ -198,7 +195,7 @@ summarize_missing <- function(
   # Calculate missing value statistics for each variable
   for (var in selection) {
     # Total NA count
-    na_count <- sum(is.na(data_df[[var]]))
+    na_count <- sum(is.na(data[[var]]))
 
     # NA share (proportion) - rounded to specified digits
     na_share <- ifelse(total_obs > 0, na_count / total_obs, 0)
@@ -207,7 +204,7 @@ summarize_missing <- function(
     # Entities with at least one NA
     if (na_count > 0) {
       # Group by entity and check if any NA in the variable
-      entity_has_na <- tapply(data_df[[var]], data_df[[group]], function(x) {
+      entity_has_na <- tapply(data[[var]], data[[group]], function(x) {
         any(is.na(x))
       })
       entities_with_na <- sum(entity_has_na, na.rm = TRUE)
@@ -218,7 +215,7 @@ summarize_missing <- function(
     # Periods with at least one NA
     if (na_count > 0) {
       # Group by period and check if any NA in the variable
-      period_has_na <- tapply(data_df[[var]], data_df[[time]], function(x) {
+      period_has_na <- tapply(data[[var]], data[[time]], function(x) {
         any(is.na(x))
       })
       periods_with_na <- sum(period_has_na, na.rm = TRUE)
@@ -240,7 +237,7 @@ summarize_missing <- function(
     if (detailed) {
       # Calculate NA counts for each period
       for (period in ordered_periods) {
-        period_data <- data_df[time_values == period, var, drop = FALSE]
+        period_data <- data[time_values == period, var, drop = FALSE]
         period_na_count <- sum(is.na(period_data[[var]]))
         result_row[[period]] <- period_na_count
       }

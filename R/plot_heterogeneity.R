@@ -144,9 +144,7 @@ plot_heterogeneity <- function(
     )
   }
 
-  # Additional data validation (from original function)
-  data <- .check_and_convert_data_robust(data, arg_name = "data")
-
+  # Check that data has at least one row
   if (nrow(data) == 0) {
     stop("'data' must have at least one row")
   }

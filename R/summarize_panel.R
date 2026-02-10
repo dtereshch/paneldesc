@@ -125,8 +125,6 @@ summarize_panel <- function(
     stop("'digits' must be a single numeric value, not ", class(digits)[1])
   }
 
-  data_df <- data # Using original data as .check_and_convert_data_robust is not defined
-
   # Validate digits parameter
   if (
     !is.na(digits) &&
@@ -140,12 +138,12 @@ summarize_panel <- function(
     stop("'group' must be a non-empty character string")
   }
 
-  if (!group %in% names(data_df)) {
+  if (!group %in% names(data)) {
     stop(
       "variable '",
       group,
       "' not found in data. Available variables: ",
-      paste(names(data_df), collapse = ", ")
+      paste(names(data), collapse = ", ")
     )
   }
 
@@ -154,8 +152,8 @@ summarize_panel <- function(
 
   # If selection is not specified, use all numeric variables
   if (is.null(selection)) {
-    numeric_vars <- vapply(data_df, is.numeric, FUN.VALUE = logical(1))
-    selection <- names(data_df)[numeric_vars]
+    numeric_vars <- vapply(data, is.numeric, FUN.VALUE = logical(1))
+    selection <- names(data)[numeric_vars]
 
     # Remove the group variable from selection if it's numeric
     if (group %in% selection) {
@@ -174,7 +172,7 @@ summarize_panel <- function(
   }
 
   # Validate selection
-  missing_vars <- selection[!selection %in% names(data_df)]
+  missing_vars <- selection[!selection %in% names(data)]
   if (length(missing_vars) > 0) {
     stop(
       "the following variables were not found in data: ",
@@ -184,7 +182,7 @@ summarize_panel <- function(
 
   # Check if specified columns are numeric
   non_numeric_vars <- selection[
-    !vapply(data_df[selection], is.numeric, FUN.VALUE = logical(1))
+    !vapply(data[selection], is.numeric, FUN.VALUE = logical(1))
   ]
   if (length(non_numeric_vars) > 0) {
     stop(
@@ -194,7 +192,7 @@ summarize_panel <- function(
   }
 
   # Check group variable
-  group_vector <- data_df[[group]]
+  group_vector <- data[[group]]
   if (length(group_vector) == 0) {
     stop("group variable '", group, "' has zero length")
   }
@@ -328,7 +326,7 @@ summarize_panel <- function(
 
   # Calculate statistics for each variable
   results <- lapply(selection, function(varname) {
-    summarize_panel_1(data_df, varname, group, detailed, digits)
+    summarize_panel_1(data, varname, group, detailed, digits)
   })
 
   # Combine all results

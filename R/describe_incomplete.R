@@ -115,9 +115,6 @@ describe_incomplete <- function(
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
 
-  # Convert data if needed
-  data <- .check_and_convert_data_robust(data, arg_name = "data")
-
   # Validate detailed parameter
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("argument 'detailed' must be a single logical value")

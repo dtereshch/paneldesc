@@ -168,9 +168,6 @@ describe_participation <- function(
 
   digits <- as.integer(digits)
 
-  # Convert data if needed
-  data <- .check_and_convert_data_robust(data, arg_name = "data")
-
   # Identify data columns (excluding group and time)
   data_cols <- setdiff(names(data), c(group, time))
 
