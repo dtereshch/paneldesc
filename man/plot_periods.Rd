@@ -61,10 +61,10 @@ The returned list contains the following components:
 \item \code{time_var}: The time variable name
 }
 }
-\item{\code{coverage}}{List with coverage statistics including:
+\item{\code{details}}{List with coverage statistics including:
 \itemize{
 \item \code{coverage_by_entity}: Named vector with number of time periods covered for each entity
-\item \code{summary_stats}: Summary statistics (min, Q1, median, mean, Q3, max)
+\item \code{summary_stats}: Summary statistics (min, p5, p25, p50, p75, p95, max)
 \item \code{histogram_data}: Data used for histogram plotting
 }
 }
@@ -105,5 +105,5 @@ plot_periods(production, group = "firm", time = "year", detailed = FALSE)
 
 }
 \seealso{
-\code{\link[=plot_participation]{plot_participation()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}
+\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=plot_participation]{plot_participation()}}, \code{\link[=describe_paricipation]{describe_paricipation()}}
 }

@@ -40,10 +40,10 @@
 #'       \item \code{time_var}: The time variable name
 #'     }
 #'   }
-#'   \item{\code{coverage}}{List with coverage statistics including:
+#'   \item{\code{details}}{List with coverage statistics including:
 #'     \itemize{
 #'       \item \code{coverage_by_entity}: Named vector with number of time periods covered for each entity
-#'       \item \code{summary_stats}: Summary statistics (min, Q1, median, mean, Q3, max)
+#'       \item \code{summary_stats}: Summary statistics (min, p5, p25, p50, p75, p95, max)
 #'       \item \code{histogram_data}: Data used for histogram plotting
 #'     }
 #'   }
@@ -60,7 +60,7 @@
 #' }
 #'
 #' @seealso
-#' [plot_participation()], [explore_participation()], [plot_heterogeneity()]
+#' [describe_periods()], [plot_participation()], [describe_paricipation()]
 #'
 #' @examples
 #' data(production)
@@ -297,11 +297,11 @@ plot_periods <- function(
     # Calculate full summary statistics (same as explore_participation)
     summary_stats <- c(
       min = min(time_coverage_by_entity),
-      `5%` = as.numeric(quantile(time_coverage_by_entity, 0.05)),
-      `25%` = as.numeric(quantile(time_coverage_by_entity, 0.25)),
-      `50%` = as.numeric(quantile(time_coverage_by_entity, 0.50)),
-      `75%` = as.numeric(quantile(time_coverage_by_entity, 0.75)),
-      `95%` = as.numeric(quantile(time_coverage_by_entity, 0.95)),
+      `p5` = as.numeric(quantile(time_coverage_by_entity, 0.05)),
+      `p25` = as.numeric(quantile(time_coverage_by_entity, 0.25)),
+      `p50` = as.numeric(quantile(time_coverage_by_entity, 0.50)),
+      `p75` = as.numeric(quantile(time_coverage_by_entity, 0.75)),
+      `p95` = as.numeric(quantile(time_coverage_by_entity, 0.95)),
       max = max(time_coverage_by_entity)
     )
 
@@ -490,7 +490,7 @@ plot_periods <- function(
       group_var = group,
       time_var = time
     ),
-    coverage = list(
+    details = list(
       coverage_by_entity = coverage_result$coverage_by_entity,
       summary_stats = coverage_result$summary_stats,
       histogram_data = hist_data
