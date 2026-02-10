@@ -19,7 +19,7 @@ Not required if data has panel attributes.}
 A data.frame with three columns: "test", "status", "message" containing validation
 test results. The data.frame has additional attributes:
 \describe{
-\item{\code{summary}}{Panel summary statistics and test results}
+\item{\code{summary}}{Logical summary of test results (TRUE = passed, FALSE = failed/warning)}
 \item{\code{details}}{Problematic observations/entities/periods for each test}
 \item{\code{metadata}}{Analysis parameters (group_var, time_var)}
 }
@@ -52,7 +52,7 @@ The returned data.frame includes:
 
 Attributes contain:
 \itemize{
-\item \code{attr(, "summary")}: Panel summary and test results in a named list
+\item \code{attr(, "summary")}: Logical summary of key test results (TRUE = passed)
 \item \code{attr(, "details")}: Vectors/lists of problematic observations for failed tests
 \item \code{attr(, "metadata")}: Analysis parameters
 }
@@ -75,7 +75,7 @@ details_info <- attr(panel_check, "details")
 meta_info <- attr(panel_check, "metadata")
 
 # Get specific details
-n_groups <- summary_info$n_groups
+has_complete_groups <- summary_info$group_completeness
 duplicate_obs <- details_info$duplicate_observations
 unbalanced_entities <- details_info$unbalanced_groups
 

@@ -13,7 +13,7 @@
 #' @return A data.frame with three columns: "test", "status", "message" containing validation
 #' test results. The data.frame has additional attributes:
 #' \describe{
-#'   \item{\code{summary}}{Panel summary statistics and test results}
+#'   \item{\code{summary}}{Logical summary of test results (TRUE = passed, FALSE = failed/warning)}
 #'   \item{\code{details}}{Problematic observations/entities/periods for each test}
 #'   \item{\code{metadata}}{Analysis parameters (group_var, time_var)}
 #' }
@@ -41,7 +41,7 @@
 #'
 #' Attributes contain:
 #' \itemize{
-#'   \item \code{attr(, "summary")}: Panel summary and test results in a named list
+#'   \item \code{attr(, "summary")}: Logical summary of key test results (TRUE = passed)
 #'   \item \code{attr(, "details")}: Vectors/lists of problematic observations for failed tests
 #'   \item \code{attr(, "metadata")}: Analysis parameters
 #' }
@@ -67,7 +67,7 @@
 #' meta_info <- attr(panel_check, "metadata")
 #'
 #' # Get specific details
-#' n_groups <- summary_info$n_groups
+#' has_complete_groups <- summary_info$group_completeness
 #' duplicate_obs <- details_info$duplicate_observations
 #' unbalanced_entities <- details_info$unbalanced_groups
 #'
@@ -473,27 +473,16 @@ check_panel <- function(data, group = NULL, time = NULL) {
     details_list$group_interval_details <- interval_details[irregular_groups]
   }
 
-  # Create the result list structure for summary
-  test_summary_list <- list()
+  # Create simplified summary list with TRUE/FALSE for key tests
+  summary_list <- list()
 
-  # Add overall panel statistics
-  test_summary_list$n_groups <- n_groups
-  test_summary_list$n_periods <- n_periods
-  test_summary_list$n_observations <- n_obs
-  test_summary_list$avg_obs_per_group <- round(avg_obs_per_group, 2)
-  test_summary_list$is_balanced <- is_balanced
-  test_summary_list$has_duplicates <- has_duplicates
-  test_summary_list$has_irregular_intervals <- has_irregular_intervals
-  test_summary_list$has_irregular_time_sequence <- has_irregular_time_sequence
-
-  # Add test results to summary using human-readable names as keys
-  for (i in 1:nrow(exploration_results)) {
-    test_name <- exploration_results$variable[i]
-    test_summary_list[[test_name]] <- list(
-      status = exploration_results$status[i],
-      message = exploration_results$message[i]
-    )
-  }
+  # Add logical results for key tests (TRUE = passed, FALSE = failed/warning)
+  summary_list$group_completeness <- !any(is.na(data[[group]]))
+  summary_list$time_completeness <- !any(is.na(data[[time]]))
+  summary_list$no_duplicates <- !has_duplicates
+  summary_list$balance <- is_balanced
+  summary_list$time_sequence <- !has_irregular_time_sequence
+  summary_list$group_intervals <- !has_irregular_intervals
 
   # Create the output data.frame with test results
   test_results <- exploration_results
@@ -515,7 +504,7 @@ check_panel <- function(data, group = NULL, time = NULL) {
   final_results <- rbind(overall_row, test_results)
 
   # Add attributes (no custom class)
-  attr(final_results, "summary") <- test_summary_list
+  attr(final_results, "summary") <- summary_list
   attr(final_results, "details") <- details_list
   attr(final_results, "metadata") <- list(
     group_var = group,
