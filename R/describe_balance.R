@@ -16,7 +16,7 @@
 #'
 #' \strong{Columns:}
 #' \describe{
-#'   \item{\code{panel_info}}{Character vector describing the type of panel element.
+#'   \item{\code{dimension}}{Character vector describing the type of panel element.
 #'     Contains three values: "observations", "entities", and "periods".}
 #'   \item{\code{overall}}{Numeric vector with total counts for each panel element.
 #'     For "observations": number of rows meeting the type criteria.
@@ -287,7 +287,7 @@ describe_balance <- function(
 
   # Create and return the simplified result data.frame
   result_df <- data.frame(
-    panel_info = c("observations", "entities", "periods"),
+    dimension = c("observations", "entities", "periods"),
     overall = c(overall_obs, overall_entities, overall_periods),
     mean = c(NA, mean_entities, mean_periods),
     min = c(NA, min_entities, min_periods),

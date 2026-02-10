@@ -31,7 +31,7 @@ A data.frame with 5 columns and 3 rows containing panel data summary statistics:
 
 \strong{Columns:}
 \describe{
-\item{\code{panel_info}}{Character vector describing the type of panel element.
+\item{\code{dimension}}{Character vector describing the type of panel element.
 Contains three values: "observations", "entities", and "periods".}
 \item{\code{overall}}{Numeric vector with total counts for each panel element.
 For "observations": number of rows meeting the type criteria.
