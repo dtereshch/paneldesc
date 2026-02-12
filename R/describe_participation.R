@@ -7,7 +7,7 @@
 #'              Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'             Not required if data has panel attributes.
-#' @param type A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".
+#' @param type A character string specifying how to define entity presence: "nominal", "observed", or "complete". Default = "observed".
 #' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
 #' @param digits An integer specifying the number of decimal places for rounding share and cumulative proportion columns.
@@ -18,8 +18,8 @@
 #' @details
 #' \strong{Type} parameter definitions:
 #' \describe{
-#'   \item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-#'   \item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+#'   \item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+#'   \item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 #'   \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 #' }
 #'
@@ -54,7 +54,7 @@
 #' \describe{
 #'   \item{\code{panel_group}}{The grouping variable name}
 #'   \item{\code{panel_time}}{The time variable name}
-#'   \item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+#'   \item{\code{panel_type}}{Presence type ("nominal", "observed", or "complete")}
 #'   \item{\code{panel_format}}{Output format ("wide" or "long")}
 #'   \item{\code{panel_detailed}}{Logical indicating detailed output}
 #'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
@@ -79,7 +79,7 @@
 #' describe_participation(panel_data)
 #'
 #' # Use different presence types
-#' describe_participation(production, group = "firm", time = "year", type = "observed")
+#' describe_participation(production, group = "firm", time = "year", type = "nominal")
 #' describe_participation(production, group = "firm", time = "year", type = "complete")
 #'
 #' # Simplified version
@@ -96,7 +96,7 @@ describe_participation <- function(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   format = "wide",
   detailed = TRUE,
   digits = 3
@@ -135,8 +135,8 @@ describe_participation <- function(
     stop("'type' must be a single character string, not ", class(type)[1])
   }
 
-  if (!type %in% c("balanced", "observed", "complete")) {
-    stop('type must be one of: "balanced", "observed", "complete"')
+  if (!type %in% c("observed", "nominal", "complete")) {
+    stop('type must be one of: "observed", "nominal", "complete"')
   }
 
   if (!group %in% names(data)) {
@@ -187,10 +187,10 @@ describe_participation <- function(
   }
 
   # Filter data based on type
-  if (type == "observed") {
+  if (type == "nominal") {
     # Keep all rows (no filtering)
     data_filtered <- data
-  } else if (type == "balanced") {
+  } else if (type == "observed") {
     # Keep rows where at least one data column is not NA
     if (nrow(data) > 0) {
       has_data <- apply(data[data_cols], 1, function(row) {
@@ -229,15 +229,15 @@ describe_participation <- function(
   time_cols <- all_times
 
   # Fill the binary matrix based on type
-  if (type == "observed") {
-    # For observed type, mark 1 for all rows in filtered data
+  if (type == "nominal") {
+    # For nominal type, mark 1 for all rows in filtered data
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])
       row_time <- as.character(time_vec[i])
       participation_binary[row_group, row_time] <- 1
     }
-  } else if (type == "balanced") {
-    # For balanced type, mark 1 for rows with at least one non-NA
+  } else if (type == "observed") {
+    # For observed type, mark 1 for rows with at least one non-NA
     # The data_filtered already contains only rows with at least one non-NA
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])

@@ -25,9 +25,9 @@ Provides detailed coverage statistics for each time period in panel data.
 The data.frame contains the following columns:
 \describe{
 \item{\code{[time]}}{Time period identifier (name matches the input \code{time} argument)}
-\item{\code{total}}{Total number of observations in each period (all rows)}
-\item{\code{balanced}}{Number of observations with at least one non-NA value in substantive variables}
-\item{\code{complete}}{Number of observations without any NA values in substantive variables}
+\item{\code{nominal}}{Number of rows in each period (all rows, regardless of data completeness)}
+\item{\code{observed}}{Number of rows with at least one non-NA value in substantive variables}
+\item{\code{complete}}{Number of rows without any NA values in substantive variables}
 }
 
 Time periods are sorted naturally (numeric values as numbers, others alphabetically).
@@ -38,7 +38,7 @@ The data.frame has additional attributes:
 \item{\code{panel_time}}{The time variable name}
 \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 \item{\code{panel_n_periods}}{Total number of unique time periods}
-\item{\code{panel_total_obs}}{Total number of observations in the data}
+\item{\code{panel_total_rows}}{Total number of rows in the data}
 }
 }
 \examples{

@@ -8,7 +8,7 @@ plot_participation(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   max_patterns = 10,
   colors = c("#0072B2", "#D55E00")
 )
@@ -22,7 +22,7 @@ Not required if data has panel attributes.}
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
 
-\item{type}{A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".}
+\item{type}{A character string specifying how to define entity presence: "nominal", "observed", or "complete". Default = "observed".}
 
 \item{max_patterns}{An integer specifying the maximum number of patterns to display.
 Default = 10.}
@@ -40,8 +40,8 @@ of entities in panel data over time.
 \details{
 \strong{Type} parameter definitions:
 \describe{
-\item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-\item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+\item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+\item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 }
 
@@ -93,7 +93,7 @@ panel_data <- set_panel(production, group = "firm", time = "year")
 plot_participation(panel_data)
 
 # Use different presence types
-plot_participation(production, group = "firm", time = "year", type = "observed")
+plot_participation(production, group = "firm", time = "year", type = "nominal")
 plot_participation(production, group = "firm", time = "year", type = "complete")
 
 # Show only top 5 patterns

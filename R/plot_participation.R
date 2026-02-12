@@ -8,7 +8,7 @@
 #'              Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'             Not required if data has panel attributes.
-#' @param type A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".
+#' @param type A character string specifying how to define entity presence: "nominal", "observed", or "complete". Default = "observed".
 #' @param max_patterns An integer specifying the maximum number of patterns to display.
 #'        Default = 10.
 #' @param colors A character vector of two colors for present and missing observations.
@@ -19,8 +19,8 @@
 #' @details
 #' \strong{Type} parameter definitions:
 #' \describe{
-#'   \item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-#'   \item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+#'   \item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+#'   \item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 #'   \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 #' }
 #'
@@ -75,7 +75,7 @@
 #' plot_participation(panel_data)
 #'
 #' # Use different presence types
-#' plot_participation(production, group = "firm", time = "year", type = "observed")
+#' plot_participation(production, group = "firm", time = "year", type = "nominal")
 #' plot_participation(production, group = "firm", time = "year", type = "complete")
 #'
 #' # Show only top 5 patterns
@@ -92,7 +92,7 @@ plot_participation <- function(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   max_patterns = 10,
   colors = c("#0072B2", "#D55E00")
 ) {
@@ -130,8 +130,8 @@ plot_participation <- function(
     stop("'type' must be a single character string, not ", class(type)[1])
   }
 
-  if (!type %in% c("balanced", "observed", "complete")) {
-    stop('type must be one of: "balanced", "observed", "complete"')
+  if (!type %in% c("observed", "nominal", "complete")) {
+    stop('type must be one of: "observed", "nominal", "complete"')
   }
 
   if (!group %in% names(data)) {
@@ -191,15 +191,15 @@ plot_participation <- function(
   time_vec <- as.character(data[[time]])
 
   # Fill the binary matrix based on type
-  if (type == "observed") {
-    # For observed type, mark 1 for all rows
+  if (type == "nominal") {
+    # For nominal type, mark 1 for all rows
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])
       row_time <- as.character(time_vec[i])
       participation_binary[row_group, row_time] <- 1
     }
-  } else if (type == "balanced") {
-    # For balanced type, mark 1 for rows with at least one non-NA
+  } else if (type == "observed") {
+    # For observed type, mark 1 for rows with at least one non-NA
     has_at_least_one_non_na <- apply(
       data[data_cols],
       1,

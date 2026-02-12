@@ -8,7 +8,7 @@ plot_periods(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   detailed = TRUE,
   colors = c("black", "#0072B2")
 )
@@ -22,8 +22,8 @@ Not required if data has panel attributes.}
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
 
-\item{type}{A character string specifying how to define entity presence: "balanced", "observed", or "complete".
-Default = "balanced".}
+\item{type}{A character string specifying how to define entity presence: "observed", "nominal", or "complete".
+Default = "observed".}
 
 \item{detailed}{A logical flag indicating whether to display detailed summary statistics.
 Default = TRUE.}
@@ -42,8 +42,8 @@ covered by each entity in panel data, based on the specified presence definition
 \details{
 \strong{Type} parameter definitions:
 \describe{
-\item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-\item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+\item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+\item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 }
 
@@ -91,7 +91,7 @@ panel_data <- set_panel(production, group = "firm", time = "year")
 plot_periods(panel_data)
 
 # Use different presence types
-plot_periods(production, group = "firm", time = "year", type = "observed")
+plot_periods(production, group = "firm", time = "year", type = "nominal")
 plot_periods(production, group = "firm", time = "year", type = "complete")
 
 # Custom colors - black line with gray fill
@@ -105,5 +105,5 @@ plot_periods(production, group = "firm", time = "year", detailed = FALSE)
 
 }
 \seealso{
-\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=plot_participation]{plot_participation()}}, \code{\link[=describe_paricipation]{describe_paricipation()}}
+\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=plot_participation]{plot_participation()}}, \code{\link[=describe_participation]{describe_participation()}}
 }

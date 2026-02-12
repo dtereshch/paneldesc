@@ -18,7 +18,7 @@ panel data. Not required if data has panel attributes.}
 \value{
 A data.frame with two columns:
 \describe{
-\item{\code{dimension}}{Dimension name: "observations", "entities", or "periods"}
+\item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
 \item{\code{count}}{The count for each dimension}
 }
 
@@ -35,7 +35,7 @@ This function provides basic summary information about panel data structure.
 }
 \details{
 This function provides basic panel data structure information including
-the number of unique entities, time periods, and total observations.
+the number of unique entities, time periods, and total rows.
 When provided with a data.frame that has panel attributes (created by set_panel()),
 the function automatically extracts group and time variable names from the attributes.
 }

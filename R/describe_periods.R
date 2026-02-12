@@ -14,9 +14,9 @@
 #' The data.frame contains the following columns:
 #' \describe{
 #'   \item{\code{[time]}}{Time period identifier (name matches the input `time` argument)}
-#'   \item{\code{total}}{Total number of observations in each period (all rows)}
-#'   \item{\code{balanced}}{Number of observations with at least one non-NA value in substantive variables}
-#'   \item{\code{complete}}{Number of observations without any NA values in substantive variables}
+#'   \item{\code{nominal}}{Number of rows in each period (all rows, regardless of data completeness)}
+#'   \item{\code{observed}}{Number of rows with at least one non-NA value in substantive variables}
+#'   \item{\code{complete}}{Number of rows without any NA values in substantive variables}
 #' }
 #'
 #' Time periods are sorted naturally (numeric values as numbers, others alphabetically).
@@ -27,7 +27,7 @@
 #'   \item{\code{panel_time}}{The time variable name}
 #'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 #'   \item{\code{panel_n_periods}}{Total number of unique time periods}
-#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#'   \item{\code{panel_total_rows}}{Total number of rows in the data}
 #' }
 #'
 #' @seealso
@@ -105,8 +105,8 @@ describe_periods <- function(data, group = NULL, time = NULL) {
   }
 
   # Initialize result vectors
-  total_counts <- integer(length(ordered_times))
-  balanced_counts <- integer(length(ordered_times))
+  nominal_counts <- integer(length(ordered_times))
+  observed_counts <- integer(length(ordered_times))
   complete_counts <- integer(length(ordered_times))
 
   # Calculate statistics for each time period
@@ -116,22 +116,22 @@ describe_periods <- function(data, group = NULL, time = NULL) {
     # Get indices for current time period
     time_indices <- which(time_var == current_time)
 
-    # Total count (all rows in this period)
-    total_counts[i] <- length(time_indices)
+    # Nominal count (all rows in this period)
+    nominal_counts[i] <- length(time_indices)
 
     if (length(time_indices) > 0) {
       # Extract data for current time period
       period_data <- data[time_indices, substantive_vars, drop = FALSE]
 
-      # Balanced: at least one non-NA value in substantive variables
+      # Observed: at least one non-NA value in substantive variables
       has_some_data <- apply(period_data, 1, function(x) any(!is.na(x)))
-      balanced_counts[i] <- sum(has_some_data)
+      observed_counts[i] <- sum(has_some_data)
 
       # Complete: no NA values in substantive variables
       has_all_data <- apply(period_data, 1, function(x) all(!is.na(x)))
       complete_counts[i] <- sum(has_all_data)
     } else {
-      balanced_counts[i] <- 0
+      observed_counts[i] <- 0
       complete_counts[i] <- 0
     }
   }
@@ -139,8 +139,8 @@ describe_periods <- function(data, group = NULL, time = NULL) {
   # Create result data.frame
   result_df <- data.frame(
     time_period = ordered_times,
-    total = total_counts,
-    balanced = balanced_counts,
+    nominal = nominal_counts,
+    observed = observed_counts,
     complete = complete_counts,
     stringsAsFactors = FALSE
   )
@@ -153,7 +153,7 @@ describe_periods <- function(data, group = NULL, time = NULL) {
   attr(result_df, "panel_time") <- time
   attr(result_df, "panel_n_entities") <- length(unique_groups)
   attr(result_df, "panel_n_periods") <- length(ordered_times)
-  attr(result_df, "panel_total_obs") <- nrow(data)
+  attr(result_df, "panel_total_rows") <- nrow(data)
 
   return(result_df)
 }

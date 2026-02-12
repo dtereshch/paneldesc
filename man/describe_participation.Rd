@@ -8,7 +8,7 @@ describe_participation(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   format = "wide",
   detailed = TRUE,
   digits = 3
@@ -23,7 +23,7 @@ Not required if data has panel attributes.}
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
 
-\item{type}{A character string specifying how to define entity presence: "observed", "balanced", or "complete". Default = "balanced".}
+\item{type}{A character string specifying how to define entity presence: "nominal", "observed", or "complete". Default = "observed".}
 
 \item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
 
@@ -41,8 +41,8 @@ This function describes participation patterns of entities in panel data over ti
 \details{
 \strong{Type} parameter definitions:
 \describe{
-\item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-\item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+\item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+\item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 }
 
@@ -77,7 +77,7 @@ The data.frame has additional attributes:
 \describe{
 \item{\code{panel_group}}{The grouping variable name}
 \item{\code{panel_time}}{The time variable name}
-\item{\code{panel_type}}{Presence type ("observed", "balanced", or "complete")}
+\item{\code{panel_type}}{Presence type ("nominal", "observed", or "complete")}
 \item{\code{panel_format}}{Output format ("wide" or "long")}
 \item{\code{panel_detailed}}{Logical indicating detailed output}
 \item{\code{panel_digits}}{Number of decimal places used for rounding}
@@ -99,7 +99,7 @@ panel_data <- set_panel(production, group = "firm", time = "year")
 describe_participation(panel_data)
 
 # Use different presence types
-describe_participation(production, group = "firm", time = "year", type = "observed")
+describe_participation(production, group = "firm", time = "year", type = "nominal")
 describe_participation(production, group = "firm", time = "year", type = "complete")
 
 # Simplified version

@@ -8,8 +8,8 @@
 #'              Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'             Not required if data has panel attributes.
-#' @param type A character string specifying how to define entity presence: "balanced", "observed", or "complete".
-#'        Default = "balanced".
+#' @param type A character string specifying how to define entity presence: "observed", "nominal", or "complete".
+#'        Default = "observed".
 #' @param detailed A logical flag indicating whether to display detailed summary statistics.
 #'        Default = TRUE.
 #' @param colors A character vector of length 2 specifying the line color and fill color for the histogram.
@@ -21,8 +21,8 @@
 #' @details
 #' \strong{Type} parameter definitions:
 #' \describe{
-#'   \item{\code{"observed"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
-#'   \item{\code{"balanced"}}{Entity is present if it has at least one non-NA substantive variable (default)}
+#'   \item{\code{"nominal"}}{Entity is present if it has a row in the data (even with only panel ID variables)}
+#'   \item{\code{"observed"}}{Entity is present if it has at least one non-NA substantive variable (default)}
 #'   \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 #' }
 #'
@@ -60,7 +60,7 @@
 #' }
 #'
 #' @seealso
-#' [describe_periods()], [plot_participation()], [describe_paricipation()]
+#' [describe_periods()], [plot_participation()], [describe_participation()]
 #'
 #' @examples
 #' data(production)
@@ -73,7 +73,7 @@
 #' plot_periods(panel_data)
 #'
 #' # Use different presence types
-#' plot_periods(production, group = "firm", time = "year", type = "observed")
+#' plot_periods(production, group = "firm", time = "year", type = "nominal")
 #' plot_periods(production, group = "firm", time = "year", type = "complete")
 #'
 #' # Custom colors - black line with gray fill
@@ -90,7 +90,7 @@ plot_periods <- function(
   data,
   group = NULL,
   time = NULL,
-  type = "balanced",
+  type = "observed",
   detailed = TRUE,
   colors = c("black", "#0072B2")
 ) {
@@ -128,8 +128,8 @@ plot_periods <- function(
     stop("'type' must be a single character string, not ", class(type)[1])
   }
 
-  if (!type %in% c("balanced", "observed", "complete")) {
-    stop('type must be one of: "balanced", "observed", "complete"')
+  if (!type %in% c("observed", "nominal", "complete")) {
+    stop('type must be one of: "observed", "nominal", "complete"')
   }
 
   # Validate colors parameter
@@ -168,7 +168,7 @@ plot_periods <- function(
 
   # Helper function to calculate coverage for a given type
   calculate_coverage <- function(type) {
-    if (type == "observed") {
+    if (type == "nominal") {
       # Use all rows (no filtering)
       filtered_data <- data
 
@@ -204,7 +204,7 @@ plot_periods <- function(
           presence_matrix[row_idx, col_idx] <- 1
         }
       }
-    } else if (type == "balanced") {
+    } else if (type == "observed") {
       # Keep rows with at least one non-NA substantive variable
       has_data <- apply(data[substantive_vars], 1, function(x) any(!is.na(x)))
       filtered_data <- data[has_data, ]

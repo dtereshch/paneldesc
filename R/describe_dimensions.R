@@ -10,7 +10,7 @@
 #'
 #' @return A data.frame with two columns:
 #' \describe{
-#'   \item{\code{dimension}}{Dimension name: "observations", "entities", or "periods"}
+#'   \item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
 #'   \item{\code{count}}{The count for each dimension}
 #' }
 #'
@@ -24,7 +24,7 @@
 #'
 #' @details
 #' This function provides basic panel data structure information including
-#' the number of unique entities, time periods, and total observations.
+#' the number of unique entities, time periods, and total rows.
 #' When provided with a data.frame that has panel attributes (created by set_panel()),
 #' the function automatically extracts group and time variable names from the attributes.
 #'
@@ -91,7 +91,7 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
   # Basic panel statistics
   n_groups <- length(unique(data[[group]]))
   n_periods <- length(unique(data[[time]]))
-  n_obs <- nrow(data)
+  n_rows <- nrow(data)
 
   # Get unique values
   entity_values <- sort(unique(data[[group]]))
@@ -99,8 +99,8 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
 
   # Create result data.frame with transposed structure
   result <- data.frame(
-    dimension = c("observations", "entities", "periods"),
-    count = c(n_obs, n_groups, n_periods),
+    dimension = c("rows", "entities", "periods"),
+    count = c(n_rows, n_groups, n_periods),
     stringsAsFactors = FALSE
   )
 
