@@ -18,7 +18,7 @@
 #' \describe{
 #'   \item{\code{dimension}}{Character vector describing the type of panel element.
 #'     Contains three values: "rows", "entities", and "periods".}
-#'   \item{\code{overall}}{Numeric vector with total counts for each panel element.
+#'   \item{\code{count}}{Numeric vector with total counts for each panel element.
 #'     For "rows": number of rows meeting the type criteria.
 #'     For "entities": number of entities where ALL time periods have presence according to the type criteria.
 #'     For "periods": number of time periods where ALL entities have presence according to the type criteria.}
@@ -227,13 +227,13 @@ describe_balance <- function(
 
   # 1. Rows
   if (type == "nominal") {
-    overall_rows <- total_rows
+    row_count <- total_rows
   } else if (type == "observed") {
-    overall_rows <- sum(apply(data[substantive_vars], 1, function(x) {
+    row_count <- sum(apply(data[substantive_vars], 1, function(x) {
       any(!is.na(x))
     }))
   } else if (type == "complete") {
-    overall_rows <- sum(apply(data[substantive_vars], 1, function(x) {
+    row_count <- sum(apply(data[substantive_vars], 1, function(x) {
       all(!is.na(x))
     }))
   }
@@ -242,8 +242,8 @@ describe_balance <- function(
   # Calculate per-entity statistics based on type_matrix
   per_entity_counts <- rowSums(type_matrix)
 
-  # Overall entities: entities present in ALL periods according to type
-  overall_entities <- sum(per_entity_counts == total_periods)
+  # Count of entities: entities present in ALL periods according to type
+  entity_count <- sum(per_entity_counts == total_periods)
 
   # Helper function for rounding
   round_if_needed <- function(x, digits) {
@@ -280,8 +280,8 @@ describe_balance <- function(
   # Calculate per-period statistics based on type_matrix
   per_period_counts <- colSums(type_matrix)
 
-  # Overall periods: periods where ALL entities have presence according to type
-  overall_periods <- sum(per_period_counts == total_entities)
+  # Count of periods: periods where ALL entities have presence according to type
+  period_count <- sum(per_period_counts == total_entities)
 
   # Mean, min, max: statistics for periods with at least some presence
   mean_periods <- if (sum(per_period_counts > 0) > 0) {
@@ -308,7 +308,7 @@ describe_balance <- function(
   # Create and return the simplified result data.frame
   result_df <- data.frame(
     dimension = c("rows", "entities", "periods"),
-    overall = c(overall_rows, overall_entities, overall_periods),
+    count = c(row_count, entity_count, period_count),
     mean = c(NA, mean_entities, mean_periods),
     min = c(NA, min_entities, min_periods),
     max = c(NA, max_entities, max_periods),

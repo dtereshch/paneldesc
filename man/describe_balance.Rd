@@ -33,7 +33,7 @@ A data.frame with 5 columns and 3 rows containing panel data summary statistics.
 \describe{
 \item{\code{dimension}}{Character vector describing the type of panel element.
 Contains three values: "rows", "entities", and "periods".}
-\item{\code{overall}}{Numeric vector with total counts for each panel element.
+\item{\code{count}}{Numeric vector with total counts for each panel element.
 For "rows": number of rows meeting the type criteria.
 For "entities": number of entities where ALL time periods have presence according to the type criteria.
 For "periods": number of time periods where ALL entities have presence according to the type criteria.}
