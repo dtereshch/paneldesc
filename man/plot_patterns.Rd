@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_patterns.R
 \name{plot_patterns}
 \alias{plot_patterns}
-\title{Participation Patterns Visualization}
+\title{Entities Presence Patterns Visualization}
 \usage{
 plot_patterns(
   data,
@@ -32,11 +32,10 @@ Default = 10.}
 Default = c("#0072B2", "#D55E00").}
 }
 \value{
-Invisibly returns a list with summary statistics. Creates a plot showing participation patterns.
+Invisibly returns a list with summary statistics. Creates a plot showing presence patterns.
 }
 \description{
-This function creates a heatmap visualization of participation patterns
-of entities in panel data over time.
+This function creates a heatmap visualization of entities presence patterns in panel data over time.
 }
 \details{
 \strong{Presence} parameter definitions:
@@ -46,10 +45,10 @@ of entities in panel data over time.
 \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 }
 
-The heatmap shows participation patterns where:
+The heatmap shows presence patterns where:
 \itemize{
-\item \strong{Present}: Entity participated in the time period (based on the specified presence type)
-\item \strong{Missing}: Entity did not participate in the time period
+\item \strong{Present}: Entity is present in the time period (based on the specified presence type)
+\item \strong{Missing}: Entity is absent in the time period
 }
 
 Patterns are sorted by frequency (most common first) and the most common pattern appears at the top of the plot.
@@ -108,5 +107,5 @@ plot_patterns(production, group = "firm", time = "year", colors = c("black", "wh
 
 }
 \seealso{
-\code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}
+\code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=explore_presence]{explore_presence()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}
 }

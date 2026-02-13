@@ -1,7 +1,6 @@
-#' Participation Patterns Visualization
+#' Entities Presence Patterns Visualization
 #'
-#' This function creates a heatmap visualization of participation patterns
-#' of entities in panel data over time.
+#' This function creates a heatmap visualization of entities presence patterns in panel data over time.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
@@ -15,7 +14,7 @@
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#0072B2", "#D55E00").
 #'
-#' @return Invisibly returns a list with summary statistics. Creates a plot showing participation patterns.
+#' @return Invisibly returns a list with summary statistics. Creates a plot showing presence patterns.
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -25,10 +24,10 @@
 #'   \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 #' }
 #'
-#' The heatmap shows participation patterns where:
+#' The heatmap shows presence patterns where:
 #' \itemize{
-#'   \item \strong{Present}: Entity participated in the time period (based on the specified presence type)
-#'   \item \strong{Missing}: Entity did not participate in the time period
+#'   \item \strong{Present}: Entity is present in the time period (based on the specified presence type)
+#'   \item \strong{Missing}: Entity is absent in the time period
 #' }
 #'
 #' Patterns are sorted by frequency (most common first) and the most common pattern appears at the top of the plot.
@@ -63,7 +62,7 @@
 #' }
 #'
 #' @seealso
-#' [describe_patterns()], [explore_participation()], [plot_heterogeneity()]
+#' [describe_patterns()], [explore_presence()], [plot_heterogeneity()]
 #'
 #' @examples
 #' data(production)
@@ -183,7 +182,7 @@ plot_patterns <- function(
   time_cols <- all_times
 
   # Create a matrix of all possible combinations (initialize with 0)
-  participation_binary <- matrix(
+  presence_binary <- matrix(
     0,
     nrow = length(all_groups),
     ncol = length(all_times),
@@ -200,7 +199,7 @@ plot_patterns <- function(
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])
       row_time <- as.character(time_vec[i])
-      participation_binary[row_group, row_time] <- 1
+      presence_binary[row_group, row_time] <- 1
     }
   } else if (presence == "observed") {
     # For observed type, mark 1 for rows with at least one non-NA
@@ -216,7 +215,7 @@ plot_patterns <- function(
       if (has_at_least_one_non_na[i]) {
         row_group <- as.character(group_vec[i])
         row_time <- as.character(time_vec[i])
-        participation_binary[row_group, row_time] <- 1
+        presence_binary[row_group, row_time] <- 1
       }
     }
   } else if (presence == "complete") {
@@ -228,20 +227,20 @@ plot_patterns <- function(
         row_group <- as.character(group_vec[i])
         row_time <- as.character(time_vec[i])
         if (row_time %in% time_cols) {
-          participation_binary[row_group, row_time] <- 1
+          presence_binary[row_group, row_time] <- 1
         }
       }
     }
   }
 
   # Convert to data frame for pattern analysis
-  participation_df <- as.data.frame(participation_binary)
-  participation_df$group <- rownames(participation_df)
-  participation_df <- participation_df[c("group", time_cols)]
+  presence_df <- as.data.frame(presence_binary)
+  presence_df$group <- rownames(presence_df)
+  presence_df <- presence_df[c("group", time_cols)]
 
   # Count patterns and create pattern matrix
-  pattern_cols <- setdiff(names(participation_df), "group")
-  pattern_strings <- apply(participation_df[pattern_cols], 1, function(x) {
+  pattern_cols <- setdiff(names(presence_df), "group")
+  pattern_strings <- apply(presence_df[pattern_cols], 1, function(x) {
     paste(x, collapse = "")
   })
 
@@ -251,7 +250,7 @@ plot_patterns <- function(
   n_patterns <- length(pattern_counts)
 
   if (n_patterns == 0) {
-    stop("No participation patterns found in the data")
+    stop("No presence patterns found in the data")
   }
 
   # Create pattern matrix for heatmap
@@ -378,7 +377,7 @@ plot_patterns <- function(
       pattern_labels = y_labels,
       counts = counts,
       time_periods = time_cols,
-      participation_matrix = participation_binary # Added for compatibility
+      presence_matrix = presence_binary
     ),
     metadata = list(
       group_var = group,

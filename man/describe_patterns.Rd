@@ -2,7 +2,7 @@
 % Please edit documentation in R/describe_patterns.R
 \name{describe_patterns}
 \alias{describe_patterns}
-\title{Panel Data Participation Patterns}
+\title{Entities Presence Patterns Description}
 \usage{
 describe_patterns(
   data,
@@ -34,10 +34,10 @@ Default = "observed".}
 Default = 3.}
 }
 \value{
-A data.frame with participation patterns.
+A data.frame with presence patterns.
 }
 \description{
-This function describes participation patterns of entities in panel data over time.
+This function describes entities presence patterns in panel data over time.
 }
 \details{
 \strong{Presence} parameter definitions:
@@ -52,7 +52,7 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 \strong{When \code{format = "wide"} and \code{detailed = TRUE} (default):}
 \describe{
 \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
-\item{\code{[time_period]}}{Columns for each time period showing participation
+\item{\code{[time_period]}}{Columns for each time period showing presence
 (1 = present, 0 = missing). Column names match the time variable values.}
 \item{\code{n}}{Number of entities with this pattern}
 \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
@@ -82,9 +82,9 @@ The data.frame has additional attributes:
 \item{\code{panel_digits}}{Number of decimal places used for rounding}
 \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 \item{\code{panel_n_periods}}{Total number of unique time periods}
-\item{\code{panel_n_patterns}}{Number of distinct participation patterns}
+\item{\code{panel_n_patterns}}{Number of distinct presence patterns}
 \item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
-\item{\code{panel_pattern_groups}}{List of entities belonging to each participation pattern}
+\item{\code{panel_pattern_groups}}{List of entities belonging to each presence pattern}
 }
 }
 \examples{
@@ -115,5 +115,5 @@ describe_patterns(production, group = "firm", time = "year", digits = 999999)
 
 }
 \seealso{
-\code{\link[=plot_participation]{plot_participation()}}, \code{\link[=explore_participation]{explore_participation()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_balance]{describe_balance()}}
+\code{\link[=plot_presence]{plot_presence()}}, \code{\link[=explore_presence]{explore_presence()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_balance]{describe_balance()}}
 }

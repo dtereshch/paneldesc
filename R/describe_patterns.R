@@ -1,6 +1,6 @@
-#' Panel Data Participation Patterns
+#' Entities Presence Patterns Description
 #'
-#' This function describes participation patterns of entities in panel data over time.
+#' This function describes entities presence patterns in panel data over time.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
@@ -14,7 +14,7 @@
 #' @param digits An integer specifying the number of decimal places for rounding share column.
 #'        Default = 3.
 #'
-#' @return A data.frame with participation patterns.
+#' @return A data.frame with presence patterns.
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -29,7 +29,7 @@
 #' \strong{When `format = "wide"` and `detailed = TRUE` (default):}
 #' \describe{
 #'   \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
-#'   \item{\code{[time_period]}}{Columns for each time period showing participation
+#'   \item{\code{[time_period]}}{Columns for each time period showing presence
 #'     (1 = present, 0 = missing). Column names match the time variable values.}
 #'   \item{\code{n}}{Number of entities with this pattern}
 #'   \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
@@ -59,13 +59,13 @@
 #'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
 #'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
 #'   \item{\code{panel_n_periods}}{Total number of unique time periods}
-#'   \item{\code{panel_n_patterns}}{Number of distinct participation patterns}
+#'   \item{\code{panel_n_patterns}}{Number of distinct presence patterns}
 #'   \item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
-#'   \item{\code{panel_pattern_groups}}{List of entities belonging to each participation pattern}
+#'   \item{\code{panel_pattern_groups}}{List of entities belonging to each presence pattern}
 #' }
 #'
 #' @seealso
-#' [plot_participation()], [explore_participation()], [describe_periods()], [describe_incomplete()], [describe_balance()]
+#' [plot_presence()], [explore_presence()], [describe_periods()], [describe_incomplete()], [describe_balance()]
 #'
 #' @examples
 #' data(production)
@@ -233,7 +233,7 @@ describe_patterns <- function(
   all_times <- sort(unique_periods)
 
   # Create a matrix of all possible combinations (initialize with 0)
-  participation_binary <- matrix(
+  presence_binary <- matrix(
     0,
     nrow = length(all_groups),
     ncol = length(all_times),
@@ -248,7 +248,7 @@ describe_patterns <- function(
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])
       row_time <- as.character(time_vec[i])
-      participation_binary[row_group, row_time] <- 1
+      presence_binary[row_group, row_time] <- 1
     }
   } else if (presence == "observed") {
     # For observed type, mark 1 for rows with at least one non-NA
@@ -256,7 +256,7 @@ describe_patterns <- function(
     for (i in seq_along(group_vec)) {
       row_group <- as.character(group_vec[i])
       row_time <- as.character(time_vec[i])
-      participation_binary[row_group, row_time] <- 1
+      presence_binary[row_group, row_time] <- 1
     }
   } else if (presence == "complete") {
     # For complete type, mark 1 for complete rows only
@@ -270,31 +270,31 @@ describe_patterns <- function(
         row_group <- as.character(all_group_vec[i])
         row_time <- as.character(all_time_vec[i])
         if (row_time %in% time_cols) {
-          participation_binary[row_group, row_time] <- 1
+          presence_binary[row_group, row_time] <- 1
         }
       }
     }
   }
 
   # Convert to data frame for pattern analysis
-  participation_df <- as.data.frame(participation_binary)
-  participation_df$group <- rownames(participation_df)
-  participation_df <- participation_df[c("group", time_cols)]
+  presence_df <- as.data.frame(presence_binary)
+  presence_df$group <- rownames(presence_df)
+  presence_df <- presence_df[c("group", time_cols)]
 
   # Count patterns and create pattern groups
-  pattern_cols <- setdiff(names(participation_df), "group")
-  pattern_strings <- apply(participation_df[pattern_cols], 1, function(x) {
+  pattern_cols <- setdiff(names(presence_df), "group")
+  pattern_strings <- apply(presence_df[pattern_cols], 1, function(x) {
     paste(x, collapse = "")
   })
 
   pattern_counts <- table(pattern_strings)
 
-  # Create pattern_groups list (similar to explore_participation)
+  # Create pattern_groups list
   pattern_groups <- list()
 
   # Create pattern groups from the binary matrix
   for (entity in all_groups) {
-    pattern_vec <- participation_binary[entity, ]
+    pattern_vec <- presence_binary[entity, ]
     pattern_string <- paste(pattern_vec, collapse = "")
 
     if (!pattern_string %in% names(pattern_groups)) {
@@ -382,7 +382,7 @@ describe_patterns <- function(
       attr(simplified_result, "panel_n_entities") <- length(unique_groups)
       attr(simplified_result, "panel_n_periods") <- length(unique_periods)
       attr(simplified_result, "panel_n_patterns") <- nrow(result)
-      attr(simplified_result, "panel_matrix") <- participation_binary
+      attr(simplified_result, "panel_matrix") <- presence_binary
       attr(simplified_result, "panel_pattern_groups") <- pattern_groups
 
       return(simplified_result)
@@ -398,7 +398,7 @@ describe_patterns <- function(
     attr(long_result, "panel_n_entities") <- length(unique_groups)
     attr(long_result, "panel_n_periods") <- length(unique_periods)
     attr(long_result, "panel_n_patterns") <- nrow(result)
-    attr(long_result, "panel_matrix") <- participation_binary
+    attr(long_result, "panel_matrix") <- presence_binary
     attr(long_result, "panel_pattern_groups") <- pattern_groups
 
     return(long_result)
@@ -419,7 +419,7 @@ describe_patterns <- function(
     attr(simplified_result, "panel_n_entities") <- length(unique_groups)
     attr(simplified_result, "panel_n_periods") <- length(unique_periods)
     attr(simplified_result, "panel_n_patterns") <- nrow(result)
-    attr(simplified_result, "panel_matrix") <- participation_binary
+    attr(simplified_result, "panel_matrix") <- presence_binary
     attr(simplified_result, "panel_pattern_groups") <- pattern_groups
 
     return(simplified_result)
@@ -435,7 +435,7 @@ describe_patterns <- function(
   attr(result, "panel_n_entities") <- length(unique_groups)
   attr(result, "panel_n_periods") <- length(unique_periods)
   attr(result, "panel_n_patterns") <- nrow(result)
-  attr(result, "panel_matrix") <- participation_binary
+  attr(result, "panel_matrix") <- presence_binary
   attr(result, "panel_pattern_groups") <- pattern_groups
 
   return(result)
