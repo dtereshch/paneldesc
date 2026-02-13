@@ -3,7 +3,6 @@
 export(check_panel)
 export(decompose_factor)
 export(decompose_numeric)
-export(describe_balance)
 export(describe_dimensions)
 export(describe_incomplete)
 export(describe_patterns)
