@@ -8,8 +8,7 @@
 #'        If not specified, all factor variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable.
 #'        Not required if data has panel attributes.
-#' @param format A character string specifying the output format: "wide" or "long".
-#'        Default = "wide".
+#' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param digits An integer indicating the number of decimal places to round shares.
 #'        Default = 3.
 #'
@@ -39,8 +38,6 @@
 #'   \item{\code{share}}{Share proportion (0 to 1)}
 #' }
 #'
-#' All shares are proportions ranging from 0 to 1.
-#'
 #' The data.frame has additional attributes:
 #' \describe{
 #'   \item{\code{panel_group}}{The grouping variable name}
@@ -53,7 +50,7 @@
 #' For Stata users: This corresponds to the `xttab` command.
 #'
 #' @seealso
-#' [decompose_numeric()], [summarize_transition()]
+#' [decompose_numeric()], [summarize_transition()], [summarize_numeric()]
 #'
 #' @examples
 #' data(production)
@@ -366,6 +363,19 @@ decompose_factor <- function(
   # Combine all results
   result_df <- do.call(rbind, results)
   rownames(result_df) <- NULL
+
+  # For long format, order by variable first, then by category
+  if (format == "long") {
+    # First ensure categories are ordered as factors (preserving level order)
+    result_df$category <- factor(
+      result_df$category,
+      levels = unique(result_df$category)
+    )
+
+    # Order by variable and category
+    result_df <- result_df[order(result_df$variable, result_df$category), ]
+    rownames(result_df) <- NULL
+  }
 
   # Add standardized attributes
   attr(result_df, "panel_group") <- group

@@ -21,8 +21,7 @@ If not specified, all factor variables in the data.frame will be used.}
 \item{group}{A character string specifying the name of the entity/group variable.
 Not required if data has panel attributes.}
 
-\item{format}{A character string specifying the output format: "wide" or "long".
-Default = "wide".}
+\item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
 
 \item{digits}{An integer indicating the number of decimal places to round shares.
 Default = 3.}
@@ -57,8 +56,6 @@ When \code{format = "long"}, returns a data.frame with:
 \item{\code{n}}{Frequency count (NA for within dimension)}
 \item{\code{share}}{Share proportion (0 to 1)}
 }
-
-All shares are proportions ranging from 0 to 1.
 
 The data.frame has additional attributes:
 \describe{
@@ -98,5 +95,5 @@ decompose_factor(production, group = "firm", digits = 999999)
 For Stata users: This corresponds to the \code{xttab} command.
 }
 \seealso{
-\code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=summarize_transition]{summarize_transition()}}
+\code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=summarize_transition]{summarize_transition()}}, \code{\link[=summarize_numeric]{summarize_numeric()}}
 }
