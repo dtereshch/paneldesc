@@ -33,7 +33,7 @@
 #' \describe{
 #'   \item{\code{from}}{The originating state}
 #'   \item{\code{to}}{The destination state}
-#'   \item{\code{n}}{Number of transitions observed from `from` to `to`}
+#'   \item{\code{count}}{Number of transitions observed from `from` to `to`}
 #'   \item{\code{share}}{Transition share (rounded to specified digits)}
 #' }
 #'
@@ -249,17 +249,17 @@ summarize_transition <- function(
   # Calculate counts using table
   count_table <- table(transition_df$from, transition_df$to)
   count_df <- as.data.frame(count_table, stringsAsFactors = FALSE)
-  names(count_df) <- c("from", "to", "n")
+  names(count_df) <- c("from", "to", "count")
 
   # Remove zero counts
-  count_df <- count_df[count_df$n > 0, ]
+  count_df <- count_df[count_df$count > 0, ]
 
   # Calculate probabilities by from-state
-  from_totals <- tapply(count_df$n, count_df$from, sum, na.rm = TRUE)
+  from_totals <- tapply(count_df$count, count_df$from, sum, na.rm = TRUE)
 
   # Create long format result
   long_result <- count_df
-  long_result$share <- long_result$n /
+  long_result$share <- long_result$count /
     from_totals[as.character(long_result$from)]
 
   # Ensure all factor levels are represented in the output
@@ -274,7 +274,7 @@ summarize_transition <- function(
     by = c("from", "to"),
     all.x = TRUE
   )
-  long_result$n[is.na(long_result$n)] <- 0
+  long_result$count[is.na(long_result$count)] <- 0
   long_result$share[is.na(long_result$share)] <- 0
 
   # Round transition shares to specified digits

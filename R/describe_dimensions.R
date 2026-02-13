@@ -11,7 +11,7 @@
 #' @return A data.frame with two columns:
 #' \describe{
 #'   \item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
-#'   \item{\code{n}}{The count for each dimension}
+#'   \item{\code{count}}{The count for each dimension}
 #' }
 #'
 #' The data.frame has additional attributes:
@@ -100,7 +100,7 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
   # Create result data.frame with transposed structure
   result <- data.frame(
     dimension = c("rows", "entities", "periods"),
-    n = c(n_rows, n_groups, n_periods),
+    count = c(n_rows, n_groups, n_periods),
     stringsAsFactors = FALSE
   )
 

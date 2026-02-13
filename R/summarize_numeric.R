@@ -20,10 +20,10 @@
 #' \describe{
 #'   \item{\code{variable}}{The name of the numeric variable (always present)}
 #'   \item{\code{group}}{The grouping variable (present only when `group` is specified)}
-#'   \item{\code{n}}{Number of non-NA observations}
+#'   \item{\code{count}}{Number of non-NA observations}
 #'   \item{\code{mean}}{Arithmetic mean}
 #'   \item{\code{median}}{Median value}
-#'   \item{\code{sd}}{Standard deviation}
+#'   \item{\code{std}}{Standard deviation}
 #'   \item{\code{min}}{Minimum value}
 #'   \item{\code{max}}{Maximum value}
 #' }
@@ -209,9 +209,9 @@ summarize_numeric <- function(
       if (all(is.na(x))) {
         if (detailed) {
           stats_row <- data.frame(
-            n = 0,
+            count = 0,
             mean = NA_real_,
-            sd = NA_real_,
+            std = NA_real_,
             min = NA_real_,
             p25 = NA_real_,
             median = NA_real_,
@@ -220,10 +220,10 @@ summarize_numeric <- function(
           )
         } else {
           stats_row <- data.frame(
-            n = 0,
+            count = 0,
             mean = NA_real_,
             median = NA_real_,
-            sd = NA_real_,
+            std = NA_real_,
             min = NA_real_,
             max = NA_real_
           )
@@ -231,9 +231,9 @@ summarize_numeric <- function(
       } else {
         if (detailed) {
           stats_row <- data.frame(
-            n = count_non_na(x),
+            count = count_non_na(x),
             mean = mean(x, na.rm = TRUE),
-            sd = stats::sd(x, na.rm = TRUE),
+            std = stats::sd(x, na.rm = TRUE),
             min = min(x, na.rm = TRUE),
             p25 = stats::quantile(x, probs = 0.25, na.rm = TRUE, names = FALSE),
             median = median(x, na.rm = TRUE),
@@ -242,10 +242,10 @@ summarize_numeric <- function(
           )
         } else {
           stats_row <- data.frame(
-            n = count_non_na(x),
+            count = count_non_na(x),
             mean = mean(x, na.rm = TRUE),
             median = median(x, na.rm = TRUE),
-            sd = stats::sd(x, na.rm = TRUE),
+            std = stats::sd(x, na.rm = TRUE),
             min = min(x, na.rm = TRUE),
             max = max(x, na.rm = TRUE)
           )
@@ -285,9 +285,9 @@ summarize_numeric <- function(
         if (all(is.na(x))) {
           if (detailed) {
             stats_row <- data.frame(
-              n = 0,
+              count = 0,
               mean = NA_real_,
-              sd = NA_real_,
+              std = NA_real_,
               min = NA_real_,
               p25 = NA_real_,
               median = NA_real_,
@@ -296,10 +296,10 @@ summarize_numeric <- function(
             )
           } else {
             stats_row <- data.frame(
-              n = 0,
+              count = 0,
               mean = NA_real_,
               median = NA_real_,
-              sd = NA_real_,
+              std = NA_real_,
               min = NA_real_,
               max = NA_real_
             )
@@ -307,9 +307,9 @@ summarize_numeric <- function(
         } else {
           if (detailed) {
             stats_row <- data.frame(
-              n = count_non_na(x),
+              count = count_non_na(x),
               mean = mean(x, na.rm = TRUE),
-              sd = stats::sd(x, na.rm = TRUE),
+              std = stats::sd(x, na.rm = TRUE),
               min = min(x, na.rm = TRUE),
               p25 = stats::quantile(
                 x,
@@ -328,10 +328,10 @@ summarize_numeric <- function(
             )
           } else {
             stats_row <- data.frame(
-              n = count_non_na(x),
+              count = count_non_na(x),
               mean = mean(x, na.rm = TRUE),
               median = median(x, na.rm = TRUE),
-              sd = stats::sd(x, na.rm = TRUE),
+              std = stats::sd(x, na.rm = TRUE),
               min = min(x, na.rm = TRUE),
               max = max(x, na.rm = TRUE)
             )

@@ -54,7 +54,7 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
 \item{\code{[time_period]}}{Columns for each time period showing presence
 (1 = present, 0 = missing). Column names match the time variable values.}
-\item{\code{n}}{Number of entities with this pattern}
+\item{\code{count}}{Number of entities with this pattern}
 \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
 }
 
@@ -63,12 +63,12 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
 \item{\code{[time]}}{The time period variable (named according to the \code{time} argument)}
 \item{\code{presence}}{0/1 values indicating absence/presence in the period}
-\item{\code{n}}{Number of entities with this pattern}
+\item{\code{count}}{Number of entities with this pattern}
 \item{\code{share}}{Proportion of entities with this pattern}
 }
 
 \strong{When \code{detailed = FALSE}:}
-Returns only the rank and time period columns (without n or share).
+Returns only the rank and time period columns (without count or share).
 
 Patterns are sorted by frequency (most common first).
 

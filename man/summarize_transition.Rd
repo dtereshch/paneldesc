@@ -54,7 +54,7 @@ Returns a data.frame with:
 \describe{
 \item{\code{from}}{The originating state}
 \item{\code{to}}{The destination state}
-\item{\code{n}}{Number of transitions observed from \code{from} to \code{to}}
+\item{\code{count}}{Number of transitions observed from \code{from} to \code{to}}
 \item{\code{share}}{Transition share (rounded to specified digits)}
 }
 

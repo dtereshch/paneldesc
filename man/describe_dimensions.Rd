@@ -19,7 +19,7 @@ Not required if data has panel attributes.}
 A data.frame with two columns:
 \describe{
 \item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
-\item{\code{n}}{The count for each dimension}
+\item{\code{count}}{The count for each dimension}
 }
 
 The data.frame has additional attributes:

@@ -39,10 +39,10 @@ The returned data.frame contains the following columns:
 \describe{
 \item{\code{variable}}{The name of the numeric variable (always present)}
 \item{\code{group}}{The grouping variable (present only when \code{group} is specified)}
-\item{\code{n}}{Number of non-NA observations}
+\item{\code{count}}{Number of non-NA observations}
 \item{\code{mean}}{Arithmetic mean}
 \item{\code{median}}{Median value}
-\item{\code{sd}}{Standard deviation}
+\item{\code{std}}{Standard deviation}
 \item{\code{min}}{Minimum value}
 \item{\code{max}}{Maximum value}
 }

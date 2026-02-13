@@ -31,7 +31,7 @@
 #'   \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
 #'   \item{\code{[time_period]}}{Columns for each time period showing presence
 #'     (1 = present, 0 = missing). Column names match the time variable values.}
-#'   \item{\code{n}}{Number of entities with this pattern}
+#'   \item{\code{count}}{Number of entities with this pattern}
 #'   \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
 #' }
 #'
@@ -40,12 +40,12 @@
 #'   \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
 #'   \item{\code{[time]}}{The time period variable (named according to the `time` argument)}
 #'   \item{\code{presence}}{0/1 values indicating absence/presence in the period}
-#'   \item{\code{n}}{Number of entities with this pattern}
+#'   \item{\code{count}}{Number of entities with this pattern}
 #'   \item{\code{share}}{Proportion of entities with this pattern}
 #' }
 #'
 #' \strong{When `detailed = FALSE`:}
-#' Returns only the rank and time period columns (without n or share).
+#' Returns only the rank and time period columns (without count or share).
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
@@ -318,11 +318,11 @@ describe_patterns <- function(
   }
 
   # Add count and share columns
-  result$n <- as.numeric(pattern_counts)
-  result$share <- round_if_needed(result$n / sum(result$n), digits)
+  result$count <- as.numeric(pattern_counts)
+  result$share <- round_if_needed(result$count / sum(result$count), digits)
 
   # Sort by count (descending) FIRST
-  result <- result[order(-result$n), ]
+  result <- result[order(-result$count), ]
 
   # Reset rank numbers to follow the new sorted order
   result$rank <- seq_len(nrow(result))
@@ -357,7 +357,7 @@ describe_patterns <- function(
             rank = pattern_row$rank,
             time = t,
             presence = as.integer(pattern_row[[t]]),
-            n = pattern_row$n,
+            count = pattern_row$count,
             share = pattern_row$share,
             stringsAsFactors = FALSE
           )

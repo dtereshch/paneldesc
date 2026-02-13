@@ -19,7 +19,7 @@
 #' \describe{
 #'   \item{\code{dimension}}{Character vector describing the type of panel element.
 #'     Contains three values: "rows", "entities", and "periods".}
-#'   \item{\code{n}}{Numeric vector with total counts for each panel element.
+#'   \item{\code{count}}{Numeric vector with total counts for each panel element.
 #'     For "rows": number of rows meeting the presence criteria.
 #'     For "entities": number of entities where ALL time periods have presence according to the presence criteria.
 #'     For "periods": number of time periods where ALL entities have presence according to the presence criteria.}
@@ -307,7 +307,7 @@ describe_balance <- function(
   # Create and return the simplified result data.frame
   result_df <- data.frame(
     dimension = c("rows", "entities", "periods"),
-    n = c(row_count, entity_count, period_count),
+    count = c(row_count, entity_count, period_count),
     mean = c(NA, mean_entities, mean_periods),
     min = c(NA, min_entities, min_periods),
     max = c(NA, max_entities, max_periods),
