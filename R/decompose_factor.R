@@ -49,10 +49,6 @@
 #'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
 #' }
 #'
-#' @note
-#' When `selection = NULL` (default), only factor variables are analyzed.
-#' When `selection` is explicitly specified, all selected variables are converted to factors.
-#'
 #' @references
 #' For Stata users: This corresponds to the `xttab` command.
 #'

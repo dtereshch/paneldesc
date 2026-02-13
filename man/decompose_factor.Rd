@@ -68,10 +68,6 @@ The data.frame has additional attributes:
 \item{\code{panel_digits}}{Number of decimal places used for rounding}
 }
 }
-\note{
-When \code{selection = NULL} (default), only factor variables are analyzed.
-When \code{selection} is explicitly specified, all selected variables are converted to factors.
-}
 \examples{
 data(production)
 
