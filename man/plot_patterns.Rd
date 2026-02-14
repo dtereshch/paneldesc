@@ -9,7 +9,7 @@ plot_patterns(
   group = NULL,
   time = NULL,
   presence = "observed",
-  max_patterns = 10,
+  max_patterns = NULL,
   colors = c("#0072B2", "#D55E00")
 )
 }
@@ -25,17 +25,20 @@ Not required if data has panel attributes.}
 \item{presence}{A character string specifying how to define entity presence: "nominal", "observed", or "complete".
 Default = "observed".}
 
-\item{max_patterns}{An integer specifying the maximum number of patterns to display.
-Default = 10.}
+\item{max_patterns}{An integer specifying the maximum number of distinct patterns to display.
+If not specified, all patterns are shown.}
 
 \item{colors}{A character vector of two colors for present and missing observations.
 Default = c("#0072B2", "#D55E00").}
 }
 \value{
-Invisibly returns a list with summary statistics. Creates a plot showing presence patterns.
+Invisibly returns the presence matrix (entities × time periods) after sorting and filtering,
+which can be used for further inspection. Creates a heatmap plot.
 }
 \description{
-This function creates a heatmap visualization of entities presence patterns in panel data over time.
+This function creates a heatmap showing the presence/absence pattern of each entity
+over time. Rows (entities) are sorted so that the most frequent pattern appears at the top.
+Horizontal lines separate blocks of identical patterns.
 }
 \details{
 \strong{Presence} parameter definitions:
@@ -45,62 +48,24 @@ This function creates a heatmap visualization of entities presence patterns in p
 \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 }
 
-The heatmap shows presence patterns where:
+The heatmap shows:
 \itemize{
 \item \strong{Present}: Entity is present in the time period (based on the specified presence type)
 \item \strong{Missing}: Entity is absent in the time period
 }
 
-Patterns are sorted by frequency (most common first) and the most common pattern appears at the top of the plot.
-
-The returned list contains the following components:
-\describe{
-\item{\code{summary}}{List with summary statistics including:
-\itemize{
-\item \code{n_patterns_displayed}: Number of patterns displayed in the plot
-\item \code{total_patterns}: Total number of patterns found
-\item \code{presence}: Presence type used for analysis
-\item \code{max_patterns}: Maximum number of patterns to display
-}
-}
-\item{\code{patterns}}{List with pattern information including:
-\itemize{
-\item \code{pattern_matrix}: Matrix showing presence patterns
-\item \code{pattern_matrix_reversed}: Matrix with reversed values (for plotting)
-\item \code{pattern_labels}: Labels for each pattern
-\item \code{counts}: Number of entities in each pattern
-}
-}
-\item{\code{metadata}}{List with analysis parameters including:
-\itemize{
-\item \code{group_var}: The group variable name
-\item \code{time_var}: The time variable name
-\item \code{presence}: The presence type used for analysis
-\item \code{max_patterns}: Maximum number of patterns to display
-\item \code{colors}: Colors used for plotting
-}
-}
-}
+Rows are ordered by pattern frequency: the most frequent pattern is at the \strong{top}.
+Within each pattern block, entities appear in their original order (as they first occur in the data).
+If \code{max_patterns} is given, only the most frequent patterns are retained.
 }
 \examples{
 data(production)
 
-# Basic usage with top 10 patterns shown
+# Basic usage
 plot_patterns(production, group = "firm", time = "year")
 
-# With panel attributes
-panel_data <- set_panel(production, group = "firm", time = "year")
-plot_patterns(panel_data)
-
-# Use different presence types
-plot_patterns(production, group = "firm", time = "year", presence = "nominal")
-plot_patterns(production, group = "firm", time = "year", presence = "complete")
-
-# Show only top 5 patterns
-plot_patterns(production, group = "firm", time = "year", max_patterns = 5)
-
-# Show all patterns
-plot_patterns(production, group = "firm", time = "year", max_patterns = 999999)
+# Only top 3 patterns
+plot_patterns(production, group = "firm", time = "year", max_patterns = 3)
 
 # Custom colors
 plot_patterns(production, group = "firm", time = "year", colors = c("black", "white"))

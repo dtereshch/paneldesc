@@ -1,6 +1,8 @@
 #' Entities Presence Patterns Visualization
 #'
-#' This function creates a heatmap visualization of entities presence patterns in panel data over time.
+#' This function creates a heatmap showing the presence/absence pattern of each entity
+#' over time. Rows (entities) are sorted so that the most frequent pattern appears at the top.
+#' Horizontal lines separate blocks of identical patterns.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
@@ -9,12 +11,13 @@
 #'        Not required if data has panel attributes.
 #' @param presence A character string specifying how to define entity presence: "nominal", "observed", or "complete".
 #'        Default = "observed".
-#' @param max_patterns An integer specifying the maximum number of patterns to display.
-#'        Default = 10.
+#' @param max_patterns An integer specifying the maximum number of distinct patterns to display.
+#'        If not specified, all patterns are shown.
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#0072B2", "#D55E00").
 #'
-#' @return Invisibly returns a list with summary statistics. Creates a plot showing presence patterns.
+#' @return Invisibly returns the presence matrix (entities × time periods) after sorting and filtering,
+#'         which can be used for further inspection. Creates a heatmap plot.
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -24,42 +27,15 @@
 #'   \item{\code{"complete"}}{Entity is present only if it has no NA values in all substantive variables}
 #' }
 #'
-#' The heatmap shows presence patterns where:
+#' The heatmap shows:
 #' \itemize{
 #'   \item \strong{Present}: Entity is present in the time period (based on the specified presence type)
 #'   \item \strong{Missing}: Entity is absent in the time period
 #' }
 #'
-#' Patterns are sorted by frequency (most common first) and the most common pattern appears at the top of the plot.
-#'
-#' The returned list contains the following components:
-#' \describe{
-#'   \item{\code{summary}}{List with summary statistics including:
-#'     \itemize{
-#'       \item \code{n_patterns_displayed}: Number of patterns displayed in the plot
-#'       \item \code{total_patterns}: Total number of patterns found
-#'       \item \code{presence}: Presence type used for analysis
-#'       \item \code{max_patterns}: Maximum number of patterns to display
-#'     }
-#'   }
-#'   \item{\code{patterns}}{List with pattern information including:
-#'     \itemize{
-#'       \item \code{pattern_matrix}: Matrix showing presence patterns
-#'       \item \code{pattern_matrix_reversed}: Matrix with reversed values (for plotting)
-#'       \item \code{pattern_labels}: Labels for each pattern
-#'       \item \code{counts}: Number of entities in each pattern
-#'     }
-#'   }
-#'   \item{\code{metadata}}{List with analysis parameters including:
-#'     \itemize{
-#'       \item \code{group_var}: The group variable name
-#'       \item \code{time_var}: The time variable name
-#'       \item \code{presence}: The presence type used for analysis
-#'       \item \code{max_patterns}: Maximum number of patterns to display
-#'       \item \code{colors}: Colors used for plotting
-#'     }
-#'   }
-#' }
+#' Rows are ordered by pattern frequency: the most frequent pattern is at the **top**.
+#' Within each pattern block, entities appear in their original order (as they first occur in the data).
+#' If `max_patterns` is given, only the most frequent patterns are retained.
 #'
 #' @seealso
 #' [describe_patterns()], [plot_periods()]
@@ -67,22 +43,11 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic usage with top 10 patterns shown
+#' # Basic usage
 #' plot_patterns(production, group = "firm", time = "year")
 #'
-#' # With panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' plot_patterns(panel_data)
-#'
-#' # Use different presence types
-#' plot_patterns(production, group = "firm", time = "year", presence = "nominal")
-#' plot_patterns(production, group = "firm", time = "year", presence = "complete")
-#'
-#' # Show only top 5 patterns
-#' plot_patterns(production, group = "firm", time = "year", max_patterns = 5)
-#'
-#' # Show all patterns
-#' plot_patterns(production, group = "firm", time = "year", max_patterns = 999999)
+#' # Only top 3 patterns
+#' plot_patterns(production, group = "firm", time = "year", max_patterns = 3)
 #'
 #' # Custom colors
 #' plot_patterns(production, group = "firm", time = "year", colors = c("black", "white"))
@@ -93,23 +58,20 @@ plot_patterns <- function(
   group = NULL,
   time = NULL,
   presence = "observed",
-  max_patterns = 10,
+  max_patterns = NULL,
   colors = c("#0072B2", "#D55E00")
 ) {
-  # Check if data has panel attributes
+  # --- Panel attribute handling and validation (unchanged) ---
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
     !is.null(attr(data, "panel_time"))
 
   if (has_panel_attrs) {
-    # Extract group and time from attributes
     group <- attr(data, "panel_group")
     time <- attr(data, "panel_time")
   } else {
-    # Handle regular data.frame
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
     }
-
     if (is.null(group) || is.null(time)) {
       stop(
         "For regular data.frames, both 'group' and 'time' arguments must be provided"
@@ -117,43 +79,35 @@ plot_patterns <- function(
     }
   }
 
-  # Common validation
+  # --- Basic checks ---
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
-
   if (!is.character(time) || length(time) != 1) {
     stop("'time' must be a single character string, not ", class(time)[1])
   }
-
   if (!is.character(presence) || length(presence) != 1) {
     stop(
       "'presence' must be a single character string, not ",
       class(presence)[1]
     )
   }
-
   if (!presence %in% c("observed", "nominal", "complete")) {
     stop('presence must be one of: "observed", "nominal", "complete"')
   }
-
   if (!group %in% names(data)) {
     stop('variable "', group, '" not found in data')
   }
-
   if (!time %in% names(data)) {
     stop('variable "', time, '" not found in data')
   }
-
-  if (
-    !is.numeric(max_patterns) || length(max_patterns) != 1 || max_patterns < 1
-  ) {
-    stop(
-      "'max_patterns' must be a single positive integer, not ",
-      class(max_patterns)[1]
-    )
+  if (!is.null(max_patterns)) {
+    if (
+      !is.numeric(max_patterns) || length(max_patterns) != 1 || max_patterns < 1
+    ) {
+      stop("'max_patterns' must be a single positive integer or NULL")
+    }
   }
-
   if (!is.character(colors) || length(colors) != 2) {
     stop(
       "'colors' must be a character vector of length 2, not ",
@@ -161,14 +115,13 @@ plot_patterns <- function(
     )
   }
 
-  # Identify data columns (excluding group and time)
+  # --- Identify data columns (excluding group and time) ---
   data_cols <- setdiff(names(data), c(group, time))
-
   if (length(data_cols) == 0) {
     stop("no data columns found (excluding group and time variables)")
   }
 
-  # Get all entities and time periods
+  # --- Get all entities and time periods ---
   all_groups <- unique(as.character(data[[group]]))
   all_times <- unique(as.character(data[[time]]))
 
@@ -178,10 +131,9 @@ plot_patterns <- function(
   } else {
     all_times <- sort(all_times)
   }
-
   time_cols <- all_times
 
-  # Create a matrix of all possible combinations (initialize with 0)
+  # --- Create binary presence matrix ---
   presence_binary <- matrix(
     0,
     nrow = length(all_groups),
@@ -189,168 +141,118 @@ plot_patterns <- function(
     dimnames = list(all_groups, all_times)
   )
 
-  # Convert to character for consistent handling
   group_vec <- as.character(data[[group]])
   time_vec <- as.character(data[[time]])
 
-  # Fill the binary matrix based on presence
   if (presence == "nominal") {
-    # For nominal type, mark 1 for all rows
     for (i in seq_along(group_vec)) {
-      row_group <- as.character(group_vec[i])
-      row_time <- as.character(time_vec[i])
-      presence_binary[row_group, row_time] <- 1
+      presence_binary[group_vec[i], time_vec[i]] <- 1
     }
   } else if (presence == "observed") {
-    # For observed type, mark 1 for rows with at least one non-NA
-    has_at_least_one_non_na <- apply(
-      data[data_cols],
-      1,
-      function(row) {
-        !all(is.na(row))
-      }
-    )
-
+    has_at_least_one_non_na <- apply(data[data_cols], 1, function(row) {
+      !all(is.na(row))
+    })
     for (i in seq_along(group_vec)) {
       if (has_at_least_one_non_na[i]) {
-        row_group <- as.character(group_vec[i])
-        row_time <- as.character(time_vec[i])
-        presence_binary[row_group, row_time] <- 1
+        presence_binary[group_vec[i], time_vec[i]] <- 1
       }
     }
-  } else if (presence == "complete") {
-    # For complete type, mark 1 for complete rows only
+  } else {
+    # complete
     complete_rows <- complete.cases(data[data_cols])
-
     for (i in seq_along(group_vec)) {
       if (complete_rows[i]) {
-        row_group <- as.character(group_vec[i])
-        row_time <- as.character(time_vec[i])
-        if (row_time %in% time_cols) {
-          presence_binary[row_group, row_time] <- 1
-        }
+        presence_binary[group_vec[i], time_vec[i]] <- 1
       }
     }
   }
 
-  # Convert to data frame for pattern analysis
-  presence_df <- as.data.frame(presence_binary)
-  presence_df$group <- rownames(presence_df)
-  presence_df <- presence_df[c("group", time_cols)]
+  # --- Compute pattern for each entity ---
+  pattern_strings <- apply(presence_binary, 1, paste, collapse = "")
 
-  # Count patterns and create pattern matrix
-  pattern_cols <- setdiff(names(presence_df), "group")
-  pattern_strings <- apply(presence_df[pattern_cols], 1, function(x) {
-    paste(x, collapse = "")
-  })
+  # --- Frequency of each pattern ---
+  pattern_freq <- table(pattern_strings)
 
-  pattern_counts <- table(pattern_strings)
-
-  # Handle single pattern case
-  n_patterns <- length(pattern_counts)
-
-  if (n_patterns == 0) {
-    stop("No presence patterns found in the data")
+  # --- Filter by max_patterns if requested ---
+  if (!is.null(max_patterns)) {
+    # Identify the most frequent patterns
+    top_patterns <- names(sort(pattern_freq, decreasing = TRUE))[
+      1:min(max_patterns, length(pattern_freq))
+    ]
+    keep <- pattern_strings %in% top_patterns
+    presence_binary <- presence_binary[keep, , drop = FALSE]
+    pattern_strings <- pattern_strings[keep]
+    pattern_freq <- pattern_freq[top_patterns] # keep only top for ordering
   }
 
-  # Create pattern matrix for heatmap
-  if (n_patterns == 1) {
-    # Single pattern case
-    pattern_matrix <- matrix(
-      as.numeric(strsplit(names(pattern_counts)[1], "")[[1]]),
-      nrow = 1,
-      ncol = length(time_cols)
-    )
-  } else {
-    # Multiple patterns case
-    pattern_matrix <- matrix(
-      0,
-      nrow = n_patterns,
-      ncol = length(time_cols)
-    )
+  # --- Order rows: least frequent first (bottom), most frequent last (top) ---
+  # Create a vector of frequencies for each entity
+  entity_freq <- as.numeric(pattern_freq[pattern_strings])
 
-    for (i in seq_along(pattern_counts)) {
-      pattern_matrix[i, ] <- as.numeric(strsplit(names(pattern_counts)[i], "")[[
-        1
-      ]])
-    }
-  }
+  # Order: first by frequency ascending (so most frequent ends last), then by pattern string,
+  # then by group name to have deterministic order within pattern.
+  order_idx <- order(entity_freq, pattern_strings, rownames(presence_binary))
+  presence_binary_sorted <- presence_binary[order_idx, , drop = FALSE]
+  pattern_strings_sorted <- pattern_strings[order_idx]
 
-  colnames(pattern_matrix) <- time_cols
-
-  # Sort by count (descending) and create labels
-  counts <- as.numeric(pattern_counts)
-  sorted_order <- order(-counts)
-  pattern_matrix <- pattern_matrix[sorted_order, , drop = FALSE]
-  counts <- counts[sorted_order]
-
-  # Apply max_patterns limit
-  n_patterns_to_display <- min(nrow(pattern_matrix), max_patterns)
-
-  if (n_patterns_to_display > 0) {
-    pattern_matrix <- pattern_matrix[1:n_patterns_to_display, , drop = FALSE]
-    counts <- counts[1:n_patterns_to_display]
-  } else {
-    stop("No patterns to display after applying max_patterns filter")
-  }
-
-  # Reverse the matrix to put most common pattern on top
-  pattern_matrix <- pattern_matrix[
-    rev(seq_len(nrow(pattern_matrix))),
-    ,
-    drop = FALSE
-  ]
-  counts <- counts[rev(seq_len(length(counts)))]
-
-  # Create y-axis labels
-  y_labels <- paste0("Pattern ", rev(seq_along(counts)), " (n = ", counts, ")")
-
-  # Reset graphical parameters on exit
+  # --- Prepare for plotting ---
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par))
 
-  # Reduced top margin since we're not showing a title
-  par(mar = c(3, 1, 3, 8) + 0.1)
+  # Set margins only – asp is now in plot()
+  par(mar = c(3, 1, 2.5, 1) + 0.1)
 
-  # Create a reversed version of the pattern matrix
-  pattern_matrix_rev <- 1 - pattern_matrix # 1->0, 0->1
+  # Reverse 0/1 for color mapping: 1 -> missing, 0 -> present
+  presence_rev <- 1 - presence_binary_sorted
+  nr <- nrow(presence_rev)
+  nc <- ncol(presence_rev)
 
-  # Create heatmap using image function
-  image(
-    x = seq_len(ncol(pattern_matrix_rev)),
-    y = seq_len(nrow(pattern_matrix_rev)),
-    z = t(pattern_matrix_rev),
-    col = colors,
-    xlab = "", # Empty x-axis label
+  # Create empty plot with expanded y-limits to create gap below heatmap
+  plot(
+    NA,
+    xlim = c(0.5, nc + 0.5), # Cell centers at 1:nc, so edges at 0.5 and nc+0.5
+    ylim = c(-0.2, nr + 1.2), # Gap below and above heatmap
+    xlab = "",
     ylab = "",
     axes = FALSE,
-    xaxs = "i",
-    yaxs = "i"
+    xaxs = "i", # No auto-expansion, we control limits
+    yaxs = "i" # No auto-expansion, we control limits
   )
 
-  # Add x-axis with vertical labels
-  axis(
-    1,
-    at = seq_len(ncol(pattern_matrix_rev)),
-    labels = time_cols,
-    tick = FALSE,
-    las = 2 # Vertical text
-  )
+  # Add the heatmap using rect() for better control
+  for (i in 1:nc) {
+    for (j in 1:nr) {
+      rect(
+        xleft = i - 0.5,
+        ybottom = j - 0.5,
+        xright = i + 0.5,
+        ytop = j + 0.5,
+        col = colors[presence_rev[j, i] + 1], # +1 because colors[1] is for 0, colors[2] for 1
+        border = NA
+      )
+    }
+  }
 
-  # Add y-axis labels on the right
-  axis(
-    4,
-    at = seq_len(nrow(pattern_matrix_rev)),
-    labels = y_labels,
-    las = 2,
-    tick = FALSE
-  )
+  # Add x-axis with time labels (vertical)
+  axis(1, at = 1:nc, labels = time_cols, las = 2, tick = TRUE)
 
-  # Add grid lines
-  abline(h = seq(0.5, nrow(pattern_matrix_rev) + 0.5, 1), col = "gray", lty = 3)
-  abline(v = seq(0.5, ncol(pattern_matrix_rev) + 0.5, 1), col = "gray", lty = 3)
+  # --- Add horizontal grid lines between patterns, confined to cell area ---
+  runs <- rle(pattern_strings_sorted)
+  if (length(runs$lengths) > 1) {
+    boundaries <- cumsum(runs$lengths)[-length(runs$lengths)] # last row of each pattern (except last)
+    # Draw lines from left edge (0.5) to right edge (nc + 0.5) at y = boundary + 0.5
+    segments(
+      x0 = 0.5,
+      x1 = nc + 0.5,
+      y0 = boundaries + 0.5,
+      y1 = boundaries + 0.5,
+      col = "white",
+      lty = 1,
+      lwd = 0.8
+    )
+  }
 
-  # Add legend at the top
+  # Legend at the top - SLIGHTLY INCREASED space between legend and main plot
   legend(
     "top",
     legend = c("Present", "Missing"),
@@ -359,35 +261,10 @@ plot_patterns <- function(
     horiz = TRUE,
     xpd = TRUE,
     bty = "n",
-    inset = c(0, -0.1),
+    inset = c(0, -0.04), # SLIGHTLY INCREASED from -0.02 to -0.04 (more negative = more space above plot)
     cex = 0.9
   )
 
-  # Create unified return object
-  result <- list(
-    summary = list(
-      n_patterns_displayed = n_patterns_to_display,
-      total_patterns = length(pattern_counts),
-      presence = presence,
-      max_patterns = max_patterns
-    ),
-    patterns = list(
-      pattern_matrix = pattern_matrix,
-      pattern_matrix_reversed = pattern_matrix_rev,
-      pattern_labels = y_labels,
-      counts = counts,
-      time_periods = time_cols,
-      presence_matrix = presence_binary
-    ),
-    metadata = list(
-      group_var = group,
-      time_var = time,
-      presence = presence,
-      max_patterns = max_patterns,
-      colors = colors
-    )
-  )
-
-  # Return the pattern matrix invisibly for further use
-  invisible(result)
+  # Invisibly return the sorted presence matrix
+  invisible(presence_binary_sorted)
 }
