@@ -9,7 +9,7 @@
 #'        grouping variable(s). If data has panel attributes and group is NULL,
 #'        both panel_group and panel_time will be used as group variables.
 #' @param colors A character vector of two colors: first for mean line and points,
-#'        second for individual points. Default = c("#0072B2", "#D55E00").
+#'        second for individual points. Default = c("#1E4A3B", "#EADCA0").
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a plot showing group heterogeneity.
 #'
@@ -73,7 +73,7 @@ plot_heterogeneity <- function(
   data,
   selection,
   group = NULL,
-  colors = c("#0072B2", "#D55E00")
+  colors = c("#1E4A3B", "#EADCA0")
 ) {
   # Check if data has panel attributes
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
@@ -168,7 +168,7 @@ plot_heterogeneity <- function(
   point_col <- colors[2]
 
   # Set default parameter values
-  point_alpha <- 0.6
+  point_alpha <- 0.75
   mean_lwd <- 2
   cex <- 1
   las <- 1

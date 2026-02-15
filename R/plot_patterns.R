@@ -14,7 +14,7 @@
 #' @param max_patterns An integer specifying the maximum number of distinct patterns to display.
 #'        If not specified, all patterns are shown.
 #' @param colors A character vector of two colors for present and missing observations.
-#'        Default = c("#0072B2", "#D55E00").
+#'        Default = c("#1E4A3B", "white").
 #'
 #' @return Invisibly returns the presence matrix (entities × time periods) after sorting and filtering,
 #'         which can be used for further inspection. Creates a heatmap plot.
@@ -59,7 +59,7 @@ plot_patterns <- function(
   time = NULL,
   presence = "observed",
   max_patterns = NULL,
-  colors = c("#0072B2", "#D55E00")
+  colors = c("#1E4A3B", "white")
 ) {
   # --- Panel attribute handling and validation (unchanged) ---
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&

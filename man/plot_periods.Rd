@@ -9,8 +9,8 @@ plot_periods(
   group = NULL,
   time = NULL,
   presence = "observed",
-  detailed = TRUE,
-  colors = c("black", "#0072B2")
+  detailed = FALSE,
+  colors = c("#1E4A3B", "#1E4A3B")
 )
 }
 \arguments{
@@ -26,10 +26,10 @@ Not required if data has panel attributes.}
 Default = "observed".}
 
 \item{detailed}{A logical flag indicating whether to display detailed summary statistics.
-Default = TRUE.}
+Default = FALSE}
 
 \item{colors}{A character vector of length 2 specifying the line color and fill color for the histogram.
-Default = c("black", "#0072B2").}
+Default = c("#1E4A3B", "#1E4A3B").}
 }
 \value{
 Invisibly returns a list with summary statistics for the specified presence type.
@@ -100,8 +100,8 @@ plot_periods(production, group = "firm", time = "year", colors = c("black", "gra
 # Custom colors - blue line with light blue fill
 plot_periods(production, group = "firm", time = "year", colors = c("blue", "lightblue"))
 
-# Show plot without summary statistics
-plot_periods(production, group = "firm", time = "year", detailed = FALSE)
+# Show plot with additional summary statistics
+plot_periods(production, group = "firm", time = "year", detailed = TRUE)
 
 }
 \seealso{

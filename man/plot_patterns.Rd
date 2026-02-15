@@ -10,7 +10,7 @@ plot_patterns(
   time = NULL,
   presence = "observed",
   max_patterns = NULL,
-  colors = c("#0072B2", "#D55E00")
+  colors = c("#1E4A3B", "white")
 )
 }
 \arguments{
@@ -29,7 +29,7 @@ Default = "observed".}
 If not specified, all patterns are shown.}
 
 \item{colors}{A character vector of two colors for present and missing observations.
-Default = c("#0072B2", "#D55E00").}
+Default = c("#1E4A3B", "white").}
 }
 \value{
 Invisibly returns the presence matrix (entities × time periods) after sorting and filtering,

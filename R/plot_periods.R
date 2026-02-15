@@ -11,9 +11,9 @@
 #' @param presence A character string specifying how to define entity presence: "observed", "nominal", or "complete".
 #'        Default = "observed".
 #' @param detailed A logical flag indicating whether to display detailed summary statistics.
-#'        Default = TRUE.
+#'        Default = FALSE
 #' @param colors A character vector of length 2 specifying the line color and fill color for the histogram.
-#'        Default = c("black", "#0072B2").
+#'        Default = c("#1E4A3B", "#1E4A3B").
 #'
 #' @return Invisibly returns a list with summary statistics for the specified presence type.
 #'         Creates a plot showing time coverage distribution.
@@ -82,8 +82,8 @@
 #' # Custom colors - blue line with light blue fill
 #' plot_periods(production, group = "firm", time = "year", colors = c("blue", "lightblue"))
 #'
-#' # Show plot without summary statistics
-#' plot_periods(production, group = "firm", time = "year", detailed = FALSE)
+#' # Show plot with additional summary statistics
+#' plot_periods(production, group = "firm", time = "year", detailed = TRUE)
 #'
 #' @export
 plot_periods <- function(
@@ -91,8 +91,8 @@ plot_periods <- function(
   group = NULL,
   time = NULL,
   presence = "observed",
-  detailed = TRUE,
-  colors = c("black", "#0072B2")
+  detailed = FALSE,
+  colors = c("#1E4A3B", "#1E4A3B")
 ) {
   # Check if data has panel attributes
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
