@@ -8,8 +8,8 @@
 #' @param group A character string or vector of character strings specifying the
 #'        grouping variable(s). If data has panel attributes and group is NULL,
 #'        both panel_group and panel_time will be used as group variables.
-#' @param colors A character vector of two colors: first for individual points,
-#'        second for mean line and points. Default = c("#D55E00", "#0072B2").
+#' @param colors A character vector of two colors: first for mean line and points,
+#'        second for individual points. Default = c("#0072B2", "#D55E00").
 #'
 #' @return Invisibly returns a list with summary statistics. Creates a plot showing group heterogeneity.
 #'
@@ -66,14 +66,14 @@
 #' plot_heterogeneity(production, selection = "sales", group = c("firm", "year"))
 #'
 #' # Customize colors
-#' plot_heterogeneity(production, selection = "sales", group = "year", colors = c("gray", "black"))
+#' plot_heterogeneity(production, selection = "sales", group = "year", colors = c("black", "gray"))
 #'
 #' @export
 plot_heterogeneity <- function(
   data,
   selection,
   group = NULL,
-  colors = c("#D55E00", "#0072B2")
+  colors = c("#0072B2", "#D55E00")
 ) {
   # Check if data has panel attributes
   has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
@@ -164,8 +164,8 @@ plot_heterogeneity <- function(
   }
 
   # Extract colors
-  point_col <- colors[1]
-  mean_col <- colors[2]
+  mean_col <- colors[1]
+  point_col <- colors[2]
 
   # Set default parameter values
   point_alpha <- 0.6
