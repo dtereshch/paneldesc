@@ -6,7 +6,7 @@
 #'        with panel attributes.
 #' @param selection A character string specifying the numeric variable of interest.
 #' @param group A character string or vector of character strings specifying the
-#'        grouping variable(s). If data has panel attributes and group is NULL,
+#'        grouping variable(s). If data has panel attributes and group is not specified,
 #'        both panel_group and panel_time will be used as group variables.
 #' @param colors A character vector of two colors: first for mean line and points,
 #'        second for individual points. Default = c("#1E4A3B", "#EADCA0").

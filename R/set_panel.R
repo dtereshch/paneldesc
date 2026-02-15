@@ -1,6 +1,6 @@
-#' Add Panel Attributes to Data
+#' Panel Data Structure Setting
 #'
-#' Adds panel structure attributes to a data.frame, storing group and time variable names.
+#' This function adds panel structure attributes to a data.frame, storing entity/group and time variable names.
 #' This allows panel functions to automatically detect panel structure.
 #'
 #' @param data A data.frame containing panel data.
@@ -11,7 +11,7 @@
 #'
 #' @details
 #' This function adds attributes to a data.frame to mark it as panel data.
-#' The attributes store the names of group and time variables, enabling
+#' The attributes store the names of entity/group and time variables, enabling
 #' panel-aware functions to automatically detect the panel structure without
 #' requiring explicit specification of group and time variables in each function call.
 #' The original data.frame structure is preserved.

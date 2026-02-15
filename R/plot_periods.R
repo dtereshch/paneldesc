@@ -1,7 +1,8 @@
 #' Time Coverage Distribution Visualization
 #'
-#' This function creates a histogram showing the distribution of time periods
-#' covered by each entity in panel data, based on the specified presence definition.
+#' This function calculates summary statisitca and creates a histogram showing
+#' the distribution of time periods covered by each entity in panel data,
+#' based on the specified presence definition.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
@@ -10,8 +11,8 @@
 #'        Not required if data has panel attributes.
 #' @param presence A character string specifying how to define entity presence: "observed", "nominal", or "complete".
 #'        Default = "observed".
-#' @param detailed A logical flag indicating whether to display detailed summary statistics.
-#'        Default = FALSE
+#' @param detailed A logical flag indicating whether to display additional summary statistics.
+#'        Default = FALSE.
 #' @param colors A character vector of length 2 specifying the line color and fill color for the histogram.
 #'        Default = c("#1E4A3B", "#1E4A3B").
 #'

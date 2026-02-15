@@ -2,7 +2,7 @@
 % Please edit documentation in R/describe_periods.R
 \name{describe_periods}
 \alias{describe_periods}
-\title{Time Period Coverage Description}
+\title{Time Periods Completeness Description}
 \usage{
 describe_periods(data, group = NULL, time = NULL)
 }
@@ -16,10 +16,11 @@ Not required if data has panel attributes.}
 Not required if data has panel attributes.}
 }
 \value{
-A data.frame with time period coverage statistics.
+A data.frame with entities/groups presence summary by time period.
 }
 \description{
-Provides detailed coverage statistics for each time period in panel data.
+This function caluclates number of enitities/groups for each time period in panel data.
+The function uses different ways to detect entity/group presence in each period.
 }
 \details{
 The data.frame contains the following columns:

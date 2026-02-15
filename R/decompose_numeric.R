@@ -1,7 +1,7 @@
 #' Panel Data Numeric Variable Decomposition
 #'
-#' This function decomposes variance of numeric panel data variables into
-#' between and within components.
+#' This function decomposes variance of numeric variables
+#' into between and within components in panel data.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param selection A character vector specifying which numeric variables to analyze.

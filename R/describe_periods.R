@@ -1,6 +1,7 @@
-#' Time Period Coverage Description
+#' Time Periods Completeness Description
 #'
-#' Provides detailed coverage statistics for each time period in panel data.
+#' This function caluclates number of enitities/groups for each time period in panel data.
+#' The function uses different ways to detect entity/group presence in each period.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
@@ -8,7 +9,7 @@
 #' @param time A character string specifying the name of the time variable.
 #'        Not required if data has panel attributes.
 #'
-#' @return A data.frame with time period coverage statistics.
+#' @return A data.frame with entities/groups presence summary by time period.
 #'
 #' @details
 #' The data.frame contains the following columns:

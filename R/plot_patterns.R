@@ -1,8 +1,6 @@
 #' Entities Presence Patterns Visualization
 #'
-#' This function creates a heatmap showing the presence/absence pattern of each entity
-#' over time. Rows (entities) are sorted so that the most frequent pattern appears at the top.
-#' Horizontal lines separate blocks of identical patterns.
+#' This function creates a heatmap showing the presence/absence pattern of each entity over time.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.

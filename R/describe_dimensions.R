@@ -1,7 +1,7 @@
 #' Panel Data Dimensions Description
 #'
-#' This function provides summary information about panel data structure across
-#' three presence types: nominal, observed, and complete.
+#' This function calculates number of rows, entities/groups, and time periods for panel data.
+#' The function uses different ways to define the completeness of each row, entity/group, and period.
 #'
 #' @param data A data.frame containing panel data, or a data.frame with panel attributes.
 #' @param group A character string specifying the name of the entity/group variable in panel data.

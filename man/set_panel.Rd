@@ -2,7 +2,7 @@
 % Please edit documentation in R/set_panel.R
 \name{set_panel}
 \alias{set_panel}
-\title{Add Panel Attributes to Data}
+\title{Panel Data Structure Setting}
 \usage{
 set_panel(data, group, time)
 }
@@ -17,12 +17,12 @@ set_panel(data, group, time)
 The input data.frame with two additional attributes: panel_group and panel_time.
 }
 \description{
-Adds panel structure attributes to a data.frame, storing group and time variable names.
+This function adds panel structure attributes to a data.frame, storing entity/group and time variable names.
 This allows panel functions to automatically detect panel structure.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
-The attributes store the names of group and time variables, enabling
+The attributes store the names of entity/group and time variables, enabling
 panel-aware functions to automatically detect the panel structure without
 requiring explicit specification of group and time variables in each function call.
 The original data.frame structure is preserved.

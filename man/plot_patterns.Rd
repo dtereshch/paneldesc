@@ -36,9 +36,7 @@ Invisibly returns the presence matrix (entities × time periods) after sorting a
 which can be used for further inspection. Creates a heatmap plot.
 }
 \description{
-This function creates a heatmap showing the presence/absence pattern of each entity
-over time. Rows (entities) are sorted so that the most frequent pattern appears at the top.
-Horizontal lines separate blocks of identical patterns.
+This function creates a heatmap showing the presence/absence pattern of each entity over time.
 }
 \details{
 \strong{Presence} parameter definitions:

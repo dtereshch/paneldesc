@@ -2,7 +2,7 @@
 % Please edit documentation in R/summarize_transition.R
 \name{summarize_transition}
 \alias{summarize_transition}
-\title{Transition Probabilities Summary}
+\title{Transition Summary}
 \usage{
 summarize_transition(
   data,
@@ -14,7 +14,8 @@ summarize_transition(
 )
 }
 \arguments{
-\item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
+\item{data}{A data.frame containing panel data, or a data.frame with panel attributes
+(see \code{\link[=set_panel]{set_panel()}}).}
 
 \item{selection}{A character string specifying the factor variable to analyze transitions for.}
 
@@ -24,69 +25,87 @@ Not required if data has panel attributes.}
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
 
-\item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
+\item{format}{A character string specifying the output format: \code{"wide"} (default) or \code{"long"}.}
 
 \item{digits}{An integer indicating the number of decimal places to round transition shares.
 Default = 3.}
 }
 \value{
-A data.frame containing transition probability summary.
+A data.frame containing transition summaries.
 }
 \description{
-This function calculates and summarizes transition probabilities between states of a categorical
-variable across time periods for panel data.
+Calculates transition counts and shares between states of a categorical (factor) variable
+across consecutive time periods within groups (e.g., firms, individuals) for panel data.
 }
 \details{
-The output format depends on the \code{format} parameter:
+The structure depends on \code{format}:
 
-\strong{When \code{format = "wide"} (default):}
-Returns a transition matrix as a data.frame with:
 \describe{
-\item{\code{from_to}}{The "from" state labels (combining from and to indicators)}
-\item{\code{[state1]}}{Column with transition probabilities from each state to state1}
-\item{\code{[state2]}}{Column with transition probabilities from each state to state2}
-\item{...}{Additional columns for each possible "to" state}
+\item{\code{format = "wide"}}{A transition matrix as a data.frame:
+\itemize{
+\item \code{from_to}: The originating state (row label).
+\item Columns for each destination state, containing the share of transitions from the
+row state to the column state (rounded to \code{digits}).
 }
-Rows represent the "from" states, columns represent the "to" states.
-
-\strong{When \code{format = "long"}:}
-Returns a data.frame with:
-\describe{
-\item{\code{from}}{The originating state}
-\item{\code{to}}{The destination state}
-\item{\code{count}}{Number of transitions observed from \code{from} to \code{to}}
-\item{\code{share}}{Transition share (rounded to specified digits)}
+}
+\item{\code{format = "long"}}{A data.frame with columns:
+\itemize{
+\item \code{from}: Originating state.
+\item \code{to}: Destination state.
+\item \code{count}: Number of observed transitions from \code{from} to \code{to}.
+\item \code{share}: Proportion of transitions from \code{from} that go to \code{to} (rounded to \code{digits}).
+}
+All possible state combinations are included, even those with zero transitions.
+}
 }
 
-Includes all possible state combinations, even those with zero transitions.
-
-The data.frame has additional attributes:
-\describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{panel_variable}}{The analyzed categorical variable name}
-\item{\code{panel_format}}{Output format ("wide" or "long")}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
+The returned data.frame has additional attributes:
+\itemize{
+\item \code{panel_group}, \code{panel_time}, \code{panel_variable}: Identifiers for the group, time, and analyzed variable.
+\item \code{panel_format}: Output format (\code{"wide"} or \code{"long"}).
+\item \code{panel_digits}: Number of decimal places used for rounding shares.
+}
+}
+\note{
+\itemize{
+\item The shares are \strong{empirical transition proportions} based on observed consecutive
+time periods. They are not necessarily Markov transition probabilities in the strict
+sense because the function does not normalize for missing time periods (gaps in the panel).
+\item If there are gaps in the time variable within a group, transitions are only counted
+between observations that are consecutive in the sorted data; periods with missing
+observations are simply skipped.
+\item Missing values in the variable of interest (\code{selection}) are removed before analysis,
+so transitions from nonmissing to missing (or vice versa) are \strong{excluded}.
+\item The variable of interest is coerced to a factor if it is not already one.
+\item At least two distinct levels are required in the factor to compute transitions.
 }
 }
 \examples{
 data(production)
 
-# Analyze transitions in wide format (default)
-summarize_transition(production, selection = "industry", group = "firm", time = "year")
+# Basic usage (transition matrix)
+summarize_transition(production,
+                     selection = "industry",
+                     group = "firm",
+                     time = "year")
 
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")
 summarize_transition(panel_data, selection = "industry")
 
-# Analyze transitions in long format
-summarize_transition(production, selection = "industry", group = "firm", time = "year", format = "long")
+# Long format (counts and shares)
+summarize_transition(production,
+                     selection = "industry",
+                     group = "firm",
+                     time = "year",
+                     format = "long")
 
-# Customize rounding
-summarize_transition(production, selection = "industry", group = "firm", time = "year", digits = 4)
-
-# Effectively no rounding (use large digit value)
-summarize_transition(production, selection = "industry", group = "firm", time = "year", digits = 999999)
+# Control rounding precision
+summarize_transition(production,
+                     selection = "industry",
+                     group = "firm",
+                     time = "year",
+                     digits = 4)
 
 }
 \references{

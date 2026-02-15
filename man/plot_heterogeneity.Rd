@@ -18,7 +18,7 @@ with panel attributes.}
 \item{selection}{A character string specifying the numeric variable of interest.}
 
 \item{group}{A character string or vector of character strings specifying the
-grouping variable(s). If data has panel attributes and group is NULL,
+grouping variable(s). If data has panel attributes and group is not specified,
 both panel_group and panel_time will be used as group variables.}
 
 \item{colors}{A character vector of two colors: first for mean line and points,

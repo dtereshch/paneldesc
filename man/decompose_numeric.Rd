@@ -36,8 +36,8 @@ A data.frame with panel data decomposition statistics. Format depends on
 the combination of \code{format} and \code{detailed} arguments.
 }
 \description{
-This function decomposes variance of numeric panel data variables into
-between and within components.
+This function decomposes variance of numeric variables
+into between and within components in panel data.
 }
 \details{
 The output format is controlled by two parameters: \code{format} and \code{detailed}.
