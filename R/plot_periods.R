@@ -1,6 +1,6 @@
 #' Time Coverage Distribution Visualization
 #'
-#' This function calculates summary statisitca and creates a histogram showing
+#' This function calculates summary statistics and creates a histogram showing
 #' the distribution of time periods covered by each entity in panel data,
 #' based on the specified presence definition.
 #'
@@ -11,8 +11,6 @@
 #'        Not required if data has panel attributes.
 #' @param presence A character string specifying how to define entity presence: "observed", "nominal", or "complete".
 #'        Default = "observed".
-#' @param detailed A logical flag indicating whether to display additional summary statistics.
-#'        Default = FALSE.
 #' @param colors A character vector of length 2 specifying the line color and fill color for the histogram.
 #'        Default = c("#1E4A3B", "#1E4A3B").
 #'
@@ -55,7 +53,6 @@
 #'       \item \code{presence}: The presence type used for analysis
 #'       \item \code{line_color}: Line color used for plotting
 #'       \item \code{fill_color}: Fill color used for plotting
-#'       \item \code{detailed}: Whether detailed statistics were shown
 #'     }
 #'   }
 #' }
@@ -83,16 +80,12 @@
 #' # Custom colors - blue line with light blue fill
 #' plot_periods(production, group = "firm", time = "year", colors = c("blue", "lightblue"))
 #'
-#' # Show plot with additional summary statistics
-#' plot_periods(production, group = "firm", time = "year", detailed = TRUE)
-#'
 #' @export
 plot_periods <- function(
   data,
   group = NULL,
   time = NULL,
   presence = "observed",
-  detailed = FALSE,
   colors = c("#1E4A3B", "#1E4A3B")
 ) {
   # Check if data has panel attributes
@@ -141,13 +134,6 @@ plot_periods <- function(
     stop(
       "'colors' must be a character vector of length 2, not ",
       class(colors)[1]
-    )
-  }
-
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop(
-      "'detailed' must be a single logical value, not ",
-      class(detailed)[1]
     )
   }
 
@@ -349,14 +335,8 @@ plot_periods <- function(
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par))
 
-  # Set up plot layout - adjust margins based on detailed parameter
-  if (detailed) {
-    # More space at bottom for statistics
-    par(mar = c(7, 4, 3, 2) + 0.1, las = 1)
-  } else {
-    # Normal margins without statistics
-    par(mar = c(5, 4, 3, 2) + 0.1, las = 1)
-  }
+  # Set up plot layout with normal margins (no extra space for statistics)
+  par(mar = c(5, 4, 3, 2) + 0.1, las = 1)
 
   # Create histogram data
   hist_data <- coverage_result$histogram_data
@@ -445,46 +425,6 @@ plot_periods <- function(
     axis(1, at = show_positions, labels = show_positions)
   }
 
-  # Add summary statistics below the plot if detailed = TRUE
-  if (detailed) {
-    # Format statistics for display
-    stats_labels <- names(summary_stats)
-    stats_values <- as.character(summary_stats)
-
-    # Determine spacing
-    n_stats <- length(stats_labels)
-
-    # Calculate positions for centered horizontal display
-    plot_width <- par("usr")[2] - par("usr")[1]
-    x_positions <- seq(
-      from = par("usr")[1] + plot_width * 0.05,
-      to = par("usr")[2] - plot_width * 0.05,
-      length.out = n_stats
-    )
-
-    # Add statistics below the x-axis label
-    for (i in seq_len(n_stats)) {
-      # Add statistic label
-      mtext(
-        text = stats_labels[i],
-        side = 1,
-        line = 4.0, # Positioned below x-axis label
-        at = x_positions[i],
-        cex = 0.8
-      )
-
-      # Add statistic value
-      mtext(
-        text = stats_values[i],
-        side = 1,
-        line = 5.2, # Positioned below the labels
-        at = x_positions[i],
-        cex = 0.9,
-        font = 2
-      )
-    }
-  }
-
   # Create unified return object
   result <- list(
     summary = list(
@@ -504,8 +444,7 @@ plot_periods <- function(
       time_var = time,
       presence = presence,
       line_color = line_color,
-      fill_color = fill_color,
-      detailed = detailed
+      fill_color = fill_color
     )
   )
 

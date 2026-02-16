@@ -9,7 +9,6 @@ plot_periods(
   group = NULL,
   time = NULL,
   presence = "observed",
-  detailed = FALSE,
   colors = c("#1E4A3B", "#1E4A3B")
 )
 }
@@ -25,9 +24,6 @@ Not required if data has panel attributes.}
 \item{presence}{A character string specifying how to define entity presence: "observed", "nominal", or "complete".
 Default = "observed".}
 
-\item{detailed}{A logical flag indicating whether to display additional summary statistics.
-Default = FALSE.}
-
 \item{colors}{A character vector of length 2 specifying the line color and fill color for the histogram.
 Default = c("#1E4A3B", "#1E4A3B").}
 }
@@ -36,7 +32,7 @@ Invisibly returns a list with summary statistics for the specified presence type
 Creates a plot showing time coverage distribution.
 }
 \description{
-This function calculates summary statisitca and creates a histogram showing
+This function calculates summary statistics and creates a histogram showing
 the distribution of time periods covered by each entity in panel data,
 based on the specified presence definition.
 }
@@ -76,7 +72,6 @@ The returned list contains the following components:
 \item \code{presence}: The presence type used for analysis
 \item \code{line_color}: Line color used for plotting
 \item \code{fill_color}: Fill color used for plotting
-\item \code{detailed}: Whether detailed statistics were shown
 }
 }
 }
@@ -100,9 +95,6 @@ plot_periods(production, group = "firm", time = "year", colors = c("black", "gra
 
 # Custom colors - blue line with light blue fill
 plot_periods(production, group = "firm", time = "year", colors = c("blue", "lightblue"))
-
-# Show plot with additional summary statistics
-plot_periods(production, group = "firm", time = "year", detailed = TRUE)
 
 }
 \seealso{
