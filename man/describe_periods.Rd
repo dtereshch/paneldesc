@@ -33,13 +33,11 @@ The data.frame contains the following columns:
 
 Time periods are sorted naturally (numeric values as numbers, others alphabetically).
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{panel_n_entities}}{Total number of unique entities/groups}
-\item{\code{panel_n_periods}}{Total number of unique time periods}
-\item{\code{panel_total_rows}}{Total number of rows in the data}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{n_entities}, \code{n_periods}, \code{total_rows}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

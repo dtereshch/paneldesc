@@ -55,15 +55,12 @@ When \code{detailed = TRUE}, additional columns are included:
 \item{...}{Additional columns for each unique time period in the data}
 }
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_digits}}{Number of decimal places used for rounding share}
-\item{\code{panel_total_obs}}{Total number of observations in the data}
-\item{\code{panel_n_entities}}{Total number of unique entities/groups}
-\item{\code{panel_n_periods}}{Total number of unique time periods}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{detailed}, \code{digits}, \code{total_obs},
+\code{n_entities}, \code{n_periods}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

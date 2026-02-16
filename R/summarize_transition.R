@@ -16,7 +16,8 @@
 #'
 #' @return A data.frame containing transition summaries.
 #'
-#' @details The structure depends on `format`:
+#' @details
+#' The structure depends on `format`:
 #'
 #' \describe{
 #'   \item{`format = "wide"`}{A transition matrix as a data.frame:
@@ -37,14 +38,6 @@
 #'   }
 #' }
 #'
-#' The returned data.frame has additional attributes:
-#' \itemize{
-#'   \item `panel_group`, `panel_time`, `panel_variable`: Identifiers for the group, time, and analyzed variable.
-#'   \item `panel_format`: Output format (`"wide"` or `"long"`).
-#'   \item `panel_digits`: Number of decimal places used for rounding shares.
-#' }
-#'
-#'
 #' @note
 #' \itemize{
 #'   \item The shares are **empirical transition proportions** based on observed consecutive
@@ -57,6 +50,13 @@
 #'         so transitions from nonmissing to missing (or vice versa) are **excluded**.
 #'   \item The variable of interest is coerced to a factor if it is not already one.
 #'   \item At least two distinct levels are required in the factor to compute transitions.
+#' }
+#'
+#' The returned data.frame has class `"panel_summary"` and the following attributes:
+#' \describe{
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`details`}{List containing additional information: `variable`, `format`, `digits`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @references
@@ -101,14 +101,20 @@ summarize_transition <- function(
   format = "wide",
   digits = 3
 ) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -324,12 +330,31 @@ summarize_transition <- function(
     result_df <- long_result
   }
 
-  # Add standardized attributes
-  attr(result_df, "panel_group") <- group
-  attr(result_df, "panel_time") <- time
-  attr(result_df, "panel_variable") <- selection
-  attr(result_df, "panel_format") <- format
-  attr(result_df, "panel_digits") <- digits
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    selection = selection,
+    group = group,
+    time = time,
+    format = format,
+    digits = digits
+  )
+
+  # Build details list
+  details <- list(
+    variable = selection,
+    format = format,
+    digits = digits
+  )
+
+  # Set attributes in desired order
+  attr(result_df, "panel_info") <- c(group_var = group, time_var = time)
+  attr(result_df, "details") <- details
+  attr(result_df, "metadata") <- metadata
+
+  # Set class
+  class(result_df) <- c("panel_summary", "data.frame")
 
   # Add empty line before returning data.frame if messages were printed
   if (messages_printed) {

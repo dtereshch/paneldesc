@@ -12,13 +12,12 @@
 #' @param digits An integer indicating the number of decimal places to round shares.
 #'        Default = 3.
 #'
-#' @return A data.frame with categorical panel data decomposition statistics. Format depends on
-#'         the `format` argument.
+#' @return A data.frame with categorical panel data decomposition statistics.
 #'
 #' @details
 #' The output format is controlled by the `format` parameter:
 #'
-#' When `format = "wide"` (default), returns a data.frame with:
+#' When `format = "wide"` (default), returns a data.frame with columns:
 #' \describe{
 #'   \item{\code{variable}}{The name of the analyzed variable}
 #'   \item{\code{category}}{The category level of the variable}
@@ -29,7 +28,7 @@
 #'   \item{\code{share_within}}{Within-group share (average share of time groups have this category)}
 #' }
 #'
-#' When `format = "long"`, returns a data.frame with:
+#' When `format = "long"`, returns a data.frame with columns:
 #' \describe{
 #'   \item{\code{variable}}{The name of the analyzed variable}
 #'   \item{\code{category}}{The category level of the variable}
@@ -38,12 +37,11 @@
 #'   \item{\code{share}}{Share proportion (0 to 1)}
 #' }
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_count_groups}}{Number of unique groups}
-#'   \item{\code{panel_format}}{Output format ("wide" or "long")}
-#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var` (time may be NA if not available).}
+#'   \item{`details`}{List containing additional information: `count_groups`, `format`, `digits`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @references
@@ -85,13 +83,17 @@ decompose_factor <- function(
   format = "wide",
   digits = 3
 ) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group from attributes
-    group <- attr(data, "panel_group")
+  # Check for panel_data class and extract info
+  time_var <- NA_character_ # default if time not used
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time_var <- panel_info["time_var"] # may be NA, but we store it
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -377,11 +379,30 @@ decompose_factor <- function(
     rownames(result_df) <- NULL
   }
 
-  # Add standardized attributes
-  attr(result_df, "panel_group") <- group
-  attr(result_df, "panel_count_groups") <- count_groups
-  attr(result_df, "panel_format") <- format
-  attr(result_df, "panel_digits") <- digits
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    selection = selection,
+    group = group,
+    format = format,
+    digits = digits
+  )
+
+  # Build details list
+  details <- list(
+    count_groups = count_groups,
+    format = format,
+    digits = digits
+  )
+
+  # Set attributes in desired order
+  attr(result_df, "panel_info") <- c(group_var = group, time_var = time_var)
+  attr(result_df, "details") <- details
+  attr(result_df, "metadata") <- metadata
+
+  # Set class
+  class(result_df) <- c("panel_summary", "data.frame")
 
   # Add empty line before returning data.frame if messages were printed
   if (messages_printed) {

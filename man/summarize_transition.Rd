@@ -58,13 +58,6 @@ row state to the column state (rounded to \code{digits}).
 All possible state combinations are included, even those with zero transitions.
 }
 }
-
-The returned data.frame has additional attributes:
-\itemize{
-\item \code{panel_group}, \code{panel_time}, \code{panel_variable}: Identifiers for the group, time, and analyzed variable.
-\item \code{panel_format}: Output format (\code{"wide"} or \code{"long"}).
-\item \code{panel_digits}: Number of decimal places used for rounding shares.
-}
 }
 \note{
 \itemize{
@@ -78,6 +71,13 @@ observations are simply skipped.
 so transitions from nonmissing to missing (or vice versa) are \strong{excluded}.
 \item The variable of interest is coerced to a factor if it is not already one.
 \item At least two distinct levels are required in the factor to compute transitions.
+}
+
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
+\describe{
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{variable}, \code{format}, \code{digits}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

@@ -14,7 +14,7 @@ set_panel(data, group, time)
 \item{time}{A character string specifying the name of the time variable.}
 }
 \value{
-The input data.frame with two additional attributes: panel_group and panel_time.
+The input data.frame with additional attributes.
 }
 \description{
 This function adds panel structure attributes to a data.frame, storing entity/group and time variable names.
@@ -22,9 +22,14 @@ This allows panel functions to automatically detect panel structure.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
-The attributes store the names of entity/group and time variables, enabling
-panel-aware functions to automatically detect the panel structure without
-requiring explicit specification of group and time variables in each function call.
+The returned object has class \code{"panel_data"} (in addition to its original class).
+It includes the following attributes:
+\describe{
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+}
+These attributes enable panel‑aware functions to automatically detect the panel structure
+without requiring explicit specification of group and time variables in each function call.
 The original data.frame structure is preserved.
 }
 \examples{
@@ -34,8 +39,8 @@ data(production)
 panel_data <- set_panel(production, group = "firm", time = "year")
 
 # Check the attributes
-attr(panel_data, "panel_group")
-attr(panel_data, "panel_time")
+attr(panel_data, "panel_info")
+attr(panel_data, "metadata")
 
 # Use with describe_panel()
 describe_panel(panel_data)

@@ -72,19 +72,12 @@ Returns only the rank and time period columns (without count or share).
 
 Patterns are sorted by frequency (most common first).
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{panel_presence}}{Presence type ("nominal", "observed", or "complete")}
-\item{\code{panel_format}}{Output format ("wide" or "long")}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
-\item{\code{panel_n_entities}}{Total number of unique entities/groups}
-\item{\code{panel_n_periods}}{Total number of unique time periods}
-\item{\code{panel_n_patterns}}{Number of distinct presence patterns}
-\item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
-\item{\code{panel_pattern_groups}}{List of entities belonging to each presence pattern}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{presence}, \code{format}, \code{detailed}, \code{digits},
+\code{n_entities}, \code{n_periods}, \code{n_patterns}, \code{matrix}, \code{pattern_groups}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

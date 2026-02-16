@@ -49,19 +49,12 @@
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_time}}{The time variable name}
-#'   \item{\code{panel_presence}}{Presence type ("nominal", "observed", or "complete")}
-#'   \item{\code{panel_format}}{Output format ("wide" or "long")}
-#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
-#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
-#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
-#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
-#'   \item{\code{panel_n_patterns}}{Number of distinct presence patterns}
-#'   \item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
-#'   \item{\code{panel_pattern_groups}}{List of entities belonging to each presence pattern}
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`details`}{List containing additional information: `presence`, `format`, `detailed`, `digits`,
+#'         `n_entities`, `n_periods`, `n_patterns`, `matrix`, `pattern_groups`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @seealso
@@ -103,14 +96,20 @@ describe_patterns <- function(
   detailed = TRUE,
   digits = 3
 ) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -342,6 +341,19 @@ describe_patterns <- function(
   }
   pattern_groups <- pattern_groups_sorted
 
+  # Build base details list (will be extended depending on format)
+  details_base <- list(
+    presence = presence,
+    format = format,
+    detailed = detailed,
+    digits = digits,
+    n_entities = length(unique_groups),
+    n_periods = length(unique_periods),
+    n_patterns = nrow(result),
+    matrix = presence_binary,
+    pattern_groups = pattern_groups
+  )
+
   # Convert to long format if requested
   if (format == "long") {
     # Reshape from wide to long format
@@ -372,71 +384,99 @@ describe_patterns <- function(
       # Return simplified version with only rank, time, and presence columns
       simplified_result <- long_result[c("rank", time, "presence")]
 
-      # Add standardized attributes to simplified result
-      attr(simplified_result, "panel_group") <- group
-      attr(simplified_result, "panel_time") <- time
-      attr(simplified_result, "panel_presence") <- presence
-      attr(simplified_result, "panel_format") <- format
-      attr(simplified_result, "panel_detailed") <- detailed
-      attr(simplified_result, "panel_digits") <- digits
-      attr(simplified_result, "panel_n_entities") <- length(unique_groups)
-      attr(simplified_result, "panel_n_periods") <- length(unique_periods)
-      attr(simplified_result, "panel_n_patterns") <- nrow(result)
-      attr(simplified_result, "panel_matrix") <- presence_binary
-      attr(simplified_result, "panel_pattern_groups") <- pattern_groups
+      # Build metadata
+      call <- match.call()
+      metadata <- list(
+        function_name = as.character(call[[1]]),
+        group = group,
+        time = time,
+        presence = presence,
+        format = format,
+        detailed = detailed,
+        digits = digits
+      )
 
+      # Set attributes
+      attr(simplified_result, "panel_info") <- c(
+        group_var = group,
+        time_var = time
+      )
+      attr(simplified_result, "details") <- details_base
+      attr(simplified_result, "metadata") <- metadata
+
+      class(simplified_result) <- c("panel_description", "data.frame")
       return(simplified_result)
     }
 
-    # Add standardized attributes to long result
-    attr(long_result, "panel_group") <- group
-    attr(long_result, "panel_time") <- time
-    attr(long_result, "panel_presence") <- presence
-    attr(long_result, "panel_format") <- format
-    attr(long_result, "panel_detailed") <- detailed
-    attr(long_result, "panel_digits") <- digits
-    attr(long_result, "panel_n_entities") <- length(unique_groups)
-    attr(long_result, "panel_n_periods") <- length(unique_periods)
-    attr(long_result, "panel_n_patterns") <- nrow(result)
-    attr(long_result, "panel_matrix") <- presence_binary
-    attr(long_result, "panel_pattern_groups") <- pattern_groups
+    # Build metadata for long result
+    call <- match.call()
+    metadata <- list(
+      function_name = as.character(call[[1]]),
+      group = group,
+      time = time,
+      presence = presence,
+      format = format,
+      detailed = detailed,
+      digits = digits
+    )
 
+    # Set attributes
+    attr(long_result, "panel_info") <- c(group_var = group, time_var = time)
+    attr(long_result, "details") <- details_base
+    attr(long_result, "metadata") <- metadata
+
+    class(long_result) <- c("panel_description", "data.frame")
     return(long_result)
   }
 
-  # Wide format handling (original behavior)
+  # Wide format handling
   if (!detailed) {
     # Return simplified version with only rank and time period columns
     simplified_result <- result[c("rank", time_cols)]
 
-    # Add standardized attributes to simplified result
-    attr(simplified_result, "panel_group") <- group
-    attr(simplified_result, "panel_time") <- time
-    attr(simplified_result, "panel_presence") <- presence
-    attr(simplified_result, "panel_format") <- format
-    attr(simplified_result, "panel_detailed") <- detailed
-    attr(simplified_result, "panel_digits") <- digits
-    attr(simplified_result, "panel_n_entities") <- length(unique_groups)
-    attr(simplified_result, "panel_n_periods") <- length(unique_periods)
-    attr(simplified_result, "panel_n_patterns") <- nrow(result)
-    attr(simplified_result, "panel_matrix") <- presence_binary
-    attr(simplified_result, "panel_pattern_groups") <- pattern_groups
+    # Build metadata
+    call <- match.call()
+    metadata <- list(
+      function_name = as.character(call[[1]]),
+      group = group,
+      time = time,
+      presence = presence,
+      format = format,
+      detailed = detailed,
+      digits = digits
+    )
 
+    # Set attributes
+    attr(simplified_result, "panel_info") <- c(
+      group_var = group,
+      time_var = time
+    )
+    attr(simplified_result, "details") <- details_base
+    attr(simplified_result, "metadata") <- metadata
+
+    class(simplified_result) <- c("panel_description", "data.frame")
     return(simplified_result)
   }
 
-  # Add standardized attributes to result
-  attr(result, "panel_group") <- group
-  attr(result, "panel_time") <- time
-  attr(result, "panel_presence") <- presence
-  attr(result, "panel_format") <- format
-  attr(result, "panel_detailed") <- detailed
-  attr(result, "panel_digits") <- digits
-  attr(result, "panel_n_entities") <- length(unique_groups)
-  attr(result, "panel_n_periods") <- length(unique_periods)
-  attr(result, "panel_n_patterns") <- nrow(result)
-  attr(result, "panel_matrix") <- presence_binary
-  attr(result, "panel_pattern_groups") <- pattern_groups
+  # Build metadata for full wide result
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time,
+    presence = presence,
+    format = format,
+    detailed = detailed,
+    digits = digits
+  )
+
+  # Set attributes
+  attr(result, "panel_info") <- c(group_var = group, time_var = time)
+  attr(result, "details") <- details_base
+  attr(result, "metadata") <- metadata
+
+  # Set class
+  class(result) <- c("panel_description", "data.frame")
 
   return(result)
 }

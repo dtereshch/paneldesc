@@ -77,19 +77,12 @@ When \code{detailed = TRUE}, additional columns are included:
 \item{\code{"complete"}}{Entity/time is present only if it has no NA values in all substantive variables}
 }
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{panel_presence}}{Presence type ("nominal", "observed", or "complete")}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
-\item{\code{panel_n_entities}}{Total number of unique entities/groups}
-\item{\code{panel_n_periods}}{Total number of unique time periods}
-\item{\code{panel_total_rows}}{Total number of rows in the data}
-\item{\code{panel_entities}}{Vector of unique entity IDs}
-\item{\code{panel_periods}}{Vector of unique time period IDs}
-\item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{presence}, \code{detailed}, \code{digits},
+\code{n_entities}, \code{n_periods}, \code{total_rows}, \code{entities}, \code{periods}, \code{matrix}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{
@@ -115,5 +108,5 @@ describe_balance(production, group = "firm", time = "year", digits = 999999)
 
 }
 \seealso{
-\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \link{plot_periods}, \link{plot_patterns}, \code{\link[=check_panel]{check_panel()}}
+\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}, \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=check_panel]{check_panel()}}
 }

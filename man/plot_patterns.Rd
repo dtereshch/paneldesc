@@ -32,8 +32,7 @@ If not specified, all patterns are shown.}
 Default = c("#1E4A3B", "white").}
 }
 \value{
-Invisibly returns the presence matrix (entities × time periods) after sorting and filtering,
-which can be used for further inspection. Creates a heatmap plot.
+Invisibly returns a list containing information about the plot.
 }
 \description{
 This function creates a heatmap showing the presence/absence pattern of each entity over time.
@@ -55,6 +54,13 @@ The heatmap shows:
 Rows are ordered by pattern frequency: the most frequent pattern is at the \strong{top}.
 Within each pattern block, entities appear in their original order (as they first occur in the data).
 If \code{max_patterns} is given, only the most frequent patterns are retained.
+
+The returned invisible list contains:
+\describe{
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing the sorted presence matrix (as element \code{matrix}).}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+}
 }
 \examples{
 data(production)

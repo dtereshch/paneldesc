@@ -7,13 +7,18 @@
 #' @param group A character string specifying the name of the entity/group variable.
 #' @param time A character string specifying the name of the time variable.
 #'
-#' @return The input data.frame with two additional attributes: panel_group and panel_time.
+#' @return The input data.frame with additional attributes.
 #'
 #' @details
 #' This function adds attributes to a data.frame to mark it as panel data.
-#' The attributes store the names of entity/group and time variables, enabling
-#' panel-aware functions to automatically detect the panel structure without
-#' requiring explicit specification of group and time variables in each function call.
+#' The returned object has class `"panel_data"` (in addition to its original class).
+#' It includes the following attributes:
+#' \describe{
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#' }
+#' These attributes enable panel‑aware functions to automatically detect the panel structure
+#' without requiring explicit specification of group and time variables in each function call.
 #' The original data.frame structure is preserved.
 #'
 #' @seealso
@@ -26,8 +31,8 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #'
 #' # Check the attributes
-#' attr(panel_data, "panel_group")
-#' attr(panel_data, "panel_time")
+#' attr(panel_data, "panel_info")
+#' attr(panel_data, "metadata")
 #'
 #' # Use with describe_panel()
 #' describe_panel(panel_data)
@@ -59,9 +64,18 @@ set_panel <- function(data, group, time) {
     stop("'time' and 'group' cannot be the same variable")
   }
 
-  # Add panel attributes to the data.frame
-  attr(data, "panel_group") <- group
-  attr(data, "panel_time") <- time
+  # Build metadata (function call arguments)
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time
+  )
+
+  # Add attributes and class
+  attr(data, "panel_info") <- c(group_var = group, time_var = time)
+  attr(data, "metadata") <- metadata
+  class(data) <- c("panel_data", class(data))
 
   return(data)
 }

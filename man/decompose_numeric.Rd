@@ -32,8 +32,7 @@ Default = TRUE.}
 Default = 3.}
 }
 \value{
-A data.frame with panel data decomposition statistics. Format depends on
-the combination of \code{format} and \code{detailed} arguments.
+A data.frame with panel data decomposition statistics.
 }
 \description{
 This function decomposes variance of numeric variables
@@ -88,13 +87,11 @@ When \code{format = "wide"} and \code{detailed = FALSE}, returns a data.frame wi
 \item{\code{std_within}}{Within-group standard deviation}
 }
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_count_groups}}{Number of unique groups}
-\item{\code{panel_format}}{Output format ("long" or "wide")}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var} (time may be NA if not available).}
+\item{\code{details}}{List containing additional information: \code{count_groups}, \code{format}, \code{detailed}, \code{digits}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

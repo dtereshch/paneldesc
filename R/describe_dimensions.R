@@ -9,23 +9,7 @@
 #' @param time A character string specifying the name of the time variable in panel data.
 #'        Not required if data has panel attributes.
 #'
-#' @return A data.frame with 4 columns:
-#' \describe{
-#'   \item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
-#'   \item{\code{nominal}}{Count based on presence of any row (even with only panel ID variables)}
-#'   \item{\code{observed}}{Count based on presence of at least one non-NA substantive variable}
-#'   \item{\code{complete}}{Count based on presence of no NA values in all substantive variables}
-#' }
-#'
-#' The data.frame has additional attributes:
-#' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_time}}{The time variable name}
-#'   \item{\code{entity_values}}{Vector of all unique entity/group values}
-#'   \item{\code{period_values}}{Vector of all unique time period values}
-#'   \item{\code{panel_total_rows}}{Total number of rows in the data}
-#'   \item{\code{panel_substantive_vars}}{Vector of substantive variable names}
-#' }
+#' @return A data.frame with panel dimension counts.
 #'
 #' @details
 #' This function provides panel data structure information across three presence
@@ -48,20 +32,21 @@
 #'   }
 #' }
 #'
-#' Note the different interpretations for entities and periods:
-#' \itemize{
-#'   \item An entity is considered "observed" only if it has observed data (at least one non-NA)
-#'         in \bold{every} time period where it exists.
-#'   \item An entity is considered "complete" only if it has complete data (no NAs)
-#'         in \bold{every} time period where it exists.
-#'   \item A period is considered "observed" only if \bold{all} entities have at least one
-#'         non-NA substantive variable in that period.
-#'   \item A period is considered "complete" only if \bold{all} entities have no NA values
-#'         in that period.
+#' The returned data.frame has 4 columns:
+#' \describe{
+#'   \item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
+#'   \item{\code{nominal}}{Count based on presence of any row (even with only panel ID variables)}
+#'   \item{\code{observed}}{Count based on presence of at least one non-NA substantive variable}
+#'   \item{\code{complete}}{Count based on presence of no NA values in all substantive variables}
 #' }
 #'
-#' When provided with a data.frame that has panel attributes (created by set_panel()),
-#' the function automatically extracts group and time variable names from the attributes.
+#' The data.frame has class `"panel_description"` and the following attributes:
+#' \describe{
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`details`}{List containing additional information: `entity_values`, `period_values`,
+#'         `total_rows`, `substantive_vars`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#' }
 #'
 #' @examples
 #' data(production)
@@ -80,17 +65,22 @@
 #'
 #' @export
 describe_dimensions <- function(data, group = NULL, time = NULL) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
-    # Input validation for regular data.frame
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
     }
@@ -275,13 +265,29 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
     stringsAsFactors = FALSE
   )
 
-  # Add standardized attributes
-  attr(result, "panel_group") <- group
-  attr(result, "panel_time") <- time
-  attr(result, "entity_values") <- entity_values
-  attr(result, "period_values") <- period_values
-  attr(result, "panel_total_rows") <- nrow(data)
-  attr(result, "panel_substantive_vars") <- substantive_vars
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time
+  )
+
+  # Build details list
+  details <- list(
+    entity_values = entity_values,
+    period_values = period_values,
+    total_rows = nrow(data),
+    substantive_vars = substantive_vars
+  )
+
+  # Set attributes in desired order
+  attr(result, "panel_info") <- c(group_var = group, time_var = time)
+  attr(result, "details") <- details
+  attr(result, "metadata") <- metadata
+
+  # Set class
+  class(result) <- c("panel_description", "data.frame")
 
   return(result)
 }

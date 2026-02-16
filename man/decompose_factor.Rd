@@ -27,8 +27,7 @@ Not required if data has panel attributes.}
 Default = 3.}
 }
 \value{
-A data.frame with categorical panel data decomposition statistics. Format depends on
-the \code{format} argument.
+A data.frame with categorical panel data decomposition statistics.
 }
 \description{
 This function performs one-way tabulations and decomposes counts into
@@ -37,7 +36,7 @@ between and within components for categorical (factor) variables in panel data.
 \details{
 The output format is controlled by the \code{format} parameter:
 
-When \code{format = "wide"} (default), returns a data.frame with:
+When \code{format = "wide"} (default), returns a data.frame with columns:
 \describe{
 \item{\code{variable}}{The name of the analyzed variable}
 \item{\code{category}}{The category level of the variable}
@@ -48,7 +47,7 @@ When \code{format = "wide"} (default), returns a data.frame with:
 \item{\code{share_within}}{Within-group share (average share of time groups have this category)}
 }
 
-When \code{format = "long"}, returns a data.frame with:
+When \code{format = "long"}, returns a data.frame with columns:
 \describe{
 \item{\code{variable}}{The name of the analyzed variable}
 \item{\code{category}}{The category level of the variable}
@@ -57,12 +56,11 @@ When \code{format = "long"}, returns a data.frame with:
 \item{\code{share}}{Share proportion (0 to 1)}
 }
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_count_groups}}{Number of unique groups}
-\item{\code{panel_format}}{Output format ("wide" or "long")}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var} (time may be NA if not available).}
+\item{\code{details}}{List containing additional information: \code{count_groups}, \code{format}, \code{digits}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

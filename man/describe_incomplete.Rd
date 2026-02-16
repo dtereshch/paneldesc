@@ -47,13 +47,11 @@ The data.frame is sorted by:
 If no entities have incomplete data, returns the character message:
 "There are no incomplete groups/entities in the data."
 
-The data.frame has additional attributes:
+The returned data.frame (if any) has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name (if provided)}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_n_entities_total}}{Total number of unique entities/groups}
-\item{\code{panel_n_entities_incomplete}}{Number of entities with incomplete data}
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var} (time may be NA if not provided).}
+\item{\code{details}}{List containing additional information: \code{detailed}, \code{n_entities_total}, \code{n_entities_incomplete}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 }
 \examples{

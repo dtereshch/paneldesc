@@ -22,13 +22,11 @@
 #'
 #' Time periods are sorted naturally (numeric values as numbers, others alphabetically).
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_time}}{The time variable name}
-#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
-#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
-#'   \item{\code{panel_total_rows}}{Total number of rows in the data}
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`details`}{List containing additional information: `n_entities`, `n_periods`, `total_rows`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @seealso
@@ -44,14 +42,20 @@
 #'
 #' @export
 describe_periods <- function(data, group = NULL, time = NULL) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -149,12 +153,28 @@ describe_periods <- function(data, group = NULL, time = NULL) {
   # Rename first column to match the time variable name
   names(result_df)[1] <- time
 
-  # Add standardized attributes
-  attr(result_df, "panel_group") <- group
-  attr(result_df, "panel_time") <- time
-  attr(result_df, "panel_n_entities") <- length(unique_groups)
-  attr(result_df, "panel_n_periods") <- length(ordered_times)
-  attr(result_df, "panel_total_rows") <- nrow(data)
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time
+  )
+
+  # Build details list
+  details <- list(
+    n_entities = length(unique_groups),
+    n_periods = length(ordered_times),
+    total_rows = nrow(data)
+  )
+
+  # Set attributes in desired order
+  attr(result_df, "panel_info") <- c(group_var = group, time_var = time)
+  attr(result_df, "details") <- details
+  attr(result_df, "metadata") <- metadata
+
+  # Set class
+  class(result_df) <- c("panel_description", "data.frame")
 
   return(result_df)
 }

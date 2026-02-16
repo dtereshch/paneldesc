@@ -56,23 +56,16 @@
 #'   \item{\code{"complete"}}{Entity/time is present only if it has no NA values in all substantive variables}
 #' }
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_time}}{The time variable name}
-#'   \item{\code{panel_presence}}{Presence type ("nominal", "observed", or "complete")}
-#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
-#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
-#'   \item{\code{panel_n_entities}}{Total number of unique entities/groups}
-#'   \item{\code{panel_n_periods}}{Total number of unique time periods}
-#'   \item{\code{panel_total_rows}}{Total number of rows in the data}
-#'   \item{\code{panel_entities}}{Vector of unique entity IDs}
-#'   \item{\code{panel_periods}}{Vector of unique time period IDs}
-#'   \item{\code{panel_matrix}}{Binary matrix (entities × periods) showing presence (1) or absence (0) according to the specified presence type}
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`details`}{List containing additional information: `presence`, `detailed`, `digits`,
+#'         `n_entities`, `n_periods`, `total_rows`, `entities`, `periods`, `matrix`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @seealso
-#' [describe_periods()], [describe_patterns()], [plot_periods], [plot_patterns], [check_panel()]
+#' [describe_periods()], [describe_patterns()], [plot_periods()], [plot_patterns()], [check_panel()]
 #'
 #' @examples
 #' data(production)
@@ -104,14 +97,20 @@ describe_balance <- function(
   detailed = FALSE,
   digits = 3
 ) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -426,18 +425,37 @@ describe_balance <- function(
     )
   }
 
-  # Add standardized attributes
-  attr(result_df, "panel_group") <- group
-  attr(result_df, "panel_time") <- time
-  attr(result_df, "panel_presence") <- presence
-  attr(result_df, "panel_detailed") <- detailed
-  attr(result_df, "panel_digits") <- digits
-  attr(result_df, "panel_n_entities") <- total_entities
-  attr(result_df, "panel_n_periods") <- total_periods
-  attr(result_df, "panel_total_rows") <- total_rows
-  attr(result_df, "panel_entities") <- all_groups
-  attr(result_df, "panel_periods") <- all_times
-  attr(result_df, "panel_matrix") <- presence_matrix
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time,
+    presence = presence,
+    detailed = detailed,
+    digits = digits
+  )
+
+  # Build details list
+  details <- list(
+    presence = presence,
+    detailed = detailed,
+    digits = digits,
+    n_entities = total_entities,
+    n_periods = total_periods,
+    total_rows = total_rows,
+    entities = all_groups,
+    periods = all_times,
+    matrix = presence_matrix
+  )
+
+  # Set attributes in desired order
+  attr(result_df, "panel_info") <- c(group_var = group, time_var = time)
+  attr(result_df, "details") <- details
+  attr(result_df, "metadata") <- metadata
+
+  # Set class
+  class(result_df) <- c("panel_description", "data.frame")
 
   return(result_df)
 }

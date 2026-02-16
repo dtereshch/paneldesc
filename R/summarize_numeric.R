@@ -37,15 +37,15 @@
 #' When no grouping variable is specified, statistics are calculated overall.
 #' When a grouping variable is specified, statistics are calculated for each group.
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name (if provided)}
-#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
-#'   \item{\code{panel_digits}}{Number of decimal places used for rounding}
-#'   \item{\code{panel_n_variables}}{Number of variables analyzed}
-#'   \item{\code{panel_n_groups}}{Number of unique groups (if grouping variable provided)}
-#'   \item{\code{panel_total_obs}}{Total number of observations in the data}
+#'   \item{`details`}{List containing additional information: `detailed`, `digits`, `n_variables`,
+#'         `n_groups` (if grouping provided), `total_obs`.}
+#'   \item{`metadata`}{List containing the function name, selection, group, detailed, digits, and
+#'         whether panel attributes were used (if group was extracted).}
 #' }
+#' Note: This function does **not** include a `panel_info` attribute; grouping information is stored
+#' inside `metadata`.
 #'
 #' @seealso
 #' [decompose_numeric()], [decompose_factor()], [summarize_transition()], [summarize_missing()]
@@ -82,6 +82,22 @@ summarize_numeric <- function(
   detailed = FALSE,
   digits = 3
 ) {
+  # Track if panel attributes were used (for metadata)
+  used_panel_attrs <- FALSE
+
+  # Check for panel_data class and possibly extract group
+  if (inherits(data, "panel_data") && is.null(group)) {
+    panel_info <- attr(data, "panel_info")
+    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    used_panel_attrs <- TRUE
+    message("Using group variable '", group, "' from panel attributes.")
+  }
+
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
@@ -129,7 +145,7 @@ summarize_numeric <- function(
   }
 
   # Track if any messages were printed
-  messages_printed <- FALSE
+  messages_printed <- used_panel_attrs # if we used panel attrs, we printed a message
 
   # If selection is NULL, use all numeric variables with message
   if (is.null(selection)) {
@@ -361,13 +377,32 @@ summarize_numeric <- function(
   # Reset row names
   rownames(result_df) <- NULL
 
-  # Add standardized attributes
-  attr(result_df, "panel_group") <- group
-  attr(result_df, "panel_detailed") <- detailed
-  attr(result_df, "panel_digits") <- digits
-  attr(result_df, "panel_n_variables") <- length(selection)
-  attr(result_df, "panel_n_groups") <- n_groups
-  attr(result_df, "panel_total_obs") <- total_obs
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    selection = selection,
+    group = group,
+    detailed = detailed,
+    digits = digits,
+    used_panel_attrs = used_panel_attrs
+  )
+
+  # Build details list (no panel_info)
+  details <- list(
+    detailed = detailed,
+    digits = digits,
+    n_variables = length(selection),
+    n_groups = n_groups,
+    total_obs = total_obs
+  )
+
+  # Set attributes in desired order (no panel_info)
+  attr(result_df, "details") <- details
+  attr(result_df, "metadata") <- metadata
+
+  # Set class
+  class(result_df) <- c("panel_summary", "data.frame")
 
   # Add empty line before returning data.frame if messages were printed
   if (messages_printed) {

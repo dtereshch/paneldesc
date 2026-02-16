@@ -10,13 +10,7 @@
 #' @param time A character string specifying the name of the time variable in panel data.
 #'        Not required if data has panel attributes.
 #'
-#' @return A data.frame with three columns: "test", "status", "message" containing validation
-#' test results. The data.frame has additional attributes:
-#' \describe{
-#'   \item{\code{summary}}{Logical summary of test results (TRUE = passed, FALSE = failed/warning)}
-#'   \item{\code{details}}{Problematic observations/entities/periods for each test}
-#'   \item{\code{metadata}}{Analysis parameters (group_var, time_var)}
-#' }
+#' @return A data.frame with validation test results.
 #'
 #' @details
 #' The function performs the following validation tests:
@@ -33,17 +27,16 @@
 #'   \item \strong{Group intervals}: Checks regularity of time intervals within groups
 #' }
 #'
-#' The returned data.frame includes:
-#' \itemize{
-#'   \item First row: Overall panel status and message
-#'   \item Subsequent rows: Individual validation test results with human-readable test names
-#' }
+#' The returned data.frame has three columns: "test", "status", "message".
+#' The first row contains an overall panel status, and subsequent rows contain
+#' individual test results with human-readable test names.
 #'
-#' Attributes contain:
-#' \itemize{
-#'   \item \code{attr(, "summary")}: Logical summary of key test results (TRUE = passed)
-#'   \item \code{attr(, "details")}: Vectors/lists of problematic observations for failed tests
-#'   \item \code{attr(, "metadata")}: Analysis parameters
+#' The data.frame has class `"panel_description"` and the following attributes:
+#' \describe{
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
+#'   \item{`summary`}{Logical summary of test results (TRUE = passed, FALSE = failed/warning).}
+#'   \item{`details`}{List containing problematic observations/entities/periods for each test.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @seealso
@@ -65,6 +58,7 @@
 #' summary_info <- attr(panel_check, "summary")
 #' details_info <- attr(panel_check, "details")
 #' meta_info <- attr(panel_check, "metadata")
+#' panel_info <- attr(panel_check, "panel_info")
 #'
 #' # Get specific details
 #' has_complete_groups <- summary_info$group_completeness
@@ -77,14 +71,20 @@
 #'
 #' @export
 check_panel <- function(data, group = NULL, time = NULL) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group and time from attributes
-    group <- attr(data, "panel_group")
-    time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (
+      is.null(panel_info) ||
+        is.null(panel_info["group_var"]) ||
+        is.null(panel_info["time_var"])
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time <- panel_info["time_var"]
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -503,13 +503,22 @@ check_panel <- function(data, group = NULL, time = NULL) {
   names(test_results) <- c("test", "status", "message")
   final_results <- rbind(overall_row, test_results)
 
-  # Add attributes (no custom class)
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time
+  )
+
+  # Set attributes in desired order
+  attr(final_results, "panel_info") <- c(group_var = group, time_var = time)
   attr(final_results, "summary") <- summary_list
   attr(final_results, "details") <- details_list
-  attr(final_results, "metadata") <- list(
-    group_var = group,
-    time_var = time
-  )
+  attr(final_results, "metadata") <- metadata
+
+  # Set class
+  class(final_results) <- c("panel_description", "data.frame")
 
   return(final_results)
 }

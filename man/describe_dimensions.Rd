@@ -16,23 +16,7 @@ Not required if data has panel attributes.}
 Not required if data has panel attributes.}
 }
 \value{
-A data.frame with 4 columns:
-\describe{
-\item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
-\item{\code{nominal}}{Count based on presence of any row (even with only panel ID variables)}
-\item{\code{observed}}{Count based on presence of at least one non-NA substantive variable}
-\item{\code{complete}}{Count based on presence of no NA values in all substantive variables}
-}
-
-The data.frame has additional attributes:
-\describe{
-\item{\code{panel_group}}{The grouping variable name}
-\item{\code{panel_time}}{The time variable name}
-\item{\code{entity_values}}{Vector of all unique entity/group values}
-\item{\code{period_values}}{Vector of all unique time period values}
-\item{\code{panel_total_rows}}{Total number of rows in the data}
-\item{\code{panel_substantive_vars}}{Vector of substantive variable names}
-}
+A data.frame with panel dimension counts.
 }
 \description{
 This function calculates number of rows, entities/groups, and time periods for panel data.
@@ -59,20 +43,21 @@ definitions:
 }
 }
 
-Note the different interpretations for entities and periods:
-\itemize{
-\item An entity is considered "observed" only if it has observed data (at least one non-NA)
-in \bold{every} time period where it exists.
-\item An entity is considered "complete" only if it has complete data (no NAs)
-in \bold{every} time period where it exists.
-\item A period is considered "observed" only if \bold{all} entities have at least one
-non-NA substantive variable in that period.
-\item A period is considered "complete" only if \bold{all} entities have no NA values
-in that period.
+The returned data.frame has 4 columns:
+\describe{
+\item{\code{dimension}}{Dimension name: "rows", "entities", or "periods"}
+\item{\code{nominal}}{Count based on presence of any row (even with only panel ID variables)}
+\item{\code{observed}}{Count based on presence of at least one non-NA substantive variable}
+\item{\code{complete}}{Count based on presence of no NA values in all substantive variables}
 }
 
-When provided with a data.frame that has panel attributes (created by set_panel()),
-the function automatically extracts group and time variable names from the attributes.
+The data.frame has class \code{"panel_description"} and the following attributes:
+\describe{
+\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
+\item{\code{details}}{List containing additional information: \code{entity_values}, \code{period_values},
+\code{total_rows}, \code{substantive_vars}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+}
 }
 \examples{
 data(production)

@@ -33,13 +33,11 @@
 #' If no entities have incomplete data, returns the character message:
 #' "There are no incomplete groups/entities in the data."
 #'
-#' The data.frame has additional attributes:
+#' The returned data.frame (if any) has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{\code{panel_group}}{The grouping variable name}
-#'   \item{\code{panel_time}}{The time variable name (if provided)}
-#'   \item{\code{panel_detailed}}{Logical indicating detailed output}
-#'   \item{\code{panel_n_entities_total}}{Total number of unique entities/groups}
-#'   \item{\code{panel_n_entities_incomplete}}{Number of entities with incomplete data}
+#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var` (time may be NA if not provided).}
+#'   \item{`details`}{List containing additional information: `detailed`, `n_entities_total`, `n_entities_incomplete`.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #'
 #' @seealso
@@ -68,17 +66,20 @@ describe_incomplete <- function(
   time = NULL,
   detailed = FALSE
 ) {
-  # Check if data has panel attributes
-  has_panel_attrs <- !is.null(attr(data, "panel_group")) &&
-    !is.null(attr(data, "panel_time"))
-
-  if (has_panel_attrs) {
-    # Extract group from attributes
-    group <- attr(data, "panel_group")
-
-    # If time is not provided but available in attributes, use it for balance check
-    if (is.null(time)) {
-      time <- attr(data, "panel_time")
+  # Check for panel_data class and extract info
+  time_var <- NA_character_
+  if (inherits(data, "panel_data")) {
+    panel_info <- attr(data, "panel_info")
+    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+      )
+    }
+    group <- panel_info["group_var"]
+    time_var <- panel_info["time_var"]
+    # If time argument is explicitly provided, it overrides the attribute
+    if (!is.null(time)) {
+      time_var <- time
     }
   } else {
     # Handle regular data.frame
@@ -89,6 +90,7 @@ describe_incomplete <- function(
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
+    time_var <- if (!is.null(time)) time else NA_character_
   }
 
   # Common validation
@@ -217,12 +219,29 @@ describe_incomplete <- function(
   # Reset row names
   rownames(result) <- NULL
 
-  # Add standardized attributes
-  attr(result, "panel_group") <- group
-  attr(result, "panel_time") <- time
-  attr(result, "panel_detailed") <- detailed
-  attr(result, "panel_n_entities_total") <- length(unique_groups)
-  attr(result, "panel_n_entities_incomplete") <- nrow(result)
+  # Build metadata
+  call <- match.call()
+  metadata <- list(
+    function_name = as.character(call[[1]]),
+    group = group,
+    time = time,
+    detailed = detailed
+  )
+
+  # Build details list
+  details <- list(
+    detailed = detailed,
+    n_entities_total = length(unique_groups),
+    n_entities_incomplete = nrow(result)
+  )
+
+  # Set attributes in desired order
+  attr(result, "panel_info") <- c(group_var = group, time_var = time_var)
+  attr(result, "details") <- details
+  attr(result, "metadata") <- metadata
+
+  # Set class
+  class(result) <- c("panel_description", "data.frame")
 
   return(result)
 }

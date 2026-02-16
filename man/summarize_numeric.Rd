@@ -56,15 +56,15 @@ When \code{detailed = TRUE}, additional columns are included:
 When no grouping variable is specified, statistics are calculated overall.
 When a grouping variable is specified, statistics are calculated for each group.
 
-The data.frame has additional attributes:
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
-\item{\code{panel_group}}{The grouping variable name (if provided)}
-\item{\code{panel_detailed}}{Logical indicating detailed output}
-\item{\code{panel_digits}}{Number of decimal places used for rounding}
-\item{\code{panel_n_variables}}{Number of variables analyzed}
-\item{\code{panel_n_groups}}{Number of unique groups (if grouping variable provided)}
-\item{\code{panel_total_obs}}{Total number of observations in the data}
+\item{\code{details}}{List containing additional information: \code{detailed}, \code{digits}, \code{n_variables},
+\code{n_groups} (if grouping provided), \code{total_obs}.}
+\item{\code{metadata}}{List containing the function name, selection, group, detailed, digits, and
+whether panel attributes were used (if group was extracted).}
 }
+Note: This function does \strong{not} include a \code{panel_info} attribute; grouping information is stored
+inside \code{metadata}.
 }
 \examples{
 data(production)
