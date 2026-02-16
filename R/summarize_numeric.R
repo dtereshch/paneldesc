@@ -41,11 +41,9 @@
 #' \describe{
 #'   \item{`details`}{List containing additional information: `detailed`, `digits`, `n_variables`,
 #'         `n_groups` (if grouping provided), `total_obs`.}
-#'   \item{`metadata`}{List containing the function name, selection, group, detailed, digits, and
-#'         whether panel attributes were used (if group was extracted).}
+#'   \item{`metadata`}{List containing the function name, selection, group, detailed, digits.}
 #' }
-#' Note: This function does **not** include a `panel_info` attribute; grouping information is stored
-#' inside `metadata`.
+#' Note: This function does **not** use panel attributes; it is designed for general use.
 #'
 #' @seealso
 #' [decompose_numeric()], [decompose_factor()], [summarize_transition()], [summarize_missing()]
@@ -82,22 +80,6 @@ summarize_numeric <- function(
   detailed = FALSE,
   digits = 3
 ) {
-  # Track if panel attributes were used (for metadata)
-  used_panel_attrs <- FALSE
-
-  # Check for panel_data class and possibly extract group
-  if (inherits(data, "panel_data") && is.null(group)) {
-    panel_info <- attr(data, "panel_info")
-    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
-      stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
-      )
-    }
-    group <- panel_info["group_var"]
-    used_panel_attrs <- TRUE
-    message("Using group variable '", group, "' from panel attributes.")
-  }
-
   # Input validation
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1])
@@ -145,7 +127,7 @@ summarize_numeric <- function(
   }
 
   # Track if any messages were printed
-  messages_printed <- used_panel_attrs # if we used panel attrs, we printed a message
+  messages_printed <- FALSE
 
   # If selection is NULL, use all numeric variables with message
   if (is.null(selection)) {
@@ -377,15 +359,14 @@ summarize_numeric <- function(
   # Reset row names
   rownames(result_df) <- NULL
 
-  # Build metadata
+  # Build metadata (no panel_info used)
   call <- match.call()
   metadata <- list(
     function_name = as.character(call[[1]]),
     selection = selection,
     group = group,
     detailed = detailed,
-    digits = digits,
-    used_panel_attrs = used_panel_attrs
+    digits = digits
   )
 
   # Build details list (no panel_info)

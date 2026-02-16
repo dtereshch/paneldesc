@@ -60,11 +60,9 @@ The returned data.frame has class \code{"panel_summary"} and the following attri
 \describe{
 \item{\code{details}}{List containing additional information: \code{detailed}, \code{digits}, \code{n_variables},
 \code{n_groups} (if grouping provided), \code{total_obs}.}
-\item{\code{metadata}}{List containing the function name, selection, group, detailed, digits, and
-whether panel attributes were used (if group was extracted).}
+\item{\code{metadata}}{List containing the function name, selection, group, detailed, digits.}
 }
-Note: This function does \strong{not} include a \code{panel_info} attribute; grouping information is stored
-inside \code{metadata}.
+Note: This function does \strong{not} use panel attributes; it is designed for general use.
 }
 \examples{
 data(production)
