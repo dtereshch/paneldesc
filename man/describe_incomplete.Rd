@@ -50,7 +50,9 @@ If no entities have incomplete data, returns the character message:
 The returned data.frame (if any) has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{n_entities_total}, \code{n_entities_incomplete}.}
+\item{\code{details}}{List containing additional information:
+\code{n_entities_total}, \code{n_entities_incomplete}, and \code{entities_incomplete}
+(vector of incomplete entity IDs).}
 }
 }
 \examples{
@@ -59,15 +61,25 @@ data(production)
 # Basic usage
 describe_incomplete(production, group = "firm")
 
-# With panel attributes
-panel_data <- set_panel(production, group = "firm", time = "year")
-describe_incomplete(panel_data)
-
 # More careful usage with panel balance check
 describe_incomplete(production, group = "firm", time = "year")
 
 # Detailed view with variable-level NA counts
 describe_incomplete(production, group = "firm", detailed = TRUE)
+
+# With panel attributes
+panel_data <- set_panel(production, group = "firm", time = "year")
+describe_incomplete(panel_data)
+
+# Access and use attributes
+result <- describe_incomplete(production, group = "firm")
+
+# Extract incomplete entity IDs
+incomplete_ids <- attr(result, "details")$entities_incomplete
+
+# Calculate share of incomplete entities
+details <- attr(result, "details")
+share_incomplete <- details$n_entities_incomplete / details$n_entities_total
 
 }
 \seealso{

@@ -36,7 +36,9 @@
 #' The returned data.frame (if any) has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `n_entities_total`, `n_entities_incomplete`.}
+#'   \item{`details`}{List containing additional information:
+#'         `n_entities_total`, `n_entities_incomplete`, and `entities_incomplete`
+#'         (vector of incomplete entity IDs).}
 #' }
 #'
 #' @seealso
@@ -48,15 +50,25 @@
 #' # Basic usage
 #' describe_incomplete(production, group = "firm")
 #'
-#' # With panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' describe_incomplete(panel_data)
-#'
 #' # More careful usage with panel balance check
 #' describe_incomplete(production, group = "firm", time = "year")
 #'
 #' # Detailed view with variable-level NA counts
 #' describe_incomplete(production, group = "firm", detailed = TRUE)
+#'
+#' # With panel attributes
+#' panel_data <- set_panel(production, group = "firm", time = "year")
+#' describe_incomplete(panel_data)
+#'
+#' # Access and use attributes
+#' result <- describe_incomplete(production, group = "firm")
+#'
+#' # Extract incomplete entity IDs
+#' incomplete_ids <- attr(result, "details")$entities_incomplete
+#'
+#' # Calculate share of incomplete entities
+#' details <- attr(result, "details")
+#' share_incomplete <- details$n_entities_incomplete / details$n_entities_total
 #'
 #' @export
 describe_incomplete <- function(
@@ -202,18 +214,21 @@ describe_incomplete <- function(
   }
 
   # Filter groups with any missing variables and arrange
-  result <- result[result$variables > 0, ]
+  incomplete_result <- result[result$variables > 0, ]
+  incomplete_ids <- result[[group]][result$variables > 0]
 
   # Check if there are any incomplete groups
-  if (nrow(result) == 0) {
+  if (nrow(incomplete_result) == 0) {
     return("There are no incomplete groups/entities in the data.")
   }
 
   # Sort by primary and secondary criteria
-  result <- result[order(-result$variables, -result$na_count), ]
+  incomplete_result <- incomplete_result[
+    order(-incomplete_result$variables, -incomplete_result$na_count),
+  ]
 
   # Reset row names
-  rownames(result) <- NULL
+  rownames(incomplete_result) <- NULL
 
   # Build metadata
   call <- match.call()
@@ -224,18 +239,19 @@ describe_incomplete <- function(
     detailed = detailed
   )
 
-  # Build details list (only non-metadata info)
+  # Build details list with incomplete entities IDs
   details <- list(
     n_entities_total = length(unique_groups),
-    n_entities_incomplete = nrow(result)
+    n_entities_incomplete = nrow(incomplete_result),
+    entities_incomplete = incomplete_ids
   )
 
   # Set attributes in desired order
-  attr(result, "metadata") <- metadata
-  attr(result, "details") <- details
+  attr(incomplete_result, "metadata") <- metadata
+  attr(incomplete_result, "details") <- details
 
   # Set class
-  class(result) <- c("panel_description", "data.frame")
+  class(incomplete_result) <- c("panel_description", "data.frame")
 
-  return(result)
+  return(incomplete_result)
 }
