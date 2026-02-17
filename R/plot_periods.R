@@ -19,10 +19,7 @@
 #'   \item{`metadata`}{List containing the function name, group, time, presence, colors.}
 #'   \item{`details`}{List containing:
 #'         \itemize{
-#'           \item `n_entities`: Total number of unique entities.
-#'           \item `n_time_periods`: Total number of unique time periods.
 #'           \item `coverage_by_entity`: Named vector with number of periods covered per entity.
-#'           \item `summary_stats`: Summary statistics (min, p5, p25, p50, p75, p95, max).
 #'           \item `histogram_data`: Data used for histogram plotting.
 #'         }
 #'   }
@@ -270,20 +267,6 @@ plot_periods <- function(
     time_coverage_by_entity <- rowSums(presence_matrix)
     names(time_coverage_by_entity) <- rownames(presence_matrix)
 
-    # Calculate full summary statistics (same as explore_participation)
-    summary_stats <- c(
-      min = min(time_coverage_by_entity),
-      `p5` = as.numeric(quantile(time_coverage_by_entity, 0.05)),
-      `p25` = as.numeric(quantile(time_coverage_by_entity, 0.25)),
-      `p50` = as.numeric(quantile(time_coverage_by_entity, 0.50)),
-      `p75` = as.numeric(quantile(time_coverage_by_entity, 0.75)),
-      `p95` = as.numeric(quantile(time_coverage_by_entity, 0.95)),
-      max = max(time_coverage_by_entity)
-    )
-
-    # Round statistics to nearest whole number (since they represent counts)
-    summary_stats <- round(summary_stats)
-
     # Prepare histogram data with integer breaks
     # Create a table of counts for each integer value
     coverage_table <- table(time_coverage_by_entity)
@@ -304,9 +287,7 @@ plot_periods <- function(
 
     return(list(
       coverage_by_entity = time_coverage_by_entity,
-      summary_stats = summary_stats,
-      histogram_data = hist_data,
-      coverage_table = coverage_table
+      histogram_data = hist_data
     ))
   }
 
@@ -326,7 +307,6 @@ plot_periods <- function(
 
   # Create histogram data
   hist_data <- coverage_result$histogram_data
-  summary_stats <- coverage_result$summary_stats
 
   # Create x-axis label (without presence in parentheses)
   x_label <- paste("Time coverage by", group)
@@ -421,12 +401,9 @@ plot_periods <- function(
     colors = colors
   )
 
-  # Build details list (merge all information, excluding presence)
+  # Build details list (excluding n_entities, n_time_periods, and summary_stats)
   details <- list(
-    n_entities = length(unique_groups),
-    n_time_periods = length(unique_times),
     coverage_by_entity = coverage_result$coverage_by_entity,
-    summary_stats = coverage_result$summary_stats,
     histogram_data = hist_data
   )
 

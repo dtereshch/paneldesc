@@ -33,10 +33,7 @@ Invisibly returns a list with the following components:
 \item{\code{metadata}}{List containing the function name, group, time, presence, colors.}
 \item{\code{details}}{List containing:
 \itemize{
-\item \code{n_entities}: Total number of unique entities.
-\item \code{n_time_periods}: Total number of unique time periods.
 \item \code{coverage_by_entity}: Named vector with number of periods covered per entity.
-\item \code{summary_stats}: Summary statistics (min, p5, p25, p50, p75, p95, max).
 \item \code{histogram_data}: Data used for histogram plotting.
 }
 }
