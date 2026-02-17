@@ -36,7 +36,8 @@ Time periods are sorted naturally (numeric values as numbers, others alphabetica
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{n_entities}, \code{n_periods}, \code{total_rows}.}
+\item{\code{details}}{List containing additional information: \code{entities_nominal}, \code{entities_observed}, and \code{entities_complete}.
+Each is a named list where names are time periods and values are vectors of entity identifiers present in that period.}
 }
 }
 \examples{
@@ -46,6 +47,10 @@ describe_periods(production, group = "firm", time = "year")
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")
 describe_periods(panel_data)
+
+# Get entities with complete data in the 6th period
+result <- describe_periods(production, group = "firm", time = "year")
+attr(result, "details")$entities_complete[["6"]]
 
 }
 \seealso{
