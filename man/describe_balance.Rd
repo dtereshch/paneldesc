@@ -80,8 +80,7 @@ When \code{detailed = TRUE}, additional columns are included:
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{n_entities}, \code{n_periods}, \code{total_rows},
-\code{entities}, \code{periods}, \code{matrix}.}
+\item{\code{details}}{List containing additional information: \code{presence_matrix}.}
 }
 }
 \examples{

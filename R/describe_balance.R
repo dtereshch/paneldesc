@@ -59,8 +59,7 @@
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `n_entities`, `n_periods`, `total_rows`,
-#'         `entities`, `periods`, `matrix`.}
+#'   \item{`details`}{List containing additional information: `presence_matrix`.}
 #' }
 #'
 #' @seealso
@@ -435,12 +434,7 @@ describe_balance <- function(
 
   # Build details list (only non-metadata info)
   details <- list(
-    n_entities = total_entities,
-    n_periods = total_periods,
-    total_rows = total_rows,
-    entities = all_groups,
-    periods = all_times,
-    matrix = presence_matrix
+    presence_matrix = presence_matrix
   )
 
   # Set attributes in desired order
