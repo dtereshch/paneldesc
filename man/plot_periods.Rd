@@ -28,7 +28,19 @@ Default = "observed".}
 Default = c("#1E4A3B", "#1E4A3B").}
 }
 \value{
-Invisibly returns a list with summary statistics and plot data.
+Invisibly returns a list with the following components:
+\describe{
+\item{\code{metadata}}{List containing the function name, group, time, presence, colors.}
+\item{\code{details}}{List containing:
+\itemize{
+\item \code{n_entities}: Total number of unique entities.
+\item \code{n_time_periods}: Total number of unique time periods.
+\item \code{coverage_by_entity}: Named vector with number of periods covered per entity.
+\item \code{summary_stats}: Summary statistics (min, p5, p25, p50, p75, p95, max).
+\item \code{histogram_data}: Data used for histogram plotting.
+}
+}
+}
 }
 \description{
 This function calculates summary statistics and creates a histogram showing
@@ -45,28 +57,6 @@ based on the specified presence definition.
 
 The x-axis shows the number of time periods covered by each entity, and the
 y-axis shows the count/frequency of entities with that coverage.
-
-The returned invisible list contains:
-\describe{
-\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
-\item{\code{summary}}{List with overall summary statistics:
-\itemize{
-\item \code{n_entities}: Total number of unique entities
-\item \code{n_time_periods}: Total number of unique time periods
-\item \code{presence}: Presence type used for analysis
-\item \code{group_var}: The group variable name
-\item \code{time_var}: The time variable name
-}
-}
-\item{\code{details}}{List with coverage statistics:
-\itemize{
-\item \code{coverage_by_entity}: Named vector with number of time periods covered for each entity
-\item \code{summary_stats}: Summary statistics (min, p5, p25, p50, p75, p95, max)
-\item \code{histogram_data}: Data used for histogram plotting
-}
-}
-\item{\code{metadata}}{List containing the function name, group, time, presence, colors.}
-}
 }
 \examples{
 data(production)

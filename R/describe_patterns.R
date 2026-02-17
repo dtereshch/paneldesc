@@ -51,10 +51,9 @@
 #'
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
-#'   \item{`details`}{List containing additional information: `presence`, `format`, `detailed`, `digits`,
-#'         `n_entities`, `n_periods`, `n_patterns`, `matrix`, `pattern_groups`.}
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing additional information: `n_entities`, `n_periods`, `n_patterns`,
+#'         `matrix`, `pattern_groups`.}
 #' }
 #'
 #' @seealso
@@ -96,20 +95,18 @@ describe_patterns <- function(
   detailed = TRUE,
   digits = 3
 ) {
-  # Check for panel_data class and extract info
+  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
+    metadata <- attr(data, "metadata")
     if (
-      is.null(panel_info) ||
-        is.null(panel_info["group_var"]) ||
-        is.null(panel_info["time_var"])
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time <- panel_info["time_var"]
+    group <- metadata$group
+    time <- metadata$time
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -343,10 +340,6 @@ describe_patterns <- function(
 
   # Build base details list (will be extended depending on format)
   details_base <- list(
-    presence = presence,
-    format = format,
-    detailed = detailed,
-    digits = digits,
     n_entities = length(unique_groups),
     n_periods = length(unique_periods),
     n_patterns = nrow(result),
@@ -397,12 +390,8 @@ describe_patterns <- function(
       )
 
       # Set attributes
-      attr(simplified_result, "panel_info") <- c(
-        group_var = group,
-        time_var = time
-      )
-      attr(simplified_result, "details") <- details_base
       attr(simplified_result, "metadata") <- metadata
+      attr(simplified_result, "details") <- details_base
 
       class(simplified_result) <- c("panel_description", "data.frame")
       return(simplified_result)
@@ -421,9 +410,8 @@ describe_patterns <- function(
     )
 
     # Set attributes
-    attr(long_result, "panel_info") <- c(group_var = group, time_var = time)
-    attr(long_result, "details") <- details_base
     attr(long_result, "metadata") <- metadata
+    attr(long_result, "details") <- details_base
 
     class(long_result) <- c("panel_description", "data.frame")
     return(long_result)
@@ -447,12 +435,8 @@ describe_patterns <- function(
     )
 
     # Set attributes
-    attr(simplified_result, "panel_info") <- c(
-      group_var = group,
-      time_var = time
-    )
-    attr(simplified_result, "details") <- details_base
     attr(simplified_result, "metadata") <- metadata
+    attr(simplified_result, "details") <- details_base
 
     class(simplified_result) <- c("panel_description", "data.frame")
     return(simplified_result)
@@ -471,9 +455,8 @@ describe_patterns <- function(
   )
 
   # Set attributes
-  attr(result, "panel_info") <- c(group_var = group, time_var = time)
-  attr(result, "details") <- details_base
   attr(result, "metadata") <- metadata
+  attr(result, "details") <- details_base
 
   # Set class
   class(result) <- c("panel_description", "data.frame")

@@ -74,10 +74,9 @@ Patterns are sorted by frequency (most common first).
 
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
-\item{\code{details}}{List containing additional information: \code{presence}, \code{format}, \code{detailed}, \code{digits},
-\code{n_entities}, \code{n_periods}, \code{n_patterns}, \code{matrix}, \code{pattern_groups}.}
 \item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing additional information: \code{n_entities}, \code{n_periods}, \code{n_patterns},
+\code{matrix}, \code{pattern_groups}.}
 }
 }
 \examples{

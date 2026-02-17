@@ -39,9 +39,8 @@
 #'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
-#'   \item{`details`}{List containing additional information: `detailed`, `digits`, `n_variables`,
-#'         `n_groups` (if grouping provided), `total_obs`.}
 #'   \item{`metadata`}{List containing the function name, selection, group, detailed, digits.}
+#'   \item{`details`}{List containing additional information: `n_variables`, `n_groups` (if grouping provided), `total_obs`.}
 #' }
 #' Note: This function does **not** use panel attributes; it is designed for general use.
 #'
@@ -359,7 +358,7 @@ summarize_numeric <- function(
   # Reset row names
   rownames(result_df) <- NULL
 
-  # Build metadata (no panel_info used)
+  # Build metadata
   call <- match.call()
   metadata <- list(
     function_name = as.character(call[[1]]),
@@ -369,18 +368,16 @@ summarize_numeric <- function(
     digits = digits
   )
 
-  # Build details list (no panel_info)
+  # Build details list (only non-metadata info)
   details <- list(
-    detailed = detailed,
-    digits = digits,
     n_variables = length(selection),
     n_groups = n_groups,
     total_obs = total_obs
   )
 
-  # Set attributes in desired order (no panel_info)
-  attr(result_df, "details") <- details
+  # Set attributes in desired order
   attr(result_df, "metadata") <- metadata
+  attr(result_df, "details") <- details
 
   # Set class
   class(result_df) <- c("panel_summary", "data.frame")

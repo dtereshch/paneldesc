@@ -25,7 +25,18 @@ both panel_group and panel_time will be used as group variables.}
 second for individual points. Default = c("#1E4A3B", "#EADCA0").}
 }
 \value{
-Invisibly returns a list with summary information.
+Invisibly returns a list with the following components:
+\describe{
+\item{\code{metadata}}{List containing the function name, selection, group, colors, and
+whether panel attributes were used.}
+\item{\code{details}}{List containing overall and group-level statistics:
+\describe{
+\item{\code{overall}}{List with overall mean, sd, and number of observations.}
+\item{\code{groups}}{List with statistics for each grouping variable, each containing
+means, sd, and n per group.}
+}
+}
+}
 }
 \description{
 This function creates visualizations of heterogeneity among groups.
@@ -34,26 +45,6 @@ This function creates visualizations of heterogeneity among groups.
 This function creates one or more plots (depending on the number of grouping variables)
 showing the heterogeneity among groups. Each plot displays individual observations
 (jittered points) and group means (connected line).
-
-The returned invisible list contains the following components:
-\describe{
-\item{\code{summary}}{List with overall summary statistics:
-\itemize{
-\item \code{overall_mean}: Mean of the selected variable across all data
-\item \code{overall_sd}: Standard deviation of the selected variable across all data
-\item \code{n_observations}: Total number of observations
-}
-}
-\item{\code{details}}{List with statistics for each grouping variable:
-\itemize{
-\item \code{means}: Group means
-\item \code{sd}: Group standard deviations
-\item \code{n}: Number of observations per group
-}
-}
-\item{\code{metadata}}{List containing the function name, selection, group, colors, and
-whether panel attributes were used.}
-}
 }
 \examples{
 data(production)

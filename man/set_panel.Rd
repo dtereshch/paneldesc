@@ -25,7 +25,6 @@ This function adds attributes to a data.frame to mark it as panel data.
 The returned object has class \code{"panel_data"} (in addition to its original class).
 It includes the following attributes:
 \describe{
-\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 }
 These attributes enable panel‑aware functions to automatically detect the panel structure
@@ -39,13 +38,12 @@ data(production)
 panel_data <- set_panel(production, group = "firm", time = "year")
 
 # Check the attributes
-attr(panel_data, "panel_info")
 attr(panel_data, "metadata")
 
-# Use with describe_panel()
-describe_panel(panel_data)
+# Use with describe_dimensions()
+describe_dimensions(panel_data)
 
 }
 \seealso{
-\code{\link[=check_panel]{check_panel()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}
+\code{\link[=check_panel]{check_panel()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}
 }

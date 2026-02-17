@@ -33,10 +33,9 @@
 #'
 #' The data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
-#'   \item{`summary`}{Logical summary of test results (TRUE = passed, FALSE = failed/warning).}
-#'   \item{`details`}{List containing problematic observations/entities/periods for each test.}
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing diagnostic information for each test,
+#'         including problematic observations/entities/periods.}
 #' }
 #'
 #' @seealso
@@ -55,13 +54,11 @@
 #' test_results <- as.data.frame(panel_check)
 #'
 #' # Access attributes
-#' summary_info <- attr(panel_check, "summary")
 #' details_info <- attr(panel_check, "details")
 #' meta_info <- attr(panel_check, "metadata")
-#' panel_info <- attr(panel_check, "panel_info")
 #'
 #' # Get specific details
-#' has_complete_groups <- summary_info$group_completeness
+#' has_complete_groups <- details_info$group_completeness
 #' duplicate_obs <- details_info$duplicate_observations
 #' unbalanced_entities <- details_info$unbalanced_groups
 #'
@@ -71,20 +68,18 @@
 #'
 #' @export
 check_panel <- function(data, group = NULL, time = NULL) {
-  # Check for panel_data class and extract info
+  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
+    metadata <- attr(data, "metadata")
     if (
-      is.null(panel_info) ||
-        is.null(panel_info["group_var"]) ||
-        is.null(panel_info["time_var"])
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time <- panel_info["time_var"]
+    group <- metadata$group
+    time <- metadata$time
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -484,6 +479,9 @@ check_panel <- function(data, group = NULL, time = NULL) {
   summary_list$time_sequence <- !has_irregular_time_sequence
   summary_list$group_intervals <- !has_irregular_intervals
 
+  # Combine summary and details into one details list
+  combined_details <- c(details_list, summary_list)
+
   # Create the output data.frame with test results
   test_results <- exploration_results
 
@@ -512,10 +510,8 @@ check_panel <- function(data, group = NULL, time = NULL) {
   )
 
   # Set attributes in desired order
-  attr(final_results, "panel_info") <- c(group_var = group, time_var = time)
-  attr(final_results, "summary") <- summary_list
-  attr(final_results, "details") <- details_list
   attr(final_results, "metadata") <- metadata
+  attr(final_results, "details") <- combined_details
 
   # Set class
   class(final_results) <- c("panel_description", "data.frame")

@@ -35,9 +35,8 @@
 #'
 #' The returned data.frame (if any) has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var` (time may be NA if not provided).}
-#'   \item{`details`}{List containing additional information: `detailed`, `n_entities_total`, `n_entities_incomplete`.}
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing additional information: `n_entities_total`, `n_entities_incomplete`.}
 #' }
 #'
 #' @seealso
@@ -66,17 +65,19 @@ describe_incomplete <- function(
   time = NULL,
   detailed = FALSE
 ) {
-  # Check for panel_data class and extract info
+  # Check for panel_data class and extract info from metadata
   time_var <- NA_character_
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
-    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
+    metadata <- attr(data, "metadata")
+    if (
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+    ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time_var <- panel_info["time_var"]
+    group <- metadata$group
+    time_var <- metadata$time
     # If time argument is explicitly provided, it overrides the attribute
     if (!is.null(time)) {
       time_var <- time
@@ -115,11 +116,6 @@ describe_incomplete <- function(
 
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
-  }
-
-  # Validate detailed parameter
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("argument 'detailed' must be a single logical value")
   }
 
   # Validate group variable
@@ -228,17 +224,15 @@ describe_incomplete <- function(
     detailed = detailed
   )
 
-  # Build details list
+  # Build details list (only non-metadata info)
   details <- list(
-    detailed = detailed,
     n_entities_total = length(unique_groups),
     n_entities_incomplete = nrow(result)
   )
 
   # Set attributes in desired order
-  attr(result, "panel_info") <- c(group_var = group, time_var = time_var)
-  attr(result, "details") <- details
   attr(result, "metadata") <- metadata
+  attr(result, "details") <- details
 
   # Set class
   class(result) <- c("panel_description", "data.frame")

@@ -68,9 +68,8 @@
 #'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var` (time may be NA if not available).}
-#'   \item{`details`}{List containing additional information: `count_groups`, `format`, `detailed`, `digits`.}
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing additional information: `count_groups`.}
 #' }
 #'
 #' @references
@@ -119,17 +118,19 @@ decompose_numeric <- function(
   detailed = TRUE,
   digits = 3
 ) {
-  # Check for panel_data class and extract info
+  # Check for panel_data class and extract info from metadata
   time_var <- NA_character_
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
-    if (is.null(panel_info) || is.null(panel_info["group_var"])) {
+    metadata <- attr(data, "metadata")
+    if (
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+    ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time_var <- panel_info["time_var"]
+    group <- metadata$group
+    time_var <- metadata$time
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -452,18 +453,14 @@ decompose_numeric <- function(
     digits = digits
   )
 
-  # Build details list
+  # Build details list (only non-metadata info)
   details <- list(
-    count_groups = count_groups,
-    format = format,
-    detailed = detailed,
-    digits = digits
+    count_groups = count_groups
   )
 
   # Set attributes in desired order
-  attr(result_df, "panel_info") <- c(group_var = group, time_var = time_var)
-  attr(result_df, "details") <- details
   attr(result_df, "metadata") <- metadata
+  attr(result_df, "details") <- details
 
   # Set class
   class(result_df) <- c("panel_summary", "data.frame")

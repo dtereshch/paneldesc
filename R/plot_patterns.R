@@ -14,7 +14,11 @@
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#1E4A3B", "white").
 #'
-#' @return Invisibly returns a list containing information about the plot.
+#' @return Invisibly returns a list with the following components:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing the sorted presence matrix (as element `matrix`).}
+#' }
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -33,13 +37,6 @@
 #' Rows are ordered by pattern frequency: the most frequent pattern is at the **top**.
 #' Within each pattern block, entities appear in their original order (as they first occur in the data).
 #' If `max_patterns` is given, only the most frequent patterns are retained.
-#'
-#' The returned invisible list contains:
-#' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
-#'   \item{`details`}{List containing the sorted presence matrix (as element `matrix`).}
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
-#' }
 #'
 #' @seealso
 #' [describe_patterns()], [plot_periods()]
@@ -67,18 +64,16 @@ plot_patterns <- function(
 ) {
   # --- Panel attribute handling and validation ---
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
+    metadata <- attr(data, "metadata")
     if (
-      is.null(panel_info) ||
-        is.null(panel_info["group_var"]) ||
-        is.null(panel_info["time_var"])
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time <- panel_info["time_var"]
+    group <- metadata$group
+    time <- metadata$time
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
@@ -287,10 +282,14 @@ plot_patterns <- function(
     colors = colors
   )
 
-  # Return invisible list with panel_info, details, metadata (in that order)
+  # Build details list (includes the sorted matrix)
+  details <- list(
+    matrix = presence_binary_sorted
+  )
+
+  # Return invisible list with metadata and details
   invisible(list(
-    panel_info = c(group_var = group, time_var = time),
-    details = list(matrix = presence_binary_sorted),
-    metadata = metadata
+    metadata = metadata,
+    details = details
   ))
 }

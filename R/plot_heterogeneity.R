@@ -11,32 +11,23 @@
 #' @param colors A character vector of two colors: first for mean line and points,
 #'        second for individual points. Default = c("#1E4A3B", "#EADCA0").
 #'
-#' @return Invisibly returns a list with summary information.
+#' @return Invisibly returns a list with the following components:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name, selection, group, colors, and
+#'         whether panel attributes were used.}
+#'   \item{`details`}{List containing overall and group-level statistics:
+#'         \describe{
+#'           \item{`overall`}{List with overall mean, sd, and number of observations.}
+#'           \item{`groups`}{List with statistics for each grouping variable, each containing
+#'                 means, sd, and n per group.}
+#'         }
+#'   }
+#' }
 #'
 #' @details
 #' This function creates one or more plots (depending on the number of grouping variables)
 #' showing the heterogeneity among groups. Each plot displays individual observations
 #' (jittered points) and group means (connected line).
-#'
-#' The returned invisible list contains the following components:
-#' \describe{
-#'   \item{`summary`}{List with overall summary statistics:
-#'     \itemize{
-#'       \item `overall_mean`: Mean of the selected variable across all data
-#'       \item `overall_sd`: Standard deviation of the selected variable across all data
-#'       \item `n_observations`: Total number of observations
-#'     }
-#'   }
-#'   \item{`details`}{List with statistics for each grouping variable:
-#'     \itemize{
-#'       \item `means`: Group means
-#'       \item `sd`: Group standard deviations
-#'       \item `n`: Number of observations per group
-#'     }
-#'   }
-#'   \item{`metadata`}{List containing the function name, selection, group, colors, and
-#'         whether panel attributes were used.}
-#' }
 #'
 #' @seealso
 #' [decompose_numeric()], [summarize_numeric()]
@@ -78,18 +69,16 @@ plot_heterogeneity <- function(
 
   # Handle panel attributes if present and group is not specified
   if (has_panel_attrs && is.null(group)) {
-    panel_info <- attr(data, "panel_info")
+    metadata <- attr(data, "metadata")
     if (
-      is.null(panel_info) ||
-        is.null(panel_info["group_var"]) ||
-        is.null(panel_info["time_var"])
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
     # Extract group and time from attributes and use both as group variables
-    group <- c(panel_info["group_var"], panel_info["time_var"])
+    group <- c(metadata$group, metadata$time)
     used_panel_attrs <- TRUE
   } else {
     used_panel_attrs <- FALSE
@@ -156,20 +145,6 @@ plot_heterogeneity <- function(
     stop("'data' must have at least one row")
   }
 
-  # Check if variables exist in data (redundant but kept for consistency)
-  if (!selection %in% names(data)) {
-    stop("variable '", selection, "' not found in data")
-  }
-
-  missing_groups <- setdiff(group, names(data))
-  if (length(missing_groups) > 0) {
-    stop(
-      "group variable(s) '",
-      paste(missing_groups, collapse = "', '"),
-      "' not found in data"
-    )
-  }
-
   # Extract colors
   mean_col <- colors[1]
   point_col <- colors[2]
@@ -185,11 +160,6 @@ plot_heterogeneity <- function(
 
   # Extract the main variable
   y_var <- data[[selection]]
-
-  # Check variable type
-  if (!is.numeric(y_var)) {
-    stop("'selection' must be a numeric variable")
-  }
 
   # Function to create single plot
   create_single_plot <- function(
@@ -304,13 +274,12 @@ plot_heterogeneity <- function(
 
   # Calculate overall summary statistics
   summary_stats <- list(
-    summary = list(
-      overall_mean = mean(y_var, na.rm = TRUE),
-      overall_sd = sd(y_var, na.rm = TRUE),
+    overall = list(
+      mean = mean(y_var, na.rm = TRUE),
+      sd = sd(y_var, na.rm = TRUE),
       n_observations = nrow(data)
     ),
-    details = list(), # will be filled with group_stats
-    metadata = NULL
+    groups = list() # will be filled with group_stats
   )
 
   if (plot) {
@@ -349,7 +318,7 @@ plot_heterogeneity <- function(
     for (i in seq_along(group)) {
       group_var <- group[i]
       group_stats <- create_single_plot(data, group_var)
-      summary_stats$details[[group_var]] <- group_stats
+      summary_stats$groups[[group_var]] <- group_stats
     }
   } else {
     # Calculate statistics without plotting
@@ -359,7 +328,7 @@ plot_heterogeneity <- function(
         x_var <- as.factor(x_var)
       }
 
-      summary_stats$details[[group_var]] <- list(
+      summary_stats$groups[[group_var]] <- list(
         means = tapply(data[[selection]], x_var, mean, na.rm = TRUE),
         sd = tapply(data[[selection]], x_var, sd, na.rm = TRUE),
         n = tapply(data[[selection]], x_var, function(x) sum(!is.na(x)))
@@ -376,12 +345,13 @@ plot_heterogeneity <- function(
     colors = colors,
     used_panel_attrs = used_panel_attrs
   )
-  summary_stats$metadata <- metadata
 
-  # Return list with summary, details, metadata (in that order)
+  # Build details list (merge overall and groups)
+  details <- summary_stats
+
+  # Return list with metadata and details
   invisible(list(
-    summary = summary_stats$summary,
-    details = summary_stats$details,
-    metadata = summary_stats$metadata
+    metadata = metadata,
+    details = details
   ))
 }

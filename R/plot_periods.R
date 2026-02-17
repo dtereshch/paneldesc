@@ -14,7 +14,19 @@
 #' @param colors A character vector of length 2 specifying the line color and fill color for the histogram.
 #'        Default = c("#1E4A3B", "#1E4A3B").
 #'
-#' @return Invisibly returns a list with summary statistics and plot data.
+#' @return Invisibly returns a list with the following components:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name, group, time, presence, colors.}
+#'   \item{`details`}{List containing:
+#'         \itemize{
+#'           \item `n_entities`: Total number of unique entities.
+#'           \item `n_time_periods`: Total number of unique time periods.
+#'           \item `coverage_by_entity`: Named vector with number of periods covered per entity.
+#'           \item `summary_stats`: Summary statistics (min, p5, p25, p50, p75, p95, max).
+#'           \item `histogram_data`: Data used for histogram plotting.
+#'         }
+#'   }
+#' }
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -26,28 +38,6 @@
 #'
 #' The x-axis shows the number of time periods covered by each entity, and the
 #' y-axis shows the count/frequency of entities with that coverage.
-#'
-#' The returned invisible list contains:
-#' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
-#'   \item{`summary`}{List with overall summary statistics:
-#'     \itemize{
-#'       \item `n_entities`: Total number of unique entities
-#'       \item `n_time_periods`: Total number of unique time periods
-#'       \item `presence`: Presence type used for analysis
-#'       \item `group_var`: The group variable name
-#'       \item `time_var`: The time variable name
-#'     }
-#'   }
-#'   \item{`details`}{List with coverage statistics:
-#'     \itemize{
-#'       \item `coverage_by_entity`: Named vector with number of time periods covered for each entity
-#'       \item `summary_stats`: Summary statistics (min, p5, p25, p50, p75, p95, max)
-#'       \item `histogram_data`: Data used for histogram plotting
-#'     }
-#'   }
-#'   \item{`metadata`}{List containing the function name, group, time, presence, colors.}
-#' }
 #'
 #' @seealso
 #' [describe_periods()], [plot_patterns()], [describe_patterns()]
@@ -80,20 +70,18 @@ plot_periods <- function(
   presence = "observed",
   colors = c("#1E4A3B", "#1E4A3B")
 ) {
-  # Check for panel_data class and extract info
+  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
-    panel_info <- attr(data, "panel_info")
+    metadata <- attr(data, "metadata")
     if (
-      is.null(panel_info) ||
-        is.null(panel_info["group_var"]) ||
-        is.null(panel_info["time_var"])
+      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'panel_info' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- panel_info["group_var"]
-    time <- panel_info["time_var"]
+    group <- metadata$group
+    time <- metadata$time
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -433,24 +421,18 @@ plot_periods <- function(
     colors = colors
   )
 
-  # Create unified return object
-  result <- list(
-    panel_info = c(group_var = group, time_var = time),
-    summary = list(
-      n_entities = length(unique_groups),
-      n_time_periods = length(unique_times),
-      presence = presence,
-      group_var = group,
-      time_var = time
-    ),
-    details = list(
-      coverage_by_entity = coverage_result$coverage_by_entity,
-      summary_stats = coverage_result$summary_stats,
-      histogram_data = hist_data
-    ),
-    metadata = metadata
+  # Build details list (merge all information, excluding presence)
+  details <- list(
+    n_entities = length(unique_groups),
+    n_time_periods = length(unique_times),
+    coverage_by_entity = coverage_result$coverage_by_entity,
+    summary_stats = coverage_result$summary_stats,
+    histogram_data = hist_data
   )
 
-  # Return the result invisibly for further use
-  invisible(result)
+  # Return the result invisibly
+  invisible(list(
+    metadata = metadata,
+    details = details
+  ))
 }

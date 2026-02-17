@@ -44,10 +44,9 @@ individual test results with human-readable test names.
 
 The data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var}.}
-\item{\code{summary}}{Logical summary of test results (TRUE = passed, FALSE = failed/warning).}
-\item{\code{details}}{List containing problematic observations/entities/periods for each test.}
 \item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing diagnostic information for each test,
+including problematic observations/entities/periods.}
 }
 }
 \examples{
@@ -63,13 +62,11 @@ print(panel_check)
 test_results <- as.data.frame(panel_check)
 
 # Access attributes
-summary_info <- attr(panel_check, "summary")
 details_info <- attr(panel_check, "details")
 meta_info <- attr(panel_check, "metadata")
-panel_info <- attr(panel_check, "panel_info")
 
 # Get specific details
-has_complete_groups <- summary_info$group_completeness
+has_complete_groups <- details_info$group_completeness
 duplicate_obs <- details_info$duplicate_observations
 unbalanced_entities <- details_info$unbalanced_groups
 

@@ -14,7 +14,6 @@
 #' The returned object has class `"panel_data"` (in addition to its original class).
 #' It includes the following attributes:
 #' \describe{
-#'   \item{`panel_info`}{Named character vector with elements `group_var` and `time_var`.}
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #' }
 #' These attributes enable panel‑aware functions to automatically detect the panel structure
@@ -22,7 +21,7 @@
 #' The original data.frame structure is preserved.
 #'
 #' @seealso
-#' [check_panel()], [describe_dimensions()]
+#' [check_panel()], [describe_dimensions()], [describe_balance()]
 #'
 #' @examples
 #' data(production)
@@ -31,11 +30,10 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #'
 #' # Check the attributes
-#' attr(panel_data, "panel_info")
 #' attr(panel_data, "metadata")
 #'
-#' # Use with describe_panel()
-#' describe_panel(panel_data)
+#' # Use with describe_dimensions()
+#' describe_dimensions(panel_data)
 #'
 #' @export
 set_panel <- function(data, group, time) {
@@ -73,7 +71,6 @@ set_panel <- function(data, group, time) {
   )
 
   # Add attributes and class
-  attr(data, "panel_info") <- c(group_var = group, time_var = time)
   attr(data, "metadata") <- metadata
   class(data) <- c("panel_data", class(data))
 

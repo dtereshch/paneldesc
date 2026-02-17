@@ -49,9 +49,8 @@ If no entities have incomplete data, returns the character message:
 
 The returned data.frame (if any) has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{panel_info}}{Named character vector with elements \code{group_var} and \code{time_var} (time may be NA if not provided).}
-\item{\code{details}}{List containing additional information: \code{detailed}, \code{n_entities_total}, \code{n_entities_incomplete}.}
 \item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing additional information: \code{n_entities_total}, \code{n_entities_incomplete}.}
 }
 }
 \examples{
