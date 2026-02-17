@@ -17,8 +17,9 @@
 #' @return Invisibly returns a list with the following components:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing the sorted presence matrix.}
-#' }
+#'   \item{`details`}{List containing additional information: `n_patterns`, `presence_matrix`,
+#'         `pattern_groups`. The `pattern_groups` element is a list where each element corresponds
+#'         to a pattern rank and contains the entity IDs that follow that pattern.}
 #'
 #' @details
 #' \strong{Presence} parameter definitions:
@@ -179,6 +180,21 @@ plot_patterns <- function(
   # --- Frequency of each pattern ---
   pattern_freq <- table(pattern_strings)
 
+  # --- Create pattern_groups list (before filtering) ---
+  pattern_groups_full <- list()
+  for (entity in all_groups) {
+    pattern_vec <- presence_binary[entity, ]
+    pattern_string <- paste(pattern_vec, collapse = "")
+
+    if (!pattern_string %in% names(pattern_groups_full)) {
+      pattern_groups_full[[pattern_string]] <- character(0)
+    }
+    pattern_groups_full[[pattern_string]] <- c(
+      pattern_groups_full[[pattern_string]],
+      entity
+    )
+  }
+
   # --- Filter by max_patterns if requested ---
   if (!is.null(max_patterns)) {
     # Identify the most frequent patterns
@@ -189,6 +205,9 @@ plot_patterns <- function(
     presence_binary <- presence_binary[keep, , drop = FALSE]
     pattern_strings <- pattern_strings[keep]
     pattern_freq <- pattern_freq[top_patterns] # keep only top for ordering
+
+    # Also filter pattern_groups_full to only keep top patterns
+    pattern_groups_full <- pattern_groups_full[top_patterns]
   }
 
   # --- Order rows: least frequent first (bottom), most frequent last (top) ---
@@ -200,6 +219,21 @@ plot_patterns <- function(
   order_idx <- order(entity_freq, pattern_strings, rownames(presence_binary))
   presence_binary_sorted <- presence_binary[order_idx, , drop = FALSE]
   pattern_strings_sorted <- pattern_strings[order_idx]
+
+  # Get unique patterns in the sorted order (from most frequent to least frequent)
+  unique_patterns_sorted <- unique(pattern_strings_sorted[order(
+    entity_freq,
+    decreasing = TRUE
+  )])
+
+  # Create sorted pattern_groups list matching the pattern ranks
+  pattern_groups_sorted <- list()
+  for (i in seq_along(unique_patterns_sorted)) {
+    pattern_string <- unique_patterns_sorted[i]
+    pattern_groups_sorted[[as.character(i)]] <- pattern_groups_full[[
+      pattern_string
+    ]]
+  }
 
   # --- Prepare for plotting ---
   old_par <- par(no.readonly = TRUE)
@@ -282,9 +316,11 @@ plot_patterns <- function(
     colors = colors
   )
 
-  # Build details list (includes the sorted matrix) - UPDATED: renamed matrix to presence_matrix
+  # Build details list (includes the sorted matrix and pattern groups)
   details <- list(
-    presence_matrix = presence_binary_sorted
+    presence_matrix = presence_binary_sorted,
+    pattern_groups = pattern_groups_sorted,
+    n_patterns = length(pattern_groups_sorted)
   )
 
   # Return invisible list with metadata and details

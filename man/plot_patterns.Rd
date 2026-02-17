@@ -35,8 +35,9 @@ Default = c("#1E4A3B", "white").}
 Invisibly returns a list with the following components:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing the sorted presence matrix.}
-}
+\item{\code{details}}{List containing additional information: \code{n_patterns}, \code{presence_matrix},
+\code{pattern_groups}. The \code{pattern_groups} element is a list where each element corresponds
+to a pattern rank and contains the entity IDs that follow that pattern.}
 }
 \description{
 This function creates a heatmap showing the presence/absence pattern of each entity over time.
