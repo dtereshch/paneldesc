@@ -35,7 +35,8 @@
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing diagnostic information for each test,
-#'         including problematic observations/entities/periods.}
+#'         including problematic observations/entities/periods, and logical
+#'         summary of test results.}
 #' }
 #'
 #' @seealso
@@ -468,19 +469,13 @@ check_panel <- function(data, group = NULL, time = NULL) {
     details_list$group_interval_details <- interval_details[irregular_groups]
   }
 
-  # Create simplified summary list with TRUE/FALSE for key tests
-  summary_list <- list()
-
-  # Add logical results for key tests (TRUE = passed, FALSE = failed/warning)
-  summary_list$group_completeness <- !any(is.na(data[[group]]))
-  summary_list$time_completeness <- !any(is.na(data[[time]]))
-  summary_list$no_duplicates <- !has_duplicates
-  summary_list$balance <- is_balanced
-  summary_list$time_sequence <- !has_irregular_time_sequence
-  summary_list$group_intervals <- !has_irregular_intervals
-
-  # Combine summary and details into one details list
-  combined_details <- c(details_list, summary_list)
+  # Create logical summary for key tests (TRUE = passed, FALSE = failed/warning)
+  details_list$group_completeness <- !any(is.na(data[[group]]))
+  details_list$time_completeness <- !any(is.na(data[[time]]))
+  details_list$no_duplicates <- !has_duplicates
+  details_list$balance <- is_balanced
+  details_list$time_sequence <- !has_irregular_time_sequence
+  details_list$group_intervals <- !has_irregular_intervals
 
   # Create the output data.frame with test results
   test_results <- exploration_results
@@ -511,7 +506,7 @@ check_panel <- function(data, group = NULL, time = NULL) {
 
   # Set attributes in desired order
   attr(final_results, "metadata") <- metadata
-  attr(final_results, "details") <- combined_details
+  attr(final_results, "details") <- details_list
 
   # Set class
   class(final_results) <- c("panel_description", "data.frame")

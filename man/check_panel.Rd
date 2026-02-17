@@ -46,7 +46,8 @@ The data.frame has class \code{"panel_description"} and the following attributes
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing diagnostic information for each test,
-including problematic observations/entities/periods.}
+including problematic observations/entities/periods, and logical
+summary of test results.}
 }
 }
 \examples{
