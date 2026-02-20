@@ -34,7 +34,7 @@ This function creates visualizations of heterogeneity among groups.
 \details{
 This function creates one or more plots (depending on the number of grouping variables)
 showing the heterogeneity among groups. Each plot displays individual observations
-(jittered points) and group means (connected line).
+(points) and group means (connected line).
 
 The returned list contains the following components:
 \describe{

@@ -17,7 +17,7 @@
 #' @details
 #' This function creates one or more plots (depending on the number of grouping variables)
 #' showing the heterogeneity among groups. Each plot displays individual observations
-#' (jittered points) and group means (connected line).
+#' (points) and group means (connected line).
 #'
 #' The returned list contains the following components:
 #' \describe{
@@ -144,7 +144,7 @@ plot_heterogeneity <- function(
   point_col <- colors[2]
 
   # Set default parameter values
-  point_alpha <- 0.75
+  point_alpha <- 0.9
   mean_lwd <- 2
   cex <- 1
   las <- 1
@@ -201,31 +201,13 @@ plot_heterogeneity <- function(
     # Add x-axis
     axis(1, at = seq_along(levels(x_var)), labels = levels(x_var))
 
-    # Generate reproducible jitter by setting a seed based on the data
-    # Save current seed to restore later
-    if (exists(".Random.seed", .GlobalEnv)) {
-      old_seed <- .GlobalEnv$.Random.seed
-      on.exit(.GlobalEnv$.Random.seed <- old_seed, add = TRUE)
-    } else {
-      on.exit(rm(".Random.seed", envir = .GlobalEnv), add = TRUE)
-    }
-
-    # Create a deterministic seed from the data
-    # Use a combination of the grouping variable name and the data itself
-    set.seed(
-      sum(as.integer(charToRaw(paste(group_var, selection)))) +
-        sum(data_sub[[selection]], na.rm = TRUE) +
-        nrow(data_sub) +
-        length(unique(x_var))
-    )
-
-    # Add individual points with jitter
-    x_jitter <- jitter(as.numeric(x_var), amount = 0.2)
+    # Add individual points (no jitter)
+    x_pos <- as.numeric(x_var)
     points(
-      x_jitter,
+      x_pos,
       data_sub[[selection]],
       col = point_col_alpha,
-      pch = 16,
+      pch = 1, # open circle for a cleaner look when points overlay
       cex = 0.8 * cex
     )
 
@@ -245,7 +227,7 @@ plot_heterogeneity <- function(
       "topright",
       legend = c("Individual observations", "Group means"),
       col = c(point_col, mean_col),
-      pch = c(16, 18),
+      pch = c(1, 18),
       lty = c(NA, 1),
       pt.cex = c(0.8, 1.5),
       bty = "n",
