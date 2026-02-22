@@ -43,7 +43,7 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 
 \strong{When \code{format = "wide"} and \code{detailed = TRUE} (default):}
 \describe{
-\item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
+\item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
 \item{\code{[time_period]}}{Columns for each time period showing presence
 (1 = present, 0 = missing). Column names match the time variable values.}
 \item{\code{count}}{Number of entities with this pattern}
@@ -52,7 +52,7 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 
 \strong{When \code{format = "long"} and \code{detailed = TRUE}:}
 \describe{
-\item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
+\item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
 \item{\code{[time]}}{The time period variable (named according to the \code{time} argument)}
 \item{\code{presence}}{0/1 values indicating absence/presence in the period}
 \item{\code{count}}{Number of entities with this pattern}
@@ -60,7 +60,7 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 }
 
 \strong{When \code{detailed = FALSE}:}
-Returns only the rank and time period columns (without count or share).
+Returns only the pattern and time period columns (without count or share).
 
 Patterns are sorted by frequency (most common first).
 
@@ -69,7 +69,7 @@ The returned data.frame has class \code{"panel_description"} and the following a
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_patterns}, \code{presence_matrix},
 \code{pattern_groups}. The \code{pattern_groups} element is a list where each element corresponds
-to a pattern rank and contains the entity IDs that follow that pattern.}
+to a pattern identifier and contains the entity IDs that follow that pattern.}
 }
 }
 \examples{

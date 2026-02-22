@@ -22,7 +22,7 @@
 #'
 #' \strong{When `format = "wide"` and `detailed = TRUE` (default):}
 #' \describe{
-#'   \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
+#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
 #'   \item{\code{[time_period]}}{Columns for each time period showing presence
 #'     (1 = present, 0 = missing). Column names match the time variable values.}
 #'   \item{\code{count}}{Number of entities with this pattern}
@@ -31,7 +31,7 @@
 #'
 #' \strong{When `format = "long"` and `detailed = TRUE`:}
 #' \describe{
-#'   \item{\code{rank}}{Pattern rank (1, 2, 3, ...) ordered by frequency}
+#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
 #'   \item{\code{[time]}}{The time period variable (named according to the `time` argument)}
 #'   \item{\code{presence}}{0/1 values indicating absence/presence in the period}
 #'   \item{\code{count}}{Number of entities with this pattern}
@@ -39,7 +39,7 @@
 #' }
 #'
 #' \strong{When `detailed = FALSE`:}
-#' Returns only the rank and time period columns (without count or share).
+#' Returns only the pattern and time period columns (without count or share).
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
@@ -48,7 +48,7 @@
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
 #'         `pattern_groups`. The `pattern_groups` element is a list where each element corresponds
-#'         to a pattern rank and contains the entity IDs that follow that pattern.}
+#'         to a pattern identifier and contains the entity IDs that follow that pattern.}
 #' }
 #'
 #' @seealso
@@ -253,7 +253,7 @@ describe_patterns <- function(
 
   # Create result data frame
   result <- data.frame(
-    rank = seq_along(pattern_counts),
+    pattern = seq_along(pattern_counts),
     stringsAsFactors = FALSE
   )
 
@@ -273,7 +273,7 @@ describe_patterns <- function(
 
   # Sort by count (descending)
   result <- result[order(-result$count), ]
-  result$rank <- seq_len(nrow(result))
+  result$pattern <- seq_len(nrow(result))
   rownames(result) <- NULL
 
   # Reorder pattern_groups to match sorted patterns
@@ -305,7 +305,7 @@ describe_patterns <- function(
         long_result <- rbind(
           long_result,
           data.frame(
-            rank = pattern_row$rank,
+            pattern = pattern_row$pattern,
             time = t,
             presence = as.integer(pattern_row[[t]]),
             count = pattern_row$count,
@@ -320,7 +320,7 @@ describe_patterns <- function(
     names(long_result)[names(long_result) == "time"] <- time
 
     if (!detailed) {
-      simplified_result <- long_result[c("rank", time, "presence")]
+      simplified_result <- long_result[c("pattern", time, "presence")]
       attr(simplified_result, "metadata") <- list(
         function_name = as.character(match.call()[[1]]),
         group = group,
@@ -349,7 +349,7 @@ describe_patterns <- function(
 
   # Wide format handling
   if (!detailed) {
-    simplified_result <- result[c("rank", time_cols_char)]
+    simplified_result <- result[c("pattern", time_cols_char)]
     attr(simplified_result, "metadata") <- list(
       function_name = as.character(match.call()[[1]]),
       group = group,
