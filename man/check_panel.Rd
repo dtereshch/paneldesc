@@ -33,9 +33,9 @@ The function performs the following validation tests:
 \item \strong{Time completeness}: Checks for missing values in time variable
 \item \strong{Group-time distinct}: Ensures group and time are different variables
 \item \strong{Duplicates}: Identifies duplicate group-time combinations
-\item \strong{Balance}: Checks if panel is balanced (all groups have same time points)
-\item \strong{Time sequence}: Checks regularity of time sequence in entire panel
-\item \strong{Group intervals}: Checks regularity of time intervals within groups
+\item \strong{Balance}: Checks if panel is balanced (all groups have the same observed time points)
+\item \strong{Time sequence}: Checks regularity of observed time sequence in entire panel
+\item \strong{Group intervals}: Checks regularity of observed time intervals within groups
 }
 
 The returned data.frame has three columns: "test", "status", "message".
@@ -70,6 +70,7 @@ meta_info <- attr(panel_check, "metadata")
 has_complete_groups <- details_info$group_completeness
 duplicate_obs <- details_info$duplicate_observations
 unbalanced_entities <- details_info$unbalanced_groups
+incomplete_observed <- details_info$entities_with_incomplete_observed
 
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")

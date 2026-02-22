@@ -22,9 +22,9 @@
 #'   \item \strong{Time completeness}: Checks for missing values in time variable
 #'   \item \strong{Group-time distinct}: Ensures group and time are different variables
 #'   \item \strong{Duplicates}: Identifies duplicate group-time combinations
-#'   \item \strong{Balance}: Checks if panel is balanced (all groups have same time points)
-#'   \item \strong{Time sequence}: Checks regularity of time sequence in entire panel
-#'   \item \strong{Group intervals}: Checks regularity of time intervals within groups
+#'   \item \strong{Balance}: Checks if panel is balanced (all groups have the same observed time points)
+#'   \item \strong{Time sequence}: Checks regularity of observed time sequence in entire panel
+#'   \item \strong{Group intervals}: Checks regularity of observed time intervals within groups
 #' }
 #'
 #' The returned data.frame has three columns: "test", "status", "message".
@@ -62,6 +62,7 @@
 #' has_complete_groups <- details_info$group_completeness
 #' duplicate_obs <- details_info$duplicate_observations
 #' unbalanced_entities <- details_info$unbalanced_groups
+#' incomplete_observed <- details_info$entities_with_incomplete_observed
 #'
 #' # With panel attributes
 #' panel_data <- set_panel(production, group = "firm", time = "year")
@@ -132,6 +133,13 @@ check_panel <- function(data, group = NULL, time = NULL) {
     stop("'time' and 'group' cannot be the same variable")
   }
 
+  # Identify substantive variables (all except group and time)
+  substantive_vars <- setdiff(names(data), c(group, time))
+
+  if (length(substantive_vars) == 0) {
+    stop("no substantive variables found (besides group and time variables)")
+  }
+
   # Original vectors (preserve class)
   group_orig <- data[[group]]
   time_orig <- data[[time]]
@@ -152,6 +160,9 @@ check_panel <- function(data, group = NULL, time = NULL) {
   if (any(is.na(time_orig))) {
     warning("time variable '", time, "' contains missing values")
   }
+
+  # Determine observed rows (at least one non-NA substantive variable)
+  has_observed <- apply(data[substantive_vars], 1, function(x) any(!is.na(x)))
 
   # Initialize exploration results
   exploration_results <- data.frame(
@@ -193,99 +204,175 @@ check_panel <- function(data, group = NULL, time = NULL) {
     duplicate_summary$time <- sapply(split_combos, function(x) x[2])
   }
 
-  # Check for balanced panel
-  time_by_group <- split(time_orig, group_orig) # keep original for internal use
-  unique_time_sets <- lapply(time_by_group, unique)
-  time_set_lengths <- sapply(unique_time_sets, length)
+  # --- BALANCE TEST (based on observed data) ---
+  observed_rows <- has_observed
 
-  if (length(unique(time_set_lengths)) == 1) {
-    all_time_sets <- unique(unique_time_sets)
-    is_balanced <- length(all_time_sets) == 1
+  # Observed time sets per group
+  time_by_group_obs <- split(
+    time_orig[observed_rows],
+    group_orig[observed_rows]
+  )
+  # Ensure all groups are represented, even those with no observed rows
+  unique_time_sets_obs <- lapply(unique_groups_orig, function(g) {
+    g_char <- as.character(g)
+    if (g_char %in% names(time_by_group_obs)) {
+      unique(time_by_group_obs[[g_char]])
+    } else {
+      vector(class(time_orig), 0) # empty set
+    }
+  })
+  names(unique_time_sets_obs) <- as.character(unique_groups_orig)
+
+  # Check if all observed sets are identical (and non-empty)
+  obs_set_lengths <- sapply(unique_time_sets_obs, length)
+  if (all(obs_set_lengths == 0)) {
+    is_balanced_observed <- TRUE
+    balance_message <- "No observed data in any group"
+    balance_status <- "INFO"
   } else {
-    is_balanced <- FALSE
-  }
-
-  # Identify groups with missing time points (if unbalanced)
-  missing_time_info <- list()
-  if (!is_balanced) {
-    # All unique time points (character for easy comparison)
-    all_times_char <- sort(unique(time_char))
-
-    # For each group (original class), find missing time points
-    for (grp_val in unique_groups_orig) {
-      grp_char <- as.character(grp_val)
-      group_times_char <- unique(time_char[group_char == grp_char])
-      missing_times_char <- setdiff(all_times_char, group_times_char)
-      if (length(missing_times_char) > 0) {
-        # Convert back to original class by matching
-        missing_times_orig <- unique_times_orig[match(
-          missing_times_char,
-          as.character(unique_times_orig)
-        )]
-        missing_time_info[[grp_char]] <- missing_times_orig
+    non_zero_groups <- obs_set_lengths > 0
+    if (!any(non_zero_groups)) {
+      is_balanced_observed <- TRUE
+      balance_message <- "No observed data in any group"
+      balance_status <- "INFO"
+    } else {
+      ref_set <- unique_time_sets_obs[[which(non_zero_groups)[1]]]
+      all_equal <- all(sapply(
+        unique_time_sets_obs[non_zero_groups],
+        function(x) identical(x, ref_set)
+      ))
+      is_balanced_observed <- all_equal
+      if (is_balanced_observed) {
+        balance_message <- "Panel is balanced (observed data)"
+        balance_status <- "PASS"
+      } else {
+        time_by_group_nominal <- split(time_orig, group_orig)
+        unique_time_sets_nominal <- lapply(time_by_group_nominal, unique)
+        is_balanced_nominal <- length(unique(unique_time_sets_nominal)) == 1
+        if (is_balanced_nominal) {
+          balance_message <- "Panel is balanced nominally but not all entities have observed data in all periods"
+        } else {
+          balance_message <- "Panel is unbalanced (observed data)"
+        }
+        balance_status <- "FAIL"
       }
     }
   }
 
-  # Check for irregular time sequence in entire panel
-  has_irregular_time_sequence <- FALSE
-  time_sequence_regular <- TRUE
-
-  if (
-    is.numeric(time_orig) ||
-      inherits(time_orig, "Date") ||
-      inherits(time_orig, "POSIXt")
-  ) {
-    all_unique_times <- sort(unique(time_orig)) # preserves class
-    if (length(all_unique_times) > 1) {
-      global_intervals <- diff(all_unique_times)
-      if (length(unique(global_intervals)) > 1) {
-        has_irregular_time_sequence <- TRUE
-        time_sequence_regular <- FALSE
-      }
+  # Identify entities with incomplete observed data
+  entities_with_incomplete_observed <- character(0)
+  for (g in unique_groups_orig) {
+    g_char <- as.character(g)
+    nominal_times_this_group <- unique(time_orig[group_orig == g])
+    obs_times_this_group <- unique_time_sets_obs[[g_char]]
+    if (
+      length(nominal_times_this_group) > 0 &&
+        length(obs_times_this_group) < length(nominal_times_this_group)
+    ) {
+      entities_with_incomplete_observed <- c(
+        entities_with_incomplete_observed,
+        g
+      )
     }
   }
-
-  # Check for irregular time intervals within groups
-  has_irregular_intervals <- FALSE
-  irregular_groups_orig <- vector("list", 0) # will store original class values
-  interval_details <- list()
-
   if (
-    is.numeric(time_orig) ||
-      inherits(time_orig, "Date") ||
-      inherits(time_orig, "POSIXt")
+    length(entities_with_incomplete_observed) > 0 &&
+      !is.character(unique_groups_orig)
   ) {
+    entities_with_incomplete_observed <- unique_groups_orig[sapply(
+      entities_with_incomplete_observed,
+      function(x) which(as.character(unique_groups_orig) == x)
+    )]
+  }
+
+  # --- TIME SEQUENCE TEST (based on observed time points) ---
+  time_is_numeric <- is.numeric(time_orig) ||
+    inherits(time_orig, "Date") ||
+    inherits(time_orig, "POSIXt")
+  has_irregular_observed_time_sequence <- FALSE
+  observed_time_points <- NULL
+  observed_time_intervals <- NULL
+
+  if (time_is_numeric) {
+    # Observed time points (where at least one entity has observed data)
+    observed_time_points <- sort(unique(time_orig[has_observed]))
+    if (length(observed_time_points) > 1) {
+      observed_time_intervals <- diff(observed_time_points)
+      if (length(unique(observed_time_intervals)) > 1) {
+        has_irregular_observed_time_sequence <- TRUE
+        time_seq_message <- "Irregular observed time sequence in entire panel"
+        time_seq_status <- "FAIL"
+      } else {
+        time_seq_message <- "Regular observed time sequence in entire panel"
+        time_seq_status <- "PASS"
+      }
+    } else if (length(observed_time_points) == 1) {
+      time_seq_message <- "Only one observed time point – sequence regularity not applicable"
+      time_seq_status <- "INFO"
+    } else {
+      time_seq_message <- "No observed time points"
+      time_seq_status <- "INFO"
+    }
+  } else {
+    time_seq_message <- "Time variable is not numeric/Date-like"
+    time_seq_status <- "INFO"
+  }
+
+  # --- GROUP INTERVALS TEST (based on observed time points per group) ---
+  has_irregular_observed_intervals <- FALSE
+  irregular_observed_interval_groups <- vector("list", 0)
+  group_observed_interval_details <- list()
+
+  if (time_is_numeric) {
     for (grp_val in unique_groups_orig) {
       grp_char <- as.character(grp_val)
-      times <- time_orig[group_char == grp_char] # original class
-      unique_times <- sort(unique(times))
-      if (length(unique_times) > 1) {
-        intervals <- diff(unique_times)
+      # Observed times for this group
+      obs_times <- sort(unique(time_orig[group_orig == grp_val & has_observed]))
+      if (length(obs_times) > 1) {
+        intervals <- diff(obs_times)
         if (length(unique(intervals)) > 1) {
-          has_irregular_intervals <- TRUE
-          irregular_groups_orig <- c(irregular_groups_orig, grp_val)
-          interval_details[[grp_char]] <- list(
-            times = unique_times,
+          has_irregular_observed_intervals <- TRUE
+          irregular_observed_interval_groups <- c(
+            irregular_observed_interval_groups,
+            grp_val
+          )
+          group_observed_interval_details[[grp_char]] <- list(
+            times = obs_times,
             intervals = intervals,
             is_regular = FALSE
           )
         } else {
-          interval_details[[grp_char]] <- list(
-            times = unique_times,
+          group_observed_interval_details[[grp_char]] <- list(
+            times = obs_times,
             intervals = intervals,
             is_regular = TRUE
           )
         }
       } else {
-        interval_details[[grp_char]] <- list(
-          times = unique_times,
+        group_observed_interval_details[[grp_char]] <- list(
+          times = obs_times,
           intervals = numeric(0),
           is_regular = TRUE
         )
       }
     }
+
+    if (has_irregular_observed_intervals) {
+      group_interval_message <- "Irregular observed time intervals within groups"
+      group_interval_status <- "FAIL"
+    } else {
+      group_interval_message <- "Regular observed time intervals within groups"
+      group_interval_status <- "PASS"
+    }
+  } else {
+    group_interval_message <- "Time variable is not numeric/Date-like"
+    group_interval_status <- "INFO"
   }
+
+  # --- (Other tests remain unchanged) ---
+
+  # Check for irregular time sequence in entire panel (original nominal – kept for reference)
+  # We'll keep the nominal check in details but not in main test results.
 
   # Calculate observations per group
   group_table <- table(group_orig)
@@ -297,7 +384,7 @@ check_panel <- function(data, group = NULL, time = NULL) {
   groups_with_min_obs <- names(group_table)[group_table == min_obs]
   groups_with_max_obs <- names(group_table)[group_table == max_obs]
 
-  # Build exploration results with human-readable test names (unchanged)
+  # Build exploration results with human-readable test names
   exploration_results <- rbind(
     exploration_results,
     data.frame(
@@ -384,77 +471,38 @@ check_panel <- function(data, group = NULL, time = NULL) {
     )
   )
 
+  # Balance test row
   exploration_results <- rbind(
     exploration_results,
     data.frame(
       variable = "Balance",
-      status = ifelse(is_balanced, "PASS", "FAIL"),
-      message = ifelse(is_balanced, "Panel is balanced", "Panel is unbalanced"),
+      status = balance_status,
+      message = balance_message,
       stringsAsFactors = FALSE
     )
   )
 
-  # Check time sequence regularity (entire panel)
-  if (
-    is.numeric(time_orig) ||
-      inherits(time_orig, "Date") ||
-      inherits(time_orig, "POSIXt")
-  ) {
-    exploration_results <- rbind(
-      exploration_results,
-      data.frame(
-        variable = "Time sequence",
-        status = ifelse(has_irregular_time_sequence, "FAIL", "PASS"),
-        message = ifelse(
-          has_irregular_time_sequence,
-          "Irregular time sequence in entire panel",
-          "Regular time sequence in entire panel"
-        ),
-        stringsAsFactors = FALSE
-      )
+  # Time sequence test row (observed-based)
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "Time sequence",
+      status = time_seq_status,
+      message = time_seq_message,
+      stringsAsFactors = FALSE
     )
-  } else {
-    exploration_results <- rbind(
-      exploration_results,
-      data.frame(
-        variable = "Time sequence",
-        status = "INFO",
-        message = "Time variable is not numeric/Date-like",
-        stringsAsFactors = FALSE
-      )
-    )
-  }
+  )
 
-  # Check interval regularity within groups
-  if (
-    is.numeric(time_orig) ||
-      inherits(time_orig, "Date") ||
-      inherits(time_orig, "POSIXt")
-  ) {
-    exploration_results <- rbind(
-      exploration_results,
-      data.frame(
-        variable = "Group intervals",
-        status = ifelse(has_irregular_intervals, "FAIL", "PASS"),
-        message = ifelse(
-          has_irregular_intervals,
-          "Irregular time intervals within groups",
-          "Regular time intervals within groups"
-        ),
-        stringsAsFactors = FALSE
-      )
+  # Group intervals test row (observed-based)
+  exploration_results <- rbind(
+    exploration_results,
+    data.frame(
+      variable = "Group intervals",
+      status = group_interval_status,
+      message = group_interval_message,
+      stringsAsFactors = FALSE
     )
-  } else {
-    exploration_results <- rbind(
-      exploration_results,
-      data.frame(
-        variable = "Group intervals",
-        status = "INFO",
-        message = "Time variable is not numeric/Date-like",
-        stringsAsFactors = FALSE
-      )
-    )
-  }
+  )
 
   # Determine overall status
   overall_status <- ifelse(
@@ -463,8 +511,7 @@ check_panel <- function(data, group = NULL, time = NULL) {
     "PASS"
   )
 
-  # Create simplified details list with problematic observations only,
-  # now using original class for group/time identifiers.
+  # Create details list
   details_list <- list()
 
   if (any(is.na(group_orig))) {
@@ -477,43 +524,37 @@ check_panel <- function(data, group = NULL, time = NULL) {
 
   if (has_duplicates) {
     details_list$duplicate_observations <- duplicate_indices
-    details_list$duplicate_combinations <- duplicate_combos # character combos – fine
+    details_list$duplicate_combinations <- duplicate_combos
   }
 
-  if (!is_balanced) {
-    # unbalanced_groups: original class
-    details_list$unbalanced_groups <- unique_groups_orig[sapply(
-      unique_groups_orig,
-      function(g) {
-        grp_char <- as.character(g)
-        !is.null(missing_time_info[[grp_char]])
-      }
-    )]
-    if (length(details_list$unbalanced_groups) > 0) {
-      # missing_time_points already stored with original class times
-      details_list$missing_time_points <- missing_time_info
+  if (!is_balanced_observed && any(obs_set_lengths > 0)) {
+    details_list$unbalanced_groups <- unique_groups_orig[
+      !sapply(unique_time_sets_obs, function(x) identical(x, ref_set))
+    ]
+  }
+
+  if (length(entities_with_incomplete_observed) > 0) {
+    details_list$entities_with_incomplete_observed <- entities_with_incomplete_observed
+  }
+
+  if (time_is_numeric) {
+    details_list$observed_time_points <- observed_time_points
+    if (has_irregular_observed_time_sequence) {
+      details_list$irregular_observed_time_intervals <- observed_time_intervals
+    }
+    if (has_irregular_observed_intervals) {
+      details_list$irregular_observed_interval_groups <- irregular_observed_interval_groups
+      details_list$group_observed_interval_details <- group_observed_interval_details
     }
   }
 
-  if (has_irregular_time_sequence) {
-    details_list$irregular_time_intervals <- diff(sort(unique(time_orig)))
-    details_list$all_time_points <- sort(unique(time_orig)) # original class
-  }
-
-  if (has_irregular_intervals) {
-    # irregular_interval_groups: original class
-    details_list$irregular_interval_groups <- irregular_groups_orig
-    # group_interval_details already contains original class times
-    details_list$group_interval_details <- interval_details
-  }
-
-  # Logical summaries (unchanged)
+  # Logical summaries
   details_list$group_completeness <- !any(is.na(group_orig))
   details_list$time_completeness <- !any(is.na(time_orig))
   details_list$no_duplicates <- !has_duplicates
-  details_list$balance <- is_balanced
-  details_list$time_sequence <- !has_irregular_time_sequence
-  details_list$group_intervals <- !has_irregular_intervals
+  details_list$balance <- is_balanced_observed
+  details_list$time_sequence <- !has_irregular_observed_time_sequence
+  details_list$group_intervals <- !has_irregular_observed_intervals
 
   # Create the output data.frame with test results
   test_results <- exploration_results
@@ -542,7 +583,7 @@ check_panel <- function(data, group = NULL, time = NULL) {
     time = time
   )
 
-  # Set attributes in desired order
+  # Set attributes
   attr(final_results, "metadata") <- metadata
   attr(final_results, "details") <- details_list
 
