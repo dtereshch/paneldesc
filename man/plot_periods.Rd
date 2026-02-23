@@ -7,7 +7,7 @@
 plot_periods(data, group = NULL, time = NULL, colors = c("#1E4A3B", "white"))
 }
 \arguments{
-\item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
+\item{data}{A data.frame containing panel data in a long format.}
 
 \item{group}{A character string specifying the name of the entity/group variable in panel data.
 Not required if data has panel attributes.}

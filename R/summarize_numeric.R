@@ -3,7 +3,7 @@
 #' This function calculates summary statistics for numeric variables,
 #' either overall or grouped by a single grouping variable.
 #'
-#' @param data A data.frame containing the variables for analysis.
+#' @param data A data.frame containing variables for analysis.
 #' @param selection A character vector specifying which numeric variables to analyze.
 #'        If not specified, all numeric variables in the data.frame will be used.
 #' @param group A character string specifying the grouping variable name.

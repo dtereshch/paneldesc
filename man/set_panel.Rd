@@ -7,7 +7,7 @@
 set_panel(data, group, time)
 }
 \arguments{
-\item{data}{A data.frame containing panel data.}
+\item{data}{A data.frame containing panel data in a long format.}
 
 \item{group}{A character string specifying the name of the entity/group variable.}
 

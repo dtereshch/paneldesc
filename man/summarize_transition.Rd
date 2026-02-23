@@ -14,7 +14,7 @@ summarize_transition(
 )
 }
 \arguments{
-\item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
+\item{data}{A data.frame containing panel data in a long format.}
 
 \item{selection}{A character string specifying the factor variable to analyze transitions for.}
 

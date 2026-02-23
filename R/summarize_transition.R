@@ -3,7 +3,7 @@
 #' Calculates transition counts and shares between states of a categorical (factor) variable
 #' across consecutive time periods within groups (e.g., firms, individuals) for panel data.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param selection A character string specifying the factor variable to analyze transitions for.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'        Not required if data has panel attributes.

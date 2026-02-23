@@ -2,7 +2,7 @@
 #'
 #' This function creates a heatmap showing the presence/absence pattern of each entity over time.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'        Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
@@ -13,7 +13,7 @@
 #'        Default = c("#1E4A3B", "white").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
-#' Creates a heatmap showing presence/absence patterns.
+#'         Creates a heatmap showing presence/absence patterns.
 #'
 #' @details
 #' An entity/time combination is considered **present** if the corresponding row contains at least

@@ -2,17 +2,16 @@
 #'
 #' This function creates visualizations of heterogeneity among groups.
 #'
-#' @param data A data.frame containing the variables for analysis, or a data.frame
-#'        with panel attributes.
+#' @param data A data.frame containing variables for analysis.
 #' @param selection A character string specifying the numeric variable of interest.
-#' @param group A character string or vector of character strings specifying the
-#'        grouping variable(s). If data has panel attributes and group is not specified,
+#' @param group A character string or vector of character strings specifying the grouping variable(s).
+#'        If data has panel attributes and group is not specified,
 #'        both panel_group and panel_time will be used as group variables.
-#' @param colors A character vector of two colors: first for mean line and points,
-#'        second for individual points. Default = c("#1E4A3B", "#D4B87A").
+#' @param colors A character vector of two colors: first for mean line and points, second for individual points.
+#'        Default = c("#1E4A3B", "#D4B87A").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
-#' Creates a plot with individual observations and group means.
+#'         Creates a plot with individual observations and group means.
 #'
 #' @details
 #' This function creates one or more plots (depending on the number of grouping variables)

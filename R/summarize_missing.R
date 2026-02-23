@@ -3,7 +3,7 @@
 #' This function calculates summary statistics for missing values (NAs) in panel data,
 #' providing both overall and detailed period-specific missing value counts.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param selection A character vector specifying which variables to analyze for missing values.
 #'        If not specified, all variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable in panel data.

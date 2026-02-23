@@ -3,7 +3,7 @@
 #' This function provides summary statistics for panel data structure with focus on balance
 #' and data completeness.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param group A character string specifying the name of the entity/group variable.
 #'        Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.

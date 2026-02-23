@@ -3,7 +3,7 @@
 #' This function performs one-way tabulations and decomposes counts into
 #' between and within components for categorical (factor) variables in panel data.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param selection A character vector specifying which categorical (factor) variables to analyze.
 #'        If not specified, all factor variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable.

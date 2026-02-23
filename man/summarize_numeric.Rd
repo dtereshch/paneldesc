@@ -13,7 +13,7 @@ summarize_numeric(
 )
 }
 \arguments{
-\item{data}{A data.frame containing the variables for analysis.}
+\item{data}{A data.frame containing variables for analysis.}
 
 \item{selection}{A character vector specifying which numeric variables to analyze.
 If not specified, all numeric variables in the data.frame will be used.}

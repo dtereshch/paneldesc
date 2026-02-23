@@ -13,7 +13,7 @@ decompose_factor(
 )
 }
 \arguments{
-\item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
+\item{data}{A data.frame containing panel data in a long format.}
 
 \item{selection}{A character vector specifying which categorical (factor) variables to analyze.
 If not specified, all factor variables in the data.frame will be used.}

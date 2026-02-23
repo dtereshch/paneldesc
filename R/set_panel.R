@@ -3,7 +3,7 @@
 #' This function adds panel structure attributes to a data.frame, storing entity/group and time variable names.
 #' This allows panel functions to automatically detect panel structure.
 #'
-#' @param data A data.frame containing panel data.
+#' @param data A data.frame containing panel data in a long format.
 #' @param group A character string specifying the name of the entity/group variable.
 #' @param time A character string specifying the name of the time variable.
 #'

@@ -3,7 +3,7 @@
 #' This function calculates summary statistics and creates a histogram showing
 #' the distribution of time periods covered by each entity in panel data.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'        Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
@@ -12,7 +12,7 @@
 #'        First color is for fill, second color is for the border line. Default = c("#1E4A3B", "white").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
-#' Creates a histogram showing the distribution of time coverage across entities.
+#'         Creates a histogram showing the distribution of time coverage across entities.
 #'
 #' @details
 #' An entity/time combination is considered **present** if the corresponding row contains at least

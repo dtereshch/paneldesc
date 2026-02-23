@@ -3,7 +3,7 @@
 #' This function decomposes variance of numeric variables
 #' into between and within components in panel data.
 #'
-#' @param data A data.frame containing panel data, or a data.frame with panel attributes.
+#' @param data A data.frame containing panel data in a long format.
 #' @param selection A character vector specifying which numeric variables to analyze.
 #'        If not specified, all numeric variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable in panel data.

@@ -14,7 +14,7 @@ decompose_numeric(
 )
 }
 \arguments{
-\item{data}{A data.frame containing panel data, or a data.frame with panel attributes.}
+\item{data}{A data.frame containing panel data in a long format.}
 
 \item{selection}{A character vector specifying which numeric variables to analyze.
 If not specified, all numeric variables in the data.frame will be used.}
