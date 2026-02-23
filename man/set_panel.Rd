@@ -4,7 +4,7 @@
 \alias{set_panel}
 \title{Panel Data Structure Setting}
 \usage{
-set_panel(data, group, time)
+set_panel(data, group, time, interval = NULL)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
@@ -12,12 +12,15 @@ set_panel(data, group, time)
 \item{group}{A character string specifying the name of the entity/group variable.}
 
 \item{time}{A character string specifying the name of the time variable.}
+
+\item{interval}{An optional positive integer giving the expected interval between time periods.}
 }
 \value{
 The input data.frame with additional attributes.
 }
 \description{
-This function adds panel structure attributes to a data.frame, storing entity/group and time variable names.
+This function adds panel structure attributes to a data.frame, storing entity/group and time variable names,
+and optionally checks the expected interval between time periods.
 This allows panel functions to automatically detect panel structure.
 }
 \details{
@@ -25,23 +28,41 @@ This function adds attributes to a data.frame to mark it as panel data.
 The returned object has class \code{"panel_data"} (in addition to its original class).
 It includes the following attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{metadata}}{List containing the function name and the arguments used
+(\code{group}, \code{time}, and \code{interval} if provided).}
+\item{\code{details}}{List with diagnostic vectors. By default it contains:
+\describe{
+\item{\code{entities}}{Unique values of the group variable.}
+\item{\code{periods}}{Sorted unique values of the time variable.}
 }
-These attributes enable panel‑aware functions to automatically detect the panel structure
-without requiring explicit specification of group and time variables in each function call.
-The original data.frame structure is preserved.
+If \code{interval} is supplied and missing periods are detected, two additional vectors are included:
+\describe{
+\item{\code{periods_restored}}{The full sequence of periods from \code{min(time)} to \code{max(time)} by \code{interval}.}
+\item{\code{periods_missing}}{The periods in \code{periods_restored} that are not present in the data.}
+}}
+}
+
+When \code{interval} is specified, the function first attempts to convert the time variable to numeric
+(if it is not already). If conversion fails, an error is raised. It then checks whether the observed
+time points are compatible with a regular spacing of that interval. If any observed difference is not
+a multiple of the interval, an error is raised. If all differences are multiples of the interval but
+there are gaps, a message is printed listing the missing periods, and the analysis continues.
 }
 \examples{
 data(production)
 
-# Add panel attributes
+# Add panel attributes without interval check
 panel_data <- set_panel(production, group = "firm", time = "year")
 
 # Check the attributes
 attr(panel_data, "metadata")
+attr(panel_data, "details")
 
 # Use with describe_dimensions()
 describe_dimensions(panel_data)
+
+# With interval specification (assuming yearly data)
+panel_data2 <- set_panel(production, group = "firm", time = "year", interval = 1)
 
 }
 \seealso{

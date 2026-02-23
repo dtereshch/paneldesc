@@ -8,6 +8,7 @@ plot_patterns(
   data,
   group = NULL,
   time = NULL,
+  interval = NULL,
   max_patterns = NULL,
   colors = c("#1E4A3B", "white")
 )
@@ -20,6 +21,8 @@ Not required if data has panel attributes.}
 
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
+
+\item{interval}{An optional positive integer giving the expected interval between time periods.}
 
 \item{max_patterns}{An integer specifying the maximum number of distinct patterns to display.
 If not specified, all patterns are shown.}
@@ -37,6 +40,13 @@ This function creates a heatmap showing the presence/absence pattern of each ent
 \details{
 An entity/time combination is considered \strong{present} if the corresponding row contains at least
 one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
+
+If \code{interval} is supplied, the time variable is coerced to numeric (if possible).
+The function then checks that all observed time points are compatible with a regular spacing
+of that interval. If gaps are detected, a message lists the missing periods (unless the interval
+was inherited from panel attributes), and columns for those periods are added to the presence matrix
+(all zeros) before plotting. The heatmap will therefore include those missing periods on the x‑axis,
+and all entities will appear as missing (color for 0) in those columns.
 
 The heatmap shows:
 \itemize{
@@ -64,6 +74,9 @@ plot_patterns(production, group = "firm", time = "year")
 
 # Only top 3 patterns
 plot_patterns(production, group = "firm", time = "year", max_patterns = 3)
+
+# Specify interval to fill gaps
+plot_patterns(production, group = "firm", time = "year", interval = 1)
 
 # Custom colors
 plot_patterns(production, group = "firm", time = "year", colors = c("black", "white"))

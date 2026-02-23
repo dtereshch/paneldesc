@@ -8,6 +8,7 @@ describe_patterns(
   data,
   group = NULL,
   time = NULL,
+  interval = NULL,
   format = "wide",
   detailed = TRUE,
   digits = 3
@@ -21,6 +22,8 @@ Not required if data has panel attributes.}
 
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
+
+\item{interval}{An optional positive integer giving the expected interval between time periods.}
 
 \item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
 
@@ -39,28 +42,20 @@ This function describes entities presence patterns in panel data over time.
 An entity/time combination is considered \strong{present} if the corresponding row contains at least
 one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
 
+If \code{interval} is supplied, the time variable is coerced to numeric (if possible).
+The function then checks that all observed time points are compatible with a regular spacing
+of that interval. If gaps are detected, a message lists the missing periods (unless the interval
+was inherited from panel attributes), and columns for those periods are added to the presence matrix
+(all zeros) before computing patterns. The output data.frame will therefore include those missing
+periods as additional columns (in wide format) or additional rows (in long format). The \code{details}
+attribute is updated accordingly, but no new vectors are added beyond those already present.
+
 The output format depends on the \code{format} and \code{detailed} parameters:
-
-\strong{When \code{format = "wide"} and \code{detailed = TRUE} (default):}
 \describe{
-\item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
-\item{\code{[time_period]}}{Columns for each time period showing presence
-(1 = present, 0 = missing). Column names match the time variable values.}
-\item{\code{count}}{Number of entities with this pattern}
-\item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
+\item{\code{format = "wide"}, \code{detailed = TRUE}}{Columns: pattern, \link{time_periods}, count, share.}
+\item{\code{format = "long"}, \code{detailed = TRUE}}{Columns: pattern, time, presence, count, share.}
+\item{\code{detailed = FALSE}}{Only pattern and time period columns (or presence in long format).}
 }
-
-\strong{When \code{format = "long"} and \code{detailed = TRUE}:}
-\describe{
-\item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
-\item{\code{[time]}}{The time period variable (named according to the \code{time} argument)}
-\item{\code{presence}}{0/1 values indicating absence/presence in the period}
-\item{\code{count}}{Number of entities with this pattern}
-\item{\code{share}}{Proportion of entities with this pattern}
-}
-
-\strong{When \code{detailed = FALSE}:}
-Returns only the pattern and time period columns (without count or share).
 
 Patterns are sorted by frequency (most common first).
 
@@ -82,17 +77,11 @@ describe_patterns(production, group = "firm", time = "year")
 panel_data <- set_panel(production, group = "firm", time = "year")
 describe_patterns(panel_data)
 
+# Specify interval to fill gaps
+describe_patterns(production, group = "firm", time = "year", interval = 1)
+
 # Simplified version
 describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
-
-# Simplified version in long format
-describe_patterns(production, group = "firm", time = "year", format = "long", detailed = FALSE)
-
-# With custom rounding
-describe_patterns(production, group = "firm", time = "year", digits = 4)
-
-# Effectively no rounding (use large digit value)
-describe_patterns(production, group = "firm", time = "year", digits = 999999)
 
 # Using pattern_groups to extract entities with specific patterns
 patterns <- describe_patterns(production, group = "firm", time = "year")

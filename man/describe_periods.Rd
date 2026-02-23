@@ -4,7 +4,7 @@
 \alias{describe_periods}
 \title{Time Periods Completeness Description}
 \usage{
-describe_periods(data, group = NULL, time = NULL, digits = 3)
+describe_periods(data, group = NULL, time = NULL, interval = NULL, digits = 3)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
@@ -14,6 +14,8 @@ Not required if data has panel attributes.}
 
 \item{time}{A character string specifying the name of the time variable.
 Not required if data has panel attributes.}
+
+\item{interval}{An optional positive integer giving the expected interval between time periods.}
 
 \item{digits}{An integer specifying the number of decimal places for rounding the share column.
 Default = 3.}
@@ -37,11 +39,18 @@ relative to the total number of unique entities in the data (0 to 1),
 rounded to \code{digits} decimal places.}
 }
 
-Time periods are sorted naturally (numeric values as numbers, others alphabetically).
+If \code{interval} is supplied, the time variable is coerced to numeric (if possible).
+The function then checks that all observed time points are compatible with a regular spacing
+of that interval. If gaps are detected, a message lists the missing periods (unless the interval
+was inherited from panel attributes), and rows for those periods are added to the output with
+\code{count = 0} and \code{share = 0}. The \code{entities} list in the \code{details} attribute includes empty vectors
+for those missing periods.
+
+Time periods are sorted naturally (numeric order).
 
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name, group, time, and digits.}
+\item{\code{metadata}}{List containing the function name, group, time, interval, and digits.}
 \item{\code{details}}{List containing additional information: \code{entities}.
 This is a named list where names are time periods and values are vectors of
 entity identifiers that are observed (have at least one non‑NA) in that period.}
@@ -57,6 +66,9 @@ describe_periods(production, group = "firm", time = "year", digits = 4)
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")
 describe_periods(panel_data)
+
+# Specify interval to fill gaps (if any)
+describe_periods(production, group = "firm", time = "year", interval = 1)
 
 # Get entities observed in the 6th period
 result <- describe_periods(production, group = "firm", time = "year")

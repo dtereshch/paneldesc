@@ -7,6 +7,7 @@
 #'        Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'        Not required if data has panel attributes.
+#' @param interval An optional positive integer giving the expected interval between time periods.
 #' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
 #' @param digits An integer specifying the number of decimal places for rounding share column.
@@ -18,28 +19,20 @@
 #' An entity/time combination is considered **present** if the corresponding row contains at least
 #' one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
 #'
+#' If `interval` is supplied, the time variable is coerced to numeric (if possible).
+#' The function then checks that all observed time points are compatible with a regular spacing
+#' of that interval. If gaps are detected, a message lists the missing periods (unless the interval
+#' was inherited from panel attributes), and columns for those periods are added to the presence matrix
+#' (all zeros) before computing patterns. The output data.frame will therefore include those missing
+#' periods as additional columns (in wide format) or additional rows (in long format). The `details`
+#' attribute is updated accordingly, but no new vectors are added beyond those already present.
+#'
 #' The output format depends on the `format` and `detailed` parameters:
-#'
-#' \strong{When `format = "wide"` and `detailed = TRUE` (default):}
 #' \describe{
-#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
-#'   \item{\code{[time_period]}}{Columns for each time period showing presence
-#'     (1 = present, 0 = missing). Column names match the time variable values.}
-#'   \item{\code{count}}{Number of entities with this pattern}
-#'   \item{\code{share}}{Proportion of entities with this pattern (0 to 1)}
+#'   \item{\code{format = "wide"}, \code{detailed = TRUE}}{Columns: pattern, [time_periods], count, share.}
+#'   \item{\code{format = "long"}, \code{detailed = TRUE}}{Columns: pattern, time, presence, count, share.}
+#'   \item{\code{detailed = FALSE}}{Only pattern and time period columns (or presence in long format).}
 #' }
-#'
-#' \strong{When `format = "long"` and `detailed = TRUE`:}
-#' \describe{
-#'   \item{\code{pattern}}{Pattern identifier (1, 2, 3, ...) ordered by frequency}
-#'   \item{\code{[time]}}{The time period variable (named according to the `time` argument)}
-#'   \item{\code{presence}}{0/1 values indicating absence/presence in the period}
-#'   \item{\code{count}}{Number of entities with this pattern}
-#'   \item{\code{share}}{Proportion of entities with this pattern}
-#' }
-#'
-#' \strong{When `detailed = FALSE`:}
-#' Returns only the pattern and time period columns (without count or share).
 #'
 #' Patterns are sorted by frequency (most common first).
 #'
@@ -64,17 +57,11 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #' describe_patterns(panel_data)
 #'
+#' # Specify interval to fill gaps
+#' describe_patterns(production, group = "firm", time = "year", interval = 1)
+#'
 #' # Simplified version
 #' describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
-#'
-#' # Simplified version in long format
-#' describe_patterns(production, group = "firm", time = "year", format = "long", detailed = FALSE)
-#'
-#' # With custom rounding
-#' describe_patterns(production, group = "firm", time = "year", digits = 4)
-#'
-#' # Effectively no rounding (use large digit value)
-#' describe_patterns(production, group = "firm", time = "year", digits = 999999)
 #'
 #' # Using pattern_groups to extract entities with specific patterns
 #' patterns <- describe_patterns(production, group = "firm", time = "year")
@@ -86,10 +73,14 @@ describe_patterns <- function(
   data,
   group = NULL,
   time = NULL,
+  interval = NULL,
   format = "wide",
   detailed = TRUE,
   digits = 3
 ) {
+  # Capture original interval argument
+  user_interval <- interval
+
   # Helper to sort unique values preserving original class
   sort_unique_preserve <- function(x) {
     ux <- unique(x)
@@ -98,12 +89,20 @@ describe_patterns <- function(
     } else if (inherits(ux, "Date") || inherits(ux, "POSIXt")) {
       sort(ux)
     } else if (is.factor(ux)) {
-      # Convert to character, sort, then rebuild factor with sorted levels
       char_lev <- as.character(ux)
       sorted_char <- sort(char_lev)
       factor(sorted_char, levels = sorted_char, ordered = is.ordered(ux))
     } else {
-      sort(ux) # character, logical, etc.
+      sort(ux)
+    }
+  }
+
+  # Helper function for rounding
+  round_if_needed <- function(x, digits) {
+    if (is.numeric(x) && !all(is.na(x))) {
+      round(x, digits)
+    } else {
+      x
     }
   }
 
@@ -119,12 +118,13 @@ describe_patterns <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    if (is.null(interval) && !is.null(metadata$interval)) {
+      interval <- metadata$interval
+    }
   } else {
-    # Handle regular data.frame
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
     }
-
     if (is.null(group) || is.null(time)) {
       stop(
         "For regular data.frames, both 'group' and 'time' arguments must be provided"
@@ -132,36 +132,31 @@ describe_patterns <- function(
     }
   }
 
-  # Common validation for both cases
+  # Determine if interval came from metadata
+  interval_from_metadata <- is.null(user_interval) && !is.null(interval)
+
+  # Common validation
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
-
   if (!is.character(time) || length(time) != 1) {
     stop("'time' must be a single character string, not ", class(time)[1])
   }
-
   if (!group %in% names(data)) {
     stop('variable "', group, '" not found in data')
   }
-
   if (!time %in% names(data)) {
     stop('variable "', time, '" not found in data')
   }
-
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
-
   if (!is.character(format) || length(format) != 1) {
     stop("'format' must be a single character string, not ", class(format)[1])
   }
-
   if (!format %in% c("wide", "long")) {
     stop('format must be either "wide" or "long", not "', format, '"')
   }
-
-  # Harmonized digits validation
   if (!is.numeric(digits) || length(digits) != 1) {
     stop("'digits' must be a single non-negative integer")
   }
@@ -170,12 +165,59 @@ describe_patterns <- function(
   }
   digits <- as.integer(digits)
 
-  # Helper function for rounding
-  round_if_needed <- function(x, digits) {
-    if (is.numeric(x) && !all(is.na(x))) {
-      round(x, digits)
-    } else {
-      x
+  # --- Interval handling ---
+  if (!is.null(interval)) {
+    if (
+      !is.numeric(interval) ||
+        length(interval) != 1 ||
+        interval <= 0 ||
+        interval != round(interval)
+    ) {
+      stop("'interval' must be a positive integer")
+    }
+    # Coerce time to numeric if needed
+    time_vals_orig <- data[[time]]
+    if (!is.numeric(time_vals_orig)) {
+      time_numeric <- suppressWarnings(as.numeric(as.character(time_vals_orig)))
+      if (anyNA(time_numeric)) {
+        stop(
+          "Cannot convert the time variable '",
+          time,
+          "' to numeric. ",
+          "Please ensure it contains numbers or convert it manually."
+        )
+      }
+      data[[time]] <- time_numeric
+    }
+
+    # Check consistency
+    obs_periods <- sort(unique(data[[time]]))
+    time_diffs <- diff(obs_periods)
+    if (!all(time_diffs %% interval == 0)) {
+      stop(
+        "The observed time points are not evenly spaced by multiples of the specified interval (",
+        interval,
+        "). ",
+        "For example, differences such as ",
+        paste(unique(time_diffs[time_diffs %% interval != 0]), collapse = ", "),
+        " are not multiples of ",
+        interval,
+        "."
+      )
+    }
+
+    # Compute full sequence and missing periods
+    full_seq <- seq(
+      from = min(obs_periods),
+      to = max(obs_periods),
+      by = interval
+    )
+    missing <- setdiff(full_seq, obs_periods)
+    if (length(missing) > 0 && !interval_from_metadata) {
+      message(
+        "Irregular time intervals detected. Missing periods: ",
+        paste(missing, collapse = ", ")
+      )
     }
   }
 
@@ -191,13 +233,21 @@ describe_patterns <- function(
   unique_groups_orig <- sort_unique_preserve(group_orig)
   unique_periods_orig <- sort_unique_preserve(time_orig)
 
+  # If interval used, we may need to expand periods to include missing ones.
+  # We'll use numeric periods for matrix construction.
+  if (!is.null(interval)) {
+    # Use full_seq (which includes missing) as the time columns
+    time_cols_numeric <- full_seq
+    time_cols_char <- as.character(time_cols_numeric)
+  } else {
+    time_cols_char <- as.character(unique_periods_orig)
+  }
+
   # Character versions for dimnames etc.
   unique_groups_char <- as.character(unique_groups_orig)
-  unique_periods_char <- as.character(unique_periods_orig)
 
   # Identify data columns (excluding group and time)
   data_cols <- setdiff(names(data), c(group, time))
-
   if (length(data_cols) == 0) {
     stop("no data columns found (excluding group and time variables)")
   }
@@ -224,13 +274,17 @@ describe_patterns <- function(
   presence_binary <- matrix(
     0,
     nrow = length(unique_groups_orig),
-    ncol = length(unique_periods_orig),
-    dimnames = list(unique_groups_char, unique_periods_char)
+    ncol = length(time_cols_char),
+    dimnames = list(unique_groups_char, time_cols_char)
   )
 
   # Fill the binary matrix: mark 1 for all rows in filtered data
+  # If interval used, time_filt_char corresponds to original observed periods (character).
+  # They should match some of the time_cols_char.
   for (i in seq_along(group_filt_char)) {
-    presence_binary[group_filt_char[i], time_filt_char[i]] <- 1
+    if (time_filt_char[i] %in% time_cols_char) {
+      presence_binary[group_filt_char[i], time_filt_char[i]] <- 1
+    }
   }
 
   # Count patterns and create pattern groups (store original class group values)
@@ -246,7 +300,7 @@ describe_patterns <- function(
     grp_char <- unique_groups_char[i]
     pat_str <- pattern_strings[i]
     if (!pat_str %in% names(pattern_groups)) {
-      pattern_groups[[pat_str]] <- vector(class(grp_orig), 0) # preserve class
+      pattern_groups[[pat_str]] <- vector(class(grp_orig), 0)
     }
     pattern_groups[[pat_str]] <- c(pattern_groups[[pat_str]], grp_orig)
   }
@@ -257,13 +311,12 @@ describe_patterns <- function(
     stringsAsFactors = FALSE
   )
 
-  # Add time period columns (preserve original class for column names? column names must be character)
-  time_cols_char <- unique_periods_char
-  for (i in seq_along(time_cols_char)) {
-    result[[time_cols_char[i]]] <- as.numeric(substr(
+  # Add time period columns (preserve order: time_cols_char)
+  for (t in time_cols_char) {
+    result[[t]] <- as.numeric(substr(
       names(pattern_counts),
-      i,
-      i
+      which(time_cols_char == t),
+      which(time_cols_char == t)
     ))
   }
 
@@ -325,6 +378,7 @@ describe_patterns <- function(
         function_name = as.character(match.call()[[1]]),
         group = group,
         time = time,
+        interval = interval,
         format = format,
         detailed = detailed,
         digits = digits
@@ -338,6 +392,7 @@ describe_patterns <- function(
       function_name = as.character(match.call()[[1]]),
       group = group,
       time = time,
+      interval = interval,
       format = format,
       detailed = detailed,
       digits = digits
@@ -354,6 +409,7 @@ describe_patterns <- function(
       function_name = as.character(match.call()[[1]]),
       group = group,
       time = time,
+      interval = interval,
       format = format,
       detailed = detailed,
       digits = digits
@@ -368,6 +424,7 @@ describe_patterns <- function(
     function_name = as.character(match.call()[[1]]),
     group = group,
     time = time,
+    interval = interval,
     format = format,
     detailed = detailed,
     digits = digits

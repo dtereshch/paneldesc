@@ -9,6 +9,7 @@
 #'        Not required if data has panel attributes.
 #' @param time A character string specifying the name of the time variable.
 #'        Not required if data has panel attributes.
+#' @param interval An optional positive integer giving the expected interval between time periods.
 #' @param digits An integer specifying the number of decimal places for rounding the share column.
 #'        Default = 3.
 #'
@@ -25,11 +26,18 @@
 #'         rounded to `digits` decimal places.}
 #' }
 #'
-#' Time periods are sorted naturally (numeric values as numbers, others alphabetically).
+#' If `interval` is supplied, the time variable is coerced to numeric (if possible).
+#' The function then checks that all observed time points are compatible with a regular spacing
+#' of that interval. If gaps are detected, a message lists the missing periods (unless the interval
+#' was inherited from panel attributes), and rows for those periods are added to the output with
+#' `count = 0` and `share = 0`. The `entities` list in the `details` attribute includes empty vectors
+#' for those missing periods.
+#'
+#' Time periods are sorted naturally (numeric order).
 #'
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name, group, time, and digits.}
+#'   \item{`metadata`}{List containing the function name, group, time, interval, and digits.}
 #'   \item{`details`}{List containing additional information: `entities`.
 #'         This is a named list where names are time periods and values are vectors of
 #'         entity identifiers that are observed (have at least one non‑NA) in that period.}
@@ -49,13 +57,25 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #' describe_periods(panel_data)
 #'
+#' # Specify interval to fill gaps (if any)
+#' describe_periods(production, group = "firm", time = "year", interval = 1)
+#'
 #' # Get entities observed in the 6th period
 #' result <- describe_periods(production, group = "firm", time = "year")
 #' attr(result, "details")$entities[["6"]]
 #'
 #' @export
-describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
-  # Helper to sort unique values preserving original class
+describe_periods <- function(
+  data,
+  group = NULL,
+  time = NULL,
+  interval = NULL,
+  digits = 3
+) {
+  # Capture original interval argument to distinguish user-supplied vs inherited
+  user_interval <- interval
+
+  # Helper to sort unique values preserving original class (for non‑numeric)
   sort_unique_preserve <- function(x) {
     ux <- unique(x)
     if (is.numeric(ux)) {
@@ -92,6 +112,10 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
     }
     group <- metadata$group
     time <- metadata$time
+    # Use interval from metadata if not overridden by explicit argument
+    if (is.null(interval) && !is.null(metadata$interval)) {
+      interval <- metadata$interval
+    }
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
@@ -102,6 +126,9 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
       )
     }
   }
+
+  # Determine if interval came from metadata
+  interval_from_metadata <- is.null(user_interval) && !is.null(interval)
 
   # Common validation
   if (!is.character(group) || length(group) != 1) {
@@ -126,6 +153,64 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
   }
   digits <- as.integer(digits)
 
+  # --- Interval handling ---
+  if (!is.null(interval)) {
+    # Validate interval
+    if (
+      !is.numeric(interval) ||
+        length(interval) != 1 ||
+        interval <= 0 ||
+        interval != round(interval)
+    ) {
+      stop("'interval' must be a positive integer")
+    }
+
+    # Attempt to coerce time variable to numeric
+    time_vals_orig <- data[[time]]
+    if (!is.numeric(time_vals_orig)) {
+      time_numeric <- suppressWarnings(as.numeric(as.character(time_vals_orig)))
+      if (anyNA(time_numeric)) {
+        stop(
+          "Cannot convert the time variable '",
+          time,
+          "' to numeric. ",
+          "Please ensure it contains numbers or convert it manually."
+        )
+      }
+      data[[time]] <- time_numeric
+    }
+
+    # Check consistency: observed time points must be equally spaced by multiples of interval
+    obs_periods <- sort(unique(data[[time]]))
+    time_diffs <- diff(obs_periods)
+    if (!all(time_diffs %% interval == 0)) {
+      stop(
+        "The observed time points are not evenly spaced by multiples of the specified interval (",
+        interval,
+        "). ",
+        "For example, differences such as ",
+        paste(unique(time_diffs[time_diffs %% interval != 0]), collapse = ", "),
+        " are not multiples of ",
+        interval,
+        "."
+      )
+    }
+
+    # Compute full sequence and missing periods
+    full_seq <- seq(
+      from = min(obs_periods),
+      to = max(obs_periods),
+      by = interval
+    )
+    missing <- setdiff(full_seq, obs_periods)
+    if (length(missing) > 0 && !interval_from_metadata) {
+      message(
+        "Irregular time intervals detected. Missing periods: ",
+        paste(missing, collapse = ", ")
+      )
+    }
+  }
+
   # Original vectors
   group_orig <- data[[group]]
   time_orig <- data[[time]]
@@ -133,11 +218,20 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
   # Character versions for internal matching
   time_char <- as.character(time_orig)
 
-  # Unique time periods in original class, sorted
-  unique_times_orig <- sort_unique_preserve(time_orig)
-  unique_times_char <- as.character(unique_times_orig)
+  # Unique time periods (numeric if interval used, else original class)
+  if (!is.null(interval)) {
+    # Use numeric periods (including missing) for sorting and output
+    unique_times <- sort(unique(data[[time]]))
+    if (exists("missing") && length(missing) > 0) {
+      # Add missing periods and re-sort
+      unique_times <- sort(c(unique_times, missing))
+    }
+  } else {
+    unique_times <- sort_unique_preserve(time_orig)
+  }
+  unique_times_char <- as.character(unique_times)
 
-  # Total number of unique entities (for share calculation)
+  # Total number of unique entities
   total_entities <- length(unique(group_orig))
 
   # Identify substantive variables (excluding group and time)
@@ -147,31 +241,38 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
   }
 
   # Initialize result vectors and entity list
-  period_counts <- integer(length(unique_times_orig))
-  entities <- vector("list", length(unique_times_orig))
+  period_counts <- integer(length(unique_times))
+  entities <- vector("list", length(unique_times))
   names(entities) <- unique_times_char
 
   # Calculate observed statistics for each time period
-  for (i in seq_along(unique_times_orig)) {
+  for (i in seq_along(unique_times)) {
+    current_time <- unique_times[i]
     current_time_char <- unique_times_char[i]
-    time_indices <- which(time_char == current_time_char)
 
-    if (length(time_indices) > 0) {
-      period_data <- data[time_indices, substantive_vars, drop = FALSE]
-      period_groups_orig <- group_orig[time_indices]
-
-      # Observed: at least one non-NA value in substantive variables
-      has_some_data <- apply(period_data, 1, function(x) any(!is.na(x)))
-      period_counts[i] <- sum(has_some_data)
-
-      if (any(has_some_data)) {
-        entities[[i]] <- unique(period_groups_orig[has_some_data])
-      } else {
-        entities[[i]] <- vector(class(group_orig), 0)
-      }
-    } else {
+    if (!is.null(interval) && exists("missing") && current_time %in% missing) {
+      # Missing period: count = 0, empty entity vector
       period_counts[i] <- 0
       entities[[i]] <- vector(class(group_orig), 0)
+    } else {
+      time_indices <- which(time_orig == current_time) # works because we coerced to numeric if needed
+      if (length(time_indices) > 0) {
+        period_data <- data[time_indices, substantive_vars, drop = FALSE]
+        period_groups_orig <- group_orig[time_indices]
+
+        # Observed: at least one non-NA value in substantive variables
+        has_some_data <- apply(period_data, 1, function(x) any(!is.na(x)))
+        period_counts[i] <- sum(has_some_data)
+
+        if (any(has_some_data)) {
+          entities[[i]] <- unique(period_groups_orig[has_some_data])
+        } else {
+          entities[[i]] <- vector(class(group_orig), 0)
+        }
+      } else {
+        period_counts[i] <- 0
+        entities[[i]] <- vector(class(group_orig), 0)
+      }
     }
   }
 
@@ -179,9 +280,9 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
   share <- period_counts / total_entities
   share <- round_if_needed(share, digits)
 
-  # Create result data.frame – first column uses original class time values
+  # Create result data.frame – first column uses the computed time periods (numeric if interval used)
   result_df <- data.frame(
-    time_period = unique_times_orig,
+    time_period = unique_times,
     count = period_counts,
     share = share,
     stringsAsFactors = FALSE
@@ -194,6 +295,7 @@ describe_periods <- function(data, group = NULL, time = NULL, digits = 3) {
     function_name = as.character(call[[1]]),
     group = group,
     time = time,
+    interval = interval,
     digits = digits
   )
 
