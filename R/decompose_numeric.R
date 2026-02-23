@@ -8,6 +8,9 @@
 #'        If not specified, all numeric variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'        Not required if data has panel attributes.
+#' @param time An optional character string specifying the name of the time variable.
+#'        If provided, the function checks for duplicate group-time combinations.
+#'        Not required if data has panel attributes.
 #' @param format A character string specifying the output format: "long" or "wide".
 #'        Default = "long".
 #' @param detailed A logical flag indicating whether to return detailed Stata-like output.
@@ -66,10 +69,18 @@
 #'   \item{\code{std_within}}{Within-group standard deviation}
 #' }
 #'
+#' If a time variable is supplied (either by the user or from `panel_data` metadata),
+#' the function checks for duplicate group-time combinations. In a properly structured
+#' panel dataset, each entity (group) should have at most one observation per time period.
+#' If duplicates are found, they are stored in `details$entity_time_duplicates`.
+#' A message is printed only when the identifiers were explicitly provided (i.e., not taken
+#' from `panel_data` attributes).
+#'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `count_groups`.}
+#'   \item{`details`}{List containing additional information: `count_groups` and,
+#'         if time was supplied and duplicates exist, `entity_time_duplicates`.}
 #' }
 #'
 #' @references
@@ -88,68 +99,47 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #' decompose_numeric(panel_data)
 #'
-#' # Simplified output
-#' decompose_numeric(production, group = "firm", detailed = FALSE)
-#'
-#' # Wide format with detailed statistics
-#' decompose_numeric(production, group = "firm", format = "wide")
-#'
-#' # Wide format with simplified statistics
-#' decompose_numeric(production, group = "firm", format = "wide", detailed = FALSE)
-#'
-#' # Show statistics for a single variable
-#' decompose_numeric(production, selection = "sales", group = "firm")
-#'
-#' # Show statistics for multiple variables
-#' decompose_numeric(production, selection = c("capital", "labor"), group = "firm")
-#'
-#' # Show statistics with two digits rounding
-#' decompose_numeric(production, group = "firm", digits = 2)
-#'
-#' # Effectively no rounding (use large digit value)
-#' decompose_numeric(production, group = "firm", digits = 999999)
+#' # Show statistics with time variable to check duplicates
+#' decompose_numeric(production, group = "firm", time = "year")
 #'
 #' @export
 decompose_numeric <- function(
   data,
   selection = NULL,
   group = NULL,
+  time = NULL, # <-- new optional parameter
   format = "long",
   detailed = TRUE,
   digits = 3
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
-  time_var <- NA_character_
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
-    if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
-    ) {
+    if (is.null(metadata) || is.null(metadata$group)) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
     group <- metadata$group
-    time_var <- metadata$time
+    if (!is.null(metadata$time)) {
+      time <- metadata$time
+    } else {
+      time <- NULL
+    }
+    group_time_from_metadata <- TRUE
   } else {
-    # Handle regular data.frame
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
     }
-
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
   }
 
-  # Common validation
-  if (!is.null(selection) && !is.character(selection)) {
-    stop(
-      "'selection' must be a character vector or NULL, not ",
-      class(selection)[1]
-    )
-  }
-
+  # Common validation for group
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
@@ -158,11 +148,50 @@ decompose_numeric <- function(
     stop('variable "', group, '" not found in data')
   }
 
+  # Validate time if provided
+  if (!is.null(time)) {
+    if (!is.character(time) || length(time) != 1) {
+      stop("'time' must be a single character string, not ", class(time)[1])
+    }
+    if (!time %in% names(data)) {
+      stop('variable "', time, '" not found in data')
+    }
+  }
+
+  # --- Check for duplicate group-time combinations (only if time is provided) ---
+  dup_combinations <- NULL
+  if (!is.null(time)) {
+    dup_rows <- duplicated(data[c(group, time)]) |
+      duplicated(data[c(group, time)], fromLast = TRUE)
+    if (any(dup_rows)) {
+      dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+      n_dup <- nrow(dup_combinations)
+      if (!group_time_from_metadata) {
+        examples <- utils::head(dup_combinations, 5)
+        example_strings <- paste0(examples[[group]], "-", examples[[time]])
+        example_str <- paste(example_strings, collapse = ", ")
+        message(
+          n_dup,
+          " duplicate group-time combinations found. Examples: ",
+          example_str
+        )
+      }
+    }
+  }
+  # -------------------------------------------------------------
+
+  # Validate selection, format, detailed, digits (unchanged) ...
+  if (!is.null(selection) && !is.character(selection)) {
+    stop(
+      "'selection' must be a character vector or NULL, not ",
+      class(selection)[1]
+    )
+  }
+
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
 
-  # Validate format argument
   if (!is.character(format) || length(format) != 1) {
     stop("'format' must be a single character string, not ", class(format)[1])
   }
@@ -171,7 +200,6 @@ decompose_numeric <- function(
     stop('format must be either "long" or "wide", not "', format, '"')
   }
 
-  # Harmonized digits validation
   if (!is.numeric(digits) || length(digits) != 1) {
     stop("'digits' must be a single non-negative integer")
   }
@@ -189,31 +217,20 @@ decompose_numeric <- function(
     }
   }
 
-  # Validate group parameter
-  if (group == "" || length(group) == 0) {
-    stop("'group' must be a non-empty character string")
-  }
-
-  if (!group %in% names(data)) {
-    stop(
-      "variable '",
-      group,
-      "' not found in data. Available variables: ",
-      paste(names(data), collapse = ", ")
-    )
-  }
-
-  # Track if any messages were printed
+  # Track if any messages were printed (for selection auto-detection)
   messages_printed <- FALSE
 
   # If selection is not specified, use all numeric variables
   if (is.null(selection)) {
     numeric_vars <- vapply(data, is.numeric, FUN.VALUE = logical(1))
     selection <- names(data)[numeric_vars]
-
-    # Remove the group variable from selection if it's numeric
+    # Remove group variable if it's numeric
     if (group %in% selection) {
       selection <- selection[selection != group]
+    }
+    # Remove time variable if it's numeric (and provided)
+    if (!is.null(time) && time %in% selection) {
+      selection <- selection[selection != time]
     }
 
     if (length(selection) == 0) {
@@ -262,7 +279,7 @@ decompose_numeric <- function(
     )
   }
 
-  # Helper function to calculate panel statistics for one variable
+  # Helper function to calculate panel statistics for one variable (unchanged)
   decompose_numeric_1 <- function(
     data,
     varname,
@@ -271,7 +288,6 @@ decompose_numeric <- function(
     detailed_output,
     digits_val
   ) {
-    # Remove rows with NA in the variable or group
     complete_cases <- complete.cases(data[[varname]], data[[group]])
     df <- data[complete_cases, , drop = FALSE]
 
@@ -324,43 +340,32 @@ decompose_numeric <- function(
       }
     }
 
-    # Convert group to character for consistent handling
     group_vec <- as.character(df[[group]])
     x <- df[[varname]]
 
-    # Calculate overall statistics
     overall_mean <- mean(x, na.rm = TRUE)
     overall_std <- sd(x, na.rm = TRUE)
     min_val <- min(x, na.rm = TRUE)
     max_val <- max(x, na.rm = TRUE)
     count_obs <- length(x)
 
-    # Calculate between variance (variation in group means)
     group_means <- tapply(x, group_vec, mean, na.rm = TRUE)
     between_std <- sd(group_means, na.rm = TRUE)
     between_min <- min(group_means, na.rm = TRUE)
     between_max <- max(group_means, na.rm = TRUE)
     count_groups_var <- length(group_means)
 
-    # Calculate within variance (variation around group means)
-    # For within: we need to calculate (x - group_mean) + overall_mean
-    # This transforms the deviations to be comparable to original scale
     group_means_expanded <- group_means[match(group_vec, names(group_means))]
     deviations <- x - group_means_expanded
-
-    # Transform deviations to the original scale by adding overall mean
-    # This is what Stata's xtsum does for within min/max
     within_transformed <- deviations + overall_mean
 
     within_std <- sd(deviations, na.rm = TRUE)
     within_min <- min(within_transformed, na.rm = TRUE)
     within_max <- max(within_transformed, na.rm = TRUE)
 
-    # Calculate average observations per group
     obs_per_group <- table(group_vec)
     avg_obs_per_group <- mean(obs_per_group, na.rm = TRUE)
 
-    # Apply rounding
     overall_mean <- round_if_needed(overall_mean, digits_val)
     overall_std <- round_if_needed(overall_std, digits_val)
     min_val <- round_if_needed(min_val, digits_val)
@@ -375,7 +380,6 @@ decompose_numeric <- function(
 
     if (format_output == "long") {
       if (detailed_output) {
-        # Long format with detailed statistics
         result <- data.frame(
           variable = c(varname, varname, varname),
           dimension = c("overall", "between", "within"),
@@ -387,7 +391,6 @@ decompose_numeric <- function(
           stringsAsFactors = FALSE
         )
       } else {
-        # Long format with simplified statistics
         result <- data.frame(
           variable = c(varname, varname, varname),
           dimension = c("overall", "between", "within"),
@@ -397,9 +400,8 @@ decompose_numeric <- function(
         )
       }
     } else {
-      # format_output == "wide"
+      # wide
       if (detailed_output) {
-        # Wide format with detailed statistics
         result <- data.frame(
           variable = varname,
           mean = overall_mean,
@@ -418,7 +420,6 @@ decompose_numeric <- function(
           stringsAsFactors = FALSE
         )
       } else {
-        # Wide format with simplified statistics
         result <- data.frame(
           variable = varname,
           mean = overall_mean,
@@ -429,7 +430,6 @@ decompose_numeric <- function(
         )
       }
     }
-
     return(result)
   }
 
@@ -448,24 +448,28 @@ decompose_numeric <- function(
     function_name = as.character(call[[1]]),
     selection = selection,
     group = group,
+    time = time, # <-- store time even if NULL
     format = format,
     detailed = detailed,
     digits = digits
   )
 
-  # Build details list (only non-metadata info)
+  # Build details list
   details <- list(
     count_groups = count_groups
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
-
-  # Set class
   class(result_df) <- c("panel_summary", "data.frame")
 
-  # Add empty line before returning data.frame if messages were printed
+  # Add empty line before returning if messages were printed
   if (messages_printed) {
     cat("\n")
   }

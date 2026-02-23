@@ -21,6 +21,12 @@
 #' The x-axis shows the number of time periods covered by each entity, and the
 #' y-axis shows the count/frequency of entities with that coverage.
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in the returned list under `details$entity_time_duplicates`. A message is printed
+#' only when the group and time variables were explicitly provided (i.e., not taken from `panel_data`
+#' attributes).
+#'
 #' The returned list contains the following components:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name, group, time, colors.}
@@ -28,6 +34,8 @@
 #'         \itemize{
 #'           \item `coverage_by_entity`: Named vector with number of periods covered per entity.
 #'           \item `histogram_data`: Data used for histogram plotting.
+#'           \item `entity_time_duplicates`: If duplicates were found, a data frame
+#'                 containing the distinct duplicate combinations.
 #'         }
 #'   }
 #' }
@@ -58,6 +66,9 @@ plot_periods <- function(
   time = NULL,
   colors = c("#1E4A3B", "white") # first is fill, second is line
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -70,6 +81,7 @@ plot_periods <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -107,6 +119,26 @@ plot_periods <- function(
   if (!time %in% names(data)) {
     stop('variable "', time, '" not found in data')
   }
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # Extract colors - now first is fill, second is line
   fill_color <- colors[1]
@@ -249,6 +281,11 @@ plot_periods <- function(
     coverage_by_entity = time_coverage_by_entity,
     histogram_data = hist_data
   )
+
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
 
   invisible(list(
     metadata = metadata,

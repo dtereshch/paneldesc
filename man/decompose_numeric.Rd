@@ -8,6 +8,7 @@ decompose_numeric(
   data,
   selection = NULL,
   group = NULL,
+  time = NULL,
   format = "long",
   detailed = TRUE,
   digits = 3
@@ -20,6 +21,10 @@ decompose_numeric(
 If not specified, all numeric variables in the data.frame will be used.}
 
 \item{group}{A character string specifying the name of the entity/group variable in panel data.
+Not required if data has panel attributes.}
+
+\item{time}{An optional character string specifying the name of the time variable.
+If provided, the function checks for duplicate group-time combinations.
 Not required if data has panel attributes.}
 
 \item{format}{A character string specifying the output format: "long" or "wide".
@@ -87,10 +92,18 @@ When \code{format = "wide"} and \code{detailed = FALSE}, returns a data.frame wi
 \item{\code{std_within}}{Within-group standard deviation}
 }
 
+If a time variable is supplied (either by the user or from \code{panel_data} metadata),
+the function checks for duplicate group-time combinations. In a properly structured
+panel dataset, each entity (group) should have at most one observation per time period.
+If duplicates are found, they are stored in \code{details$entity_time_duplicates}.
+A message is printed only when the identifiers were explicitly provided (i.e., not taken
+from \code{panel_data} attributes).
+
 The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{count_groups}.}
+\item{\code{details}}{List containing additional information: \code{count_groups} and,
+if time was supplied and duplicates exist, \code{entity_time_duplicates}.}
 }
 }
 \examples{
@@ -103,26 +116,8 @@ decompose_numeric(production, group = "firm")
 panel_data <- set_panel(production, group = "firm", time = "year")
 decompose_numeric(panel_data)
 
-# Simplified output
-decompose_numeric(production, group = "firm", detailed = FALSE)
-
-# Wide format with detailed statistics
-decompose_numeric(production, group = "firm", format = "wide")
-
-# Wide format with simplified statistics
-decompose_numeric(production, group = "firm", format = "wide", detailed = FALSE)
-
-# Show statistics for a single variable
-decompose_numeric(production, selection = "sales", group = "firm")
-
-# Show statistics for multiple variables
-decompose_numeric(production, selection = c("capital", "labor"), group = "firm")
-
-# Show statistics with two digits rounding
-decompose_numeric(production, group = "firm", digits = 2)
-
-# Effectively no rounding (use large digit value)
-decompose_numeric(production, group = "firm", digits = 999999)
+# Show statistics with time variable to check duplicates
+decompose_numeric(production, group = "firm", time = "year")
 
 }
 \references{

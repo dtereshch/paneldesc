@@ -5,7 +5,9 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param group A character string specifying the name of the entity/group variable in panel data.
 #'        Not required if data has panel attributes.
-#' @param time A character string specifying the name of the time variable (optional, for checking panel balance).
+#' @param time An optional character string specifying the name of the time variable.
+#'        If provided, the function checks for duplicate group-time combinations.
+#'        Not required if data has panel attributes.
 #' @param detailed A logical flag indicating whether to include detailed missing counts for each variable.
 #'        Default = FALSE.
 #'
@@ -33,12 +35,19 @@
 #' If no entities have incomplete data, returns the character message:
 #' "There are no incomplete groups/entities in the data."
 #'
+#' If a time variable is supplied (either by the user or from `panel_data` metadata),
+#' the function checks for duplicate group-time combinations. In a properly structured
+#' panel dataset, each entity (group) should have at most one observation per time period.
+#' If duplicates are found, they are stored in `details$entity_time_duplicates`.
+#' A message is printed only when the identifiers were explicitly provided (i.e., not taken
+#' from `panel_data` attributes).
+#'
 #' The returned data.frame (if any) has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information:
-#'         `count_entities_total`, `count_entities_incomplete`, and `entities_incomplete`
-#'         (vector of incomplete entity IDs).}
+#'         `count_entities_total`, `count_entities_incomplete`, `entities_incomplete`, and
+#'         (if time was supplied and duplicates exist) `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -50,7 +59,7 @@
 #' # Basic usage
 #' describe_incomplete(production, group = "firm")
 #'
-#' # More careful usage with panel balance check
+#' # More careful usage with panel balance check and duplicate check
 #' describe_incomplete(production, group = "firm", time = "year")
 #'
 #' # Detailed view with variable-level NA counts
@@ -60,16 +69,6 @@
 #' panel_data <- set_panel(production, group = "firm", time = "year")
 #' describe_incomplete(panel_data)
 #'
-#' # Access and use attributes
-#' result <- describe_incomplete(production, group = "firm")
-#'
-#' # Extract incomplete entity IDs
-#' incomplete_ids <- attr(result, "details")$entities_incomplete
-#'
-#' # Calculate share of incomplete entities
-#' details <- attr(result, "details")
-#' share_incomplete <- details$count_entities_incomplete / details$count_entities_total
-#'
 #' @export
 describe_incomplete <- function(
   data,
@@ -77,8 +76,10 @@ describe_incomplete <- function(
   time = NULL,
   detailed = FALSE
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
-  time_var <- NA_character_
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
@@ -89,50 +90,67 @@ describe_incomplete <- function(
       )
     }
     group <- metadata$group
-    time_var <- metadata$time
-    # If time argument is explicitly provided, it overrides the attribute
+    # Use metadata$time as default, but allow user override via argument
     if (!is.null(time)) {
-      time_var <- time
+      # user explicitly provided time; use that and note that it's not from metadata
+      group_time_from_metadata <- FALSE
+    } else {
+      time <- metadata$time
+      group_time_from_metadata <- TRUE
     }
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame, not ", class(data)[1])
     }
-
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
-    time_var <- if (!is.null(time)) time else NA_character_
+    # time is optional; if provided, it's from user
   }
 
-  # Common validation
+  # Common validation for group
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
-
   if (!group %in% names(data)) {
     stop('variable "', group, '" not found in data')
   }
 
-  if (!is.null(time) && (!is.character(time) || length(time) != 1)) {
-    stop(
-      "'time' must be a single character string or NULL, not ",
-      class(time)[1]
-    )
+  # Validate time if provided
+  if (!is.null(time)) {
+    if (!is.character(time) || length(time) != 1) {
+      stop("'time' must be a single character string, not ", class(time)[1])
+    }
+    if (!time %in% names(data)) {
+      stop('variable "', time, '" not found in data')
+    }
   }
 
-  if (!is.null(time) && !time %in% names(data)) {
-    stop('variable "', time, '" not found in data')
+  # --- Check for duplicate group-time combinations (only if time is provided) ---
+  dup_combinations <- NULL
+  if (!is.null(time)) {
+    dup_rows <- duplicated(data[c(group, time)]) |
+      duplicated(data[c(group, time)], fromLast = TRUE)
+    if (any(dup_rows)) {
+      dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+      n_dup <- nrow(dup_combinations)
+      if (!group_time_from_metadata) {
+        examples <- utils::head(dup_combinations, 5)
+        example_strings <- paste0(examples[[group]], "-", examples[[time]])
+        example_str <- paste(example_strings, collapse = ", ")
+        message(
+          n_dup,
+          " duplicate group-time combinations found. Examples: ",
+          example_str
+        )
+      }
+    }
   }
+  # -------------------------------------------------------------
 
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
-  }
-
-  # Validate group variable
-  if (!group %in% names(data)) {
-    stop("variable '", group, "' not found in data")
   }
 
   # Check if group variable has valid values
@@ -142,12 +160,7 @@ describe_incomplete <- function(
 
   # Check panel balance if time variable is provided
   if (!is.null(time)) {
-    if (!time %in% names(data)) {
-      stop("variable '", time, "' not found in data")
-    }
-
     # Check if panel is unbalanced
-    # Use table with the original variables (preserving types)
     time_counts <- table(data[[group]], data[[time]])
     if (!all(time_counts == 1)) {
       warning("The panel is unbalanced.")
@@ -188,24 +201,20 @@ describe_incomplete <- function(
   for (i in seq_along(unique_groups)) {
     current_group <- unique_groups[i]
 
-    # Use logical indexing that preserves data types
     group_indices <- data[[group]] == current_group
     group_data <- data[group_indices, vars, drop = FALSE]
 
-    # Count variables with at least one NA
     vars_with_na <- sum(vapply(
       group_data,
       function(x) any(is.na(x)),
       logical(1)
     ))
 
-    # Count total number of NA observations
     na_count <- sum(vapply(group_data, function(x) sum(is.na(x)), numeric(1)))
 
     result$variables[i] <- vars_with_na
     result$na_count[i] <- na_count
 
-    # If detailed = TRUE, add NA counts for each variable
     if (detailed) {
       for (var in vars) {
         result[[var]][i] <- sum(is.na(group_data[[var]]))
@@ -227,7 +236,6 @@ describe_incomplete <- function(
     order(-incomplete_result$variables, -incomplete_result$na_count),
   ]
 
-  # Reset row names
   rownames(incomplete_result) <- NULL
 
   # Build metadata
@@ -239,18 +247,21 @@ describe_incomplete <- function(
     detailed = detailed
   )
 
-  # Build details list with incomplete entities IDs
+  # Build details list
   details <- list(
     count_entities_total = length(unique_groups),
     count_entities_incomplete = nrow(incomplete_result),
     entities_incomplete = incomplete_ids
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(incomplete_result, "metadata") <- metadata
   attr(incomplete_result, "details") <- details
-
-  # Set class
   class(incomplete_result) <- c("panel_description", "data.frame")
 
   return(incomplete_result)

@@ -32,8 +32,8 @@ and the corresponding share of all entities.
 The returned data.frame contains the following columns:
 \describe{
 \item{\code{[time]}}{Time period identifier (name matches the input \code{time} argument)}
-\item{\code{count}}{Number of entities (groups) observed in that period,
-i.e., rows with at least one non‑NA value in substantive variables}
+\item{\code{count}}{Number of distinct entities (groups) observed in that period,
+i.e., entities with at least one row containing a non‑NA value in substantive variables}
 \item{\code{share}}{Proportion of entities observed in that period,
 relative to the total number of unique entities in the data (0 to 1),
 rounded to \code{digits} decimal places.}
@@ -46,14 +46,19 @@ was inherited from panel attributes), and rows for those periods are added to th
 \code{count = 0} and \code{share = 0}. The \code{entities} list in the \code{details} attribute includes empty vectors
 for those missing periods.
 
+The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+they are stored in \code{details$entity_time_duplicates}. A message is printed only when the group and time
+variables were explicitly provided (i.e., not taken from \code{panel_data} attributes).
+
 Time periods are sorted naturally (numeric order).
 
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name, group, time, interval, and digits.}
-\item{\code{details}}{List containing additional information: \code{entities}.
-This is a named list where names are time periods and values are vectors of
-entity identifiers that are observed (have at least one non‑NA) in that period.}
+\item{\code{details}}{List containing additional information: \code{entities} (a named list where
+names are time periods and values are vectors of entity identifiers observed in that period)
+and, if duplicates were found, \code{entity_time_duplicates}.}
 }
 }
 \examples{

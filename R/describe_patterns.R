@@ -27,6 +27,11 @@
 #' periods as additional columns (in wide format) or additional rows (in long format). The `details`
 #' attribute is updated accordingly, but no new vectors are added beyond those already present.
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when the group and time
+#' variables were explicitly provided (i.e., not taken from `panel_data` attributes).
+#'
 #' The output format depends on the `format` and `detailed` parameters:
 #' \describe{
 #'   \item{\code{format = "wide"}, \code{detailed = TRUE}}{Columns: pattern, [time_periods], count, share.}
@@ -40,10 +45,7 @@
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
-#'         `patterns_groups`, `patterns_matrix`. The `patterns_groups` element is a list where each
-#'         element corresponds to a pattern identifier and contains the entity IDs that follow that
-#'         pattern. `patterns_matrix` is a matrix with one row per distinct pattern (ordered by
-#'         frequency) and one column per time period, containing 0/1 indicators.}
+#'         `patterns_groups`, `patterns_matrix`, and, if duplicates were found, `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -108,6 +110,9 @@ describe_patterns <- function(
     }
   }
 
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -120,6 +125,7 @@ describe_patterns <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
     if (is.null(interval) && !is.null(metadata$interval)) {
       interval <- metadata$interval
     }
@@ -166,6 +172,26 @@ describe_patterns <- function(
     stop("'digits' must be a non-negative integer")
   }
   digits <- as.integer(digits)
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # --- Interval handling ---
   if (!is.null(interval)) {
@@ -353,6 +379,11 @@ describe_patterns <- function(
     patterns_groups = patterns_groups,
     patterns_matrix = patterns_matrix
   )
+
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
 
   # Convert to long format if requested
   if (format == "long") {

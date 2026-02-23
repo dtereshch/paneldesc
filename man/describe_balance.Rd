@@ -36,6 +36,11 @@ of time periods observed per entity (i.e., temporal length per entity).
 An entity/time combination is considered \strong{present} if the corresponding row contains at least
 one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
 
+The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+they are stored in \code{details$entity_time_duplicates}. A message is printed only when the group and time
+variables were explicitly provided (i.e., not taken from \code{panel_data} attributes).
+
 The returned data.frame contains the following columns:
 \describe{
 \item{\code{dimension}}{Character vector describing the type of panel element.
@@ -66,7 +71,8 @@ When \code{detailed = TRUE}, additional columns are included:
 The returned data.frame has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{presence_matrix}.}
+\item{\code{details}}{List containing additional information: \code{presence_matrix} and,
+if duplicates were found, \code{entity_time_duplicates}.}
 }
 }
 \examples{

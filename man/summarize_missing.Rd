@@ -55,12 +55,17 @@ When \code{detailed = TRUE}, additional columns are included:
 \item{...}{Additional columns for each unique time period in the data}
 }
 
+The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+they are stored in \code{details$entity_time_duplicates}. A message is printed only when the identifiers
+were explicitly provided (i.e., not taken from \code{panel_data} attributes).
+
 The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information:
 \code{count_variables_with_na}, \code{count_variables_without_na}, \code{count_variables} (total analyzed),
-\code{variables_with_na}, and \code{variables_without_na}.}
+\code{variables_with_na}, \code{variables_without_na}, and (if duplicates exist) \code{entity_time_duplicates}.}
 }
 }
 \examples{
@@ -75,18 +80,6 @@ summarize_missing(panel_data)
 
 # Detailed output with period-specific NA counts
 summarize_missing(production, group = "firm", time = "year", detailed = TRUE)
-
-# Show missing values for a specific variable
-summarize_missing(production, selection = "sales", group = "firm", time = "year")
-
-# Show missing values for multiple variables
-summarize_missing(production, selection = c("capital", "labor"), group = "firm", time = "year")
-
-# Customize rounding
-summarize_missing(production, group = "firm", time = "year", digits = 4)
-
-# Effectively no rounding (use large digit value)
-summarize_missing(production, group = "firm", time = "year", digits = 999999)
 
 }
 \seealso{

@@ -34,12 +34,17 @@
 #'   \item{...}{Additional columns for each unique time period in the data}
 #' }
 #'
+#' The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when the identifiers
+#' were explicitly provided (i.e., not taken from `panel_data` attributes).
+#'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information:
 #'         `count_variables_with_na`, `count_variables_without_na`, `count_variables` (total analyzed),
-#'         `variables_with_na`, and `variables_without_na`.}
+#'         `variables_with_na`, `variables_without_na`, and (if duplicates exist) `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -58,18 +63,6 @@
 #' # Detailed output with period-specific NA counts
 #' summarize_missing(production, group = "firm", time = "year", detailed = TRUE)
 #'
-#' # Show missing values for a specific variable
-#' summarize_missing(production, selection = "sales", group = "firm", time = "year")
-#'
-#' # Show missing values for multiple variables
-#' summarize_missing(production, selection = c("capital", "labor"), group = "firm", time = "year")
-#'
-#' # Customize rounding
-#' summarize_missing(production, group = "firm", time = "year", digits = 4)
-#'
-#' # Effectively no rounding (use large digit value)
-#' summarize_missing(production, group = "firm", time = "year", digits = 999999)
-#'
 #' @export
 summarize_missing <- function(
   data,
@@ -79,6 +72,9 @@ summarize_missing <- function(
   detailed = FALSE,
   digits = 3
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -91,6 +87,7 @@ summarize_missing <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -131,6 +128,26 @@ summarize_missing <- function(
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # Harmonized digits validation
   if (!is.numeric(digits) || length(digits) != 1) {
@@ -216,7 +233,6 @@ summarize_missing <- function(
 
     # Entities with at least one NA
     if (na_count > 0) {
-      # Group by entity and check if any NA in the variable
       entity_has_na <- tapply(data[[var]], data[[group]], function(x) {
         any(is.na(x))
       })
@@ -227,7 +243,6 @@ summarize_missing <- function(
 
     # Periods with at least one NA
     if (na_count > 0) {
-      # Group by period and check if any NA in the variable
       period_has_na <- tapply(data[[var]], data[[time]], function(x) {
         any(is.na(x))
       })
@@ -236,7 +251,6 @@ summarize_missing <- function(
       periods_with_na <- 0
     }
 
-    # Create base result row with renamed columns (count -> na_count, share -> na_share)
     result_row <- data.frame(
       variable = var,
       na_count = na_count,
@@ -248,7 +262,6 @@ summarize_missing <- function(
 
     # Add detailed period-specific NA counts if requested
     if (detailed) {
-      # Calculate NA counts for each period
       for (period in ordered_periods) {
         period_data <- data[time_values == period, var, drop = FALSE]
         period_na_count <- sum(is.na(period_data[[var]]))
@@ -278,7 +291,7 @@ summarize_missing <- function(
     digits = digits
   )
 
-  # Build details list with variable information
+  # Build details list
   details <- list(
     count_variables_with_na = length(vars_with_na),
     count_variables_without_na = length(vars_without_na),
@@ -287,14 +300,17 @@ summarize_missing <- function(
     variables_without_na = vars_without_na
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
-
-  # Set class
   class(result_df) <- c("panel_summary", "data.frame")
 
-  # Add empty line before returning data.frame if messages were printed
+  # Add empty line before returning if messages were printed
   if (messages_printed) {
     cat("\n")
   }

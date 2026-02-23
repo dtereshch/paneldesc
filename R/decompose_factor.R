@@ -8,6 +8,9 @@
 #'        If not specified, all factor variables in the data.frame will be used.
 #' @param group A character string specifying the name of the entity/group variable.
 #'        Not required if data has panel attributes.
+#' @param time An optional character string specifying the name of the time variable.
+#'        If provided, the function checks for duplicate group-time combinations.
+#'        Not required if data has panel attributes.
 #' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param digits An integer indicating the number of decimal places to round shares.
 #'        Default = 3.
@@ -37,10 +40,18 @@
 #'   \item{\code{share}}{Share proportion (0 to 1)}
 #' }
 #'
+#' If a time variable is supplied (either by the user or from `panel_data` metadata),
+#' the function checks for duplicate group-time combinations. In a properly structured
+#' panel dataset, each entity (group) should have at most one observation per time period.
+#' If duplicates are found, they are stored in `details$entity_time_duplicates`.
+#' A message is printed only when the identifiers were explicitly provided (i.e., not taken
+#' from `panel_data` attributes).
+#'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `count_groups`.}
+#'   \item{`details`}{List containing additional information: `count_groups` and,
+#'         if time was supplied and duplicates exist, `entity_time_duplicates`.}
 #' }
 #'
 #' @references
@@ -65,36 +76,38 @@
 #' # Show statistics for a single categorical variable
 #' decompose_factor(production, selection = "industry", group = "firm")
 #'
-#' # Show statistics for multiple categorical variables
-#' decompose_factor(production, selection = c("industry", "year"), group = "firm")
-#'
-#' # Show statistics with two digits rounding
-#' decompose_factor(production, group = "firm", digits = 2)
-#'
-#' # Effectively no rounding (use large digit value)
-#' decompose_factor(production, group = "firm", digits = 999999)
+#' # Show statistics with time variable to check duplicates
+#' decompose_factor(production, group = "firm", time = "year")
 #'
 #' @export
 decompose_factor <- function(
   data,
   selection = NULL,
   group = NULL,
+  time = NULL, # <-- new optional parameter
   format = "wide",
   digits = 3
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
-  time_var <- NA_character_ # default if time not used
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
-    if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
-    ) {
+    if (is.null(metadata) || is.null(metadata$group)) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
+    # Override any user-provided group/time with metadata values
     group <- metadata$group
-    time_var <- metadata$time # may be NA, but we store it
+    if (!is.null(metadata$time)) {
+      time <- metadata$time
+    } else {
+      # time may be absent in metadata; keep as NULL
+      time <- NULL
+    }
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -104,16 +117,10 @@ decompose_factor <- function(
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
+    # time is optional; if not provided, remain NULL
   }
 
-  # Common validation
-  if (!is.null(selection) && !is.character(selection)) {
-    stop(
-      "'selection' must be a character vector or NULL, not ",
-      class(selection)[1]
-    )
-  }
-
+  # Common validation for group
   if (!is.character(group) || length(group) != 1) {
     stop("'group' must be a single character string, not ", class(group)[1])
   }
@@ -122,7 +129,46 @@ decompose_factor <- function(
     stop('variable "', group, '" not found in data')
   }
 
-  # Validate format argument
+  # Validate time if provided
+  if (!is.null(time)) {
+    if (!is.character(time) || length(time) != 1) {
+      stop("'time' must be a single character string, not ", class(time)[1])
+    }
+    if (!time %in% names(data)) {
+      stop('variable "', time, '" not found in data')
+    }
+  }
+
+  # --- Check for duplicate group-time combinations (only if time is provided) ---
+  dup_combinations <- NULL
+  if (!is.null(time)) {
+    dup_rows <- duplicated(data[c(group, time)]) |
+      duplicated(data[c(group, time)], fromLast = TRUE)
+    if (any(dup_rows)) {
+      dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+      n_dup <- nrow(dup_combinations)
+      if (!group_time_from_metadata) {
+        examples <- utils::head(dup_combinations, 5)
+        example_strings <- paste0(examples[[group]], "-", examples[[time]])
+        example_str <- paste(example_strings, collapse = ", ")
+        message(
+          n_dup,
+          " duplicate group-time combinations found. Examples: ",
+          example_str
+        )
+      }
+    }
+  }
+  # -------------------------------------------------------------
+
+  # Validate selection, format, digits (unchanged) ...
+  if (!is.null(selection) && !is.character(selection)) {
+    stop(
+      "'selection' must be a character vector or NULL, not ",
+      class(selection)[1]
+    )
+  }
+
   if (!is.character(format) || length(format) != 1) {
     stop("'format' must be a single character string, not ", class(format)[1])
   }
@@ -131,7 +177,6 @@ decompose_factor <- function(
     stop('format must be either "wide" or "long", not "', format, '"')
   }
 
-  # Harmonized digits validation
   if (!is.numeric(digits) || length(digits) != 1) {
     stop("'digits' must be a single non-negative integer")
   }
@@ -149,35 +194,16 @@ decompose_factor <- function(
     }
   }
 
-  # Validate group parameter
-  if (group == "" || length(group) == 0) {
-    stop("'group' must be a non-empty character string")
-  }
-
-  if (!group %in% names(data)) {
-    stop(
-      "variable '",
-      group,
-      "' not found in data. Available variables: ",
-      paste(names(data), collapse = ", ")
-    )
-  }
-
-  # Track if any messages were printed
+  # Track if any messages were printed (for selection auto-detection)
   messages_printed <- FALSE
 
   # If selection is not specified, use only factor variables (not character)
   if (is.null(selection)) {
-    # Check for factor variables
-    is_factor <- vapply(
-      data,
-      is.factor,
-      FUN.VALUE = logical(1)
-    )
-
-    # Exclude group variable from selection
+    is_factor <- vapply(data, is.factor, FUN.VALUE = logical(1))
     is_factor[group] <- FALSE
-
+    if (!is.null(time) && time %in% names(data)) {
+      is_factor[time] <- FALSE
+    }
     selection <- names(data)[is_factor]
 
     if (length(selection) == 0) {
@@ -200,8 +226,7 @@ decompose_factor <- function(
     )
   }
 
-  # When selection is explicitly provided, convert all to factors
-  # Check if any variables need conversion
+  # Convert selected variables to factor if needed
   for (var in selection) {
     if (!is.factor(data[[var]])) {
       message(
@@ -221,9 +246,9 @@ decompose_factor <- function(
   # Get total number of groups
   count_groups <- length(unique(data[[group]]))
 
-  # Helper function to calculate categorical statistics for one variable
+  # Helper function to calculate categorical statistics for one variable (unchanged)
   decompose_factor_1 <- function(df, varname, grp, format_output, digits_val) {
-    # Remove rows with NA in the variable or group
+    # (the body remains exactly as before)
     complete_cases <- complete.cases(df[[varname]], df[[grp]])
     df_clean <- df[complete_cases, , drop = FALSE]
 
@@ -240,7 +265,6 @@ decompose_factor <- function(
           stringsAsFactors = FALSE
         ))
       } else {
-        # long format
         return(data.frame(
           variable = character(),
           category = character(),
@@ -252,63 +276,44 @@ decompose_factor <- function(
       }
     }
 
-    # Ensure the variable is treated as factor (should already be factor)
     if (!is.factor(df_clean[[varname]])) {
       df_clean[[varname]] <- factor(df_clean[[varname]])
     }
 
-    # Get all categories
     categories <- levels(df_clean[[varname]])
-
-    # Calculate overall statistics (person-time)
     overall_counts <- table(df_clean[[varname]])
     total_obs <- sum(overall_counts)
 
-    # Calculate between statistics (groups ever having category)
-    # For each group, check which categories it ever had
     group_data <- split(df_clean[[varname]], df_clean[[grp]])
 
-    # Count groups that ever had each category
     between_counts <- sapply(categories, function(cat) {
       sum(sapply(group_data, function(gdata) {
         any(as.character(gdata) == cat)
       }))
     })
 
-    # Calculate within shares (proportions)
-    # For each category, calculate average share across groups that ever had it
     within_shares <- sapply(categories, function(cat) {
-      # Get groups that ever had this category
       groups_with_cat <- which(sapply(group_data, function(gdata) {
         any(as.character(gdata) == cat)
       }))
-
       if (length(groups_with_cat) == 0) {
         return(0)
       }
-
-      # For each group that ever had the category, calculate what share
-      # of its observations have this category
       group_shares <- sapply(groups_with_cat, function(i) {
         gdata <- group_data[[i]]
         sum(as.character(gdata) == cat) / length(gdata)
       })
-
-      # Average these shares
       mean(group_shares)
     })
 
-    # Calculate shares (proportions, not percentages)
     share_overall <- as.numeric(overall_counts / total_obs)
     share_between <- as.numeric(between_counts / count_groups)
 
-    # Apply rounding
     share_overall <- round_if_needed(share_overall, digits_val)
     share_between <- round_if_needed(share_between, digits_val)
     within_shares <- round_if_needed(within_shares, digits_val)
 
     if (format_output == "wide") {
-      # Wide format with one row per category
       result <- data.frame(
         variable = rep(varname, length(categories)),
         category = categories,
@@ -320,8 +325,6 @@ decompose_factor <- function(
         stringsAsFactors = FALSE
       )
     } else {
-      # Long format with decomposition rows
-      # Overall rows
       overall_rows <- data.frame(
         variable = rep(varname, length(categories)),
         category = categories,
@@ -330,8 +333,6 @@ decompose_factor <- function(
         share = share_overall,
         stringsAsFactors = FALSE
       )
-
-      # Between rows
       between_rows <- data.frame(
         variable = rep(varname, length(categories)),
         category = categories,
@@ -340,21 +341,17 @@ decompose_factor <- function(
         share = share_between,
         stringsAsFactors = FALSE
       )
-
-      # Within rows
       within_rows <- data.frame(
         variable = rep(varname, length(categories)),
         category = categories,
         dimension = rep("within", length(categories)),
-        count = NA_integer_, # No direct count for within
+        count = NA_integer_,
         share = within_shares,
         stringsAsFactors = FALSE
       )
-
       result <- rbind(overall_rows, between_rows, within_rows)
       rownames(result) <- NULL
     }
-
     return(result)
   }
 
@@ -369,13 +366,10 @@ decompose_factor <- function(
 
   # For long format, order by variable first, then by category
   if (format == "long") {
-    # First ensure categories are ordered as factors (preserving level order)
     result_df$category <- factor(
       result_df$category,
       levels = unique(result_df$category)
     )
-
-    # Order by variable and dimension
     result_df <- result_df[order(result_df$variable, result_df$dimension), ]
     rownames(result_df) <- NULL
   }
@@ -386,23 +380,27 @@ decompose_factor <- function(
     function_name = as.character(call[[1]]),
     selection = selection,
     group = group,
+    time = time, # <-- store time even if NULL
     format = format,
     digits = digits
   )
 
-  # Build details list (only non-metadata info)
+  # Build details list
   details <- list(
     count_groups = count_groups
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
-
-  # Set class
   class(result_df) <- c("panel_summary", "data.frame")
 
-  # Add empty line before returning data.frame if messages were printed
+  # Add empty line before returning if messages were printed
   if (messages_printed) {
     cat("\n")
   }

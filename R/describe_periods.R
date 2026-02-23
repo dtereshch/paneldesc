@@ -19,8 +19,8 @@
 #' The returned data.frame contains the following columns:
 #' \describe{
 #'   \item{\code{[time]}}{Time period identifier (name matches the input `time` argument)}
-#'   \item{\code{count}}{Number of entities (groups) observed in that period,
-#'         i.e., rows with at least one non‑NA value in substantive variables}
+#'   \item{\code{count}}{Number of distinct entities (groups) observed in that period,
+#'         i.e., entities with at least one row containing a non‑NA value in substantive variables}
 #'   \item{\code{share}}{Proportion of entities observed in that period,
 #'         relative to the total number of unique entities in the data (0 to 1),
 #'         rounded to `digits` decimal places.}
@@ -33,14 +33,19 @@
 #' `count = 0` and `share = 0`. The `entities` list in the `details` attribute includes empty vectors
 #' for those missing periods.
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when the group and time
+#' variables were explicitly provided (i.e., not taken from `panel_data` attributes).
+#'
 #' Time periods are sorted naturally (numeric order).
 #'
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name, group, time, interval, and digits.}
-#'   \item{`details`}{List containing additional information: `entities`.
-#'         This is a named list where names are time periods and values are vectors of
-#'         entity identifiers that are observed (have at least one non‑NA) in that period.}
+#'   \item{`details`}{List containing additional information: `entities` (a named list where
+#'         names are time periods and values are vectors of entity identifiers observed in that period)
+#'         and, if duplicates were found, `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -100,6 +105,9 @@ describe_periods <- function(
     }
   }
 
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -112,6 +120,7 @@ describe_periods <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
     # Use interval from metadata if not overridden by explicit argument
     if (is.null(interval) && !is.null(metadata$interval)) {
       interval <- metadata$interval
@@ -152,6 +161,26 @@ describe_periods <- function(
     stop("'digits' must be a non-negative integer")
   }
   digits <- as.integer(digits)
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # --- Interval handling ---
   if (!is.null(interval)) {
@@ -255,18 +284,22 @@ describe_periods <- function(
       period_counts[i] <- 0
       entities[[i]] <- vector(class(group_orig), 0)
     } else {
-      time_indices <- which(time_orig == current_time) # works because we coerced to numeric if needed
+      # Indices of rows with this time value
+      time_indices <- which(time_orig == current_time) # works because coerced if needed
       if (length(time_indices) > 0) {
+        # Subset data for this period
         period_data <- data[time_indices, substantive_vars, drop = FALSE]
         period_groups_orig <- group_orig[time_indices]
 
         # Observed: at least one non-NA value in substantive variables
         has_some_data <- apply(period_data, 1, function(x) any(!is.na(x)))
-        period_counts[i] <- sum(has_some_data)
 
+        # Count distinct entities with data in this period
         if (any(has_some_data)) {
+          period_counts[i] <- length(unique(period_groups_orig[has_some_data]))
           entities[[i]] <- unique(period_groups_orig[has_some_data])
         } else {
+          period_counts[i] <- 0
           entities[[i]] <- vector(class(group_orig), 0)
         }
       } else {
@@ -303,6 +336,11 @@ describe_periods <- function(
   details <- list(
     entities = entities
   )
+
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
 
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details

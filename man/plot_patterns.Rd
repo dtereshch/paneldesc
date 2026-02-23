@@ -48,6 +48,12 @@ was inherited from panel attributes), and columns for those periods are added to
 (all zeros) before plotting. The heatmap will therefore include those missing periods on the x‑axis,
 and all entities will appear as missing (color for 0) in those columns.
 
+The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+they are stored in the returned list under \code{details$entity_time_duplicates}. A message is printed
+only when the group and time variables were explicitly provided (i.e., not taken from \code{panel_data}
+attributes).
+
 The heatmap shows:
 \itemize{
 \item \strong{Present}: Entity is present in the time period
@@ -62,10 +68,7 @@ The returned list contains the following components:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_patterns}, \code{presence_matrix},
-\code{patterns_groups}, \code{patterns_matrix}. The \code{patterns_groups} element is a list where each
-element corresponds to a pattern rank and contains the entity IDs that follow that pattern.
-\code{patterns_matrix} is a matrix with one row per distinct pattern (ordered by frequency)
-and one column per time period, containing 0/1 indicators.}
+\code{patterns_groups}, \code{patterns_matrix}, and, if duplicates were found, \code{entity_time_duplicates}.}
 }
 }
 \examples{

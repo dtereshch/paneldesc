@@ -12,7 +12,9 @@ describe_incomplete(data, group = NULL, time = NULL, detailed = FALSE)
 \item{group}{A character string specifying the name of the entity/group variable in panel data.
 Not required if data has panel attributes.}
 
-\item{time}{A character string specifying the name of the time variable (optional, for checking panel balance).}
+\item{time}{An optional character string specifying the name of the time variable.
+If provided, the function checks for duplicate group-time combinations.
+Not required if data has panel attributes.}
 
 \item{detailed}{A logical flag indicating whether to include detailed missing counts for each variable.
 Default = FALSE.}
@@ -47,12 +49,19 @@ The data.frame is sorted by:
 If no entities have incomplete data, returns the character message:
 "There are no incomplete groups/entities in the data."
 
+If a time variable is supplied (either by the user or from \code{panel_data} metadata),
+the function checks for duplicate group-time combinations. In a properly structured
+panel dataset, each entity (group) should have at most one observation per time period.
+If duplicates are found, they are stored in \code{details$entity_time_duplicates}.
+A message is printed only when the identifiers were explicitly provided (i.e., not taken
+from \code{panel_data} attributes).
+
 The returned data.frame (if any) has class \code{"panel_description"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information:
-\code{count_entities_total}, \code{count_entities_incomplete}, and \code{entities_incomplete}
-(vector of incomplete entity IDs).}
+\code{count_entities_total}, \code{count_entities_incomplete}, \code{entities_incomplete}, and
+(if time was supplied and duplicates exist) \code{entity_time_duplicates}.}
 }
 }
 \examples{
@@ -61,7 +70,7 @@ data(production)
 # Basic usage
 describe_incomplete(production, group = "firm")
 
-# More careful usage with panel balance check
+# More careful usage with panel balance check and duplicate check
 describe_incomplete(production, group = "firm", time = "year")
 
 # Detailed view with variable-level NA counts
@@ -70,16 +79,6 @@ describe_incomplete(production, group = "firm", detailed = TRUE)
 # With panel attributes
 panel_data <- set_panel(production, group = "firm", time = "year")
 describe_incomplete(panel_data)
-
-# Access and use attributes
-result <- describe_incomplete(production, group = "firm")
-
-# Extract incomplete entity IDs
-incomplete_ids <- attr(result, "details")$entities_incomplete
-
-# Calculate share of incomplete entities
-details <- attr(result, "details")
-share_incomplete <- details$count_entities_incomplete / details$count_entities_total
 
 }
 \seealso{

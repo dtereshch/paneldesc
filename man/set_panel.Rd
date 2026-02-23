@@ -35,6 +35,11 @@ It includes the following attributes:
 \item{\code{entities}}{Unique values of the group variable.}
 \item{\code{periods}}{Sorted unique values of the time variable.}
 }
+If duplicates of the group-time combination are found, an additional vector is included:
+\describe{
+\item{\code{entity_time_duplicates}}{A data frame containing the distinct duplicate
+combinations of group and time.}
+}
 If \code{interval} is supplied and missing periods are detected, two additional vectors are included:
 \describe{
 \item{\code{periods_restored}}{The full sequence of periods from \code{min(time)} to \code{max(time)} by \code{interval}.}
@@ -42,11 +47,18 @@ If \code{interval} is supplied and missing periods are detected, two additional 
 }}
 }
 
+The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+a one‑line message is printed with the number of distinct duplicate combinations and up to five examples.
+The duplicate combinations are stored in \code{details$entity_time_duplicates} for further inspection.
+
 When \code{interval} is specified, the function first attempts to convert the time variable to numeric
 (if it is not already). If conversion fails, an error is raised. It then checks whether the observed
 time points are compatible with a regular spacing of that interval. If any observed difference is not
 a multiple of the interval, an error is raised. If all differences are multiples of the interval but
 there are gaps, a message is printed listing the missing periods, and the analysis continues.
+In this case, the restored full sequence and the missing periods are stored in
+\code{details$periods_restored} and \code{details$periods_missing}, respectively.
 }
 \examples{
 data(production)

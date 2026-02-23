@@ -8,6 +8,7 @@ decompose_factor(
   data,
   selection = NULL,
   group = NULL,
+  time = NULL,
   format = "wide",
   digits = 3
 )
@@ -19,6 +20,10 @@ decompose_factor(
 If not specified, all factor variables in the data.frame will be used.}
 
 \item{group}{A character string specifying the name of the entity/group variable.
+Not required if data has panel attributes.}
+
+\item{time}{An optional character string specifying the name of the time variable.
+If provided, the function checks for duplicate group-time combinations.
 Not required if data has panel attributes.}
 
 \item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
@@ -56,10 +61,18 @@ When \code{format = "long"}, returns a data.frame with columns:
 \item{\code{share}}{Share proportion (0 to 1)}
 }
 
+If a time variable is supplied (either by the user or from \code{panel_data} metadata),
+the function checks for duplicate group-time combinations. In a properly structured
+panel dataset, each entity (group) should have at most one observation per time period.
+If duplicates are found, they are stored in \code{details$entity_time_duplicates}.
+A message is printed only when the identifiers were explicitly provided (i.e., not taken
+from \code{panel_data} attributes).
+
 The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
-\item{\code{details}}{List containing additional information: \code{count_groups}.}
+\item{\code{details}}{List containing additional information: \code{count_groups} and,
+if time was supplied and duplicates exist, \code{entity_time_duplicates}.}
 }
 }
 \examples{
@@ -78,14 +91,8 @@ decompose_factor(panel_data)
 # Show statistics for a single categorical variable
 decompose_factor(production, selection = "industry", group = "firm")
 
-# Show statistics for multiple categorical variables
-decompose_factor(production, selection = c("industry", "year"), group = "firm")
-
-# Show statistics with two digits rounding
-decompose_factor(production, group = "firm", digits = 2)
-
-# Effectively no rounding (use large digit value)
-decompose_factor(production, group = "firm", digits = 999999)
+# Show statistics with time variable to check duplicates
+decompose_factor(production, group = "firm", time = "year")
 
 }
 \references{

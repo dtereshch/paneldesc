@@ -23,6 +23,11 @@
 #'           \item{`entities`}{Unique values of the group variable.}
 #'           \item{`periods`}{Sorted unique values of the time variable.}
 #'         }
+#'         If duplicates of the group-time combination are found, an additional vector is included:
+#'         \describe{
+#'           \item{`entity_time_duplicates`}{A data frame containing the distinct duplicate
+#'                 combinations of group and time.}
+#'         }
 #'         If `interval` is supplied and missing periods are detected, two additional vectors are included:
 #'         \describe{
 #'           \item{`periods_restored`}{The full sequence of periods from `min(time)` to `max(time)` by `interval`.}
@@ -30,11 +35,18 @@
 #'         }}
 #' }
 #'
+#' The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' a one‑line message is printed with the number of distinct duplicate combinations and up to five examples.
+#' The duplicate combinations are stored in `details$entity_time_duplicates` for further inspection.
+#'
 #' When `interval` is specified, the function first attempts to convert the time variable to numeric
 #' (if it is not already). If conversion fails, an error is raised. It then checks whether the observed
 #' time points are compatible with a regular spacing of that interval. If any observed difference is not
 #' a multiple of the interval, an error is raised. If all differences are multiples of the interval but
 #' there are gaps, a message is printed listing the missing periods, and the analysis continues.
+#' In this case, the restored full sequence and the missing periods are stored in
+#' `details$periods_restored` and `details$periods_missing`, respectively.
 #'
 #' @seealso
 #' [check_panel()], [describe_dimensions()], [describe_balance()]
@@ -82,6 +94,26 @@ set_panel <- function(data, group, time, interval = NULL) {
     stop("'time' and 'group' cannot be the same variable")
   }
 
+  # --- Check for duplicate group-time combinations (before any time conversion) ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    # Extract the duplicate combinations (unique ones) for reporting
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    # Prepare up to five examples as a single string
+    examples <- utils::head(dup_combinations, 5)
+    example_strings <- paste0(examples[[group]], "-", examples[[time]])
+    example_str <- paste(example_strings, collapse = ", ")
+    message(
+      n_dup,
+      " duplicate group-time combinations found. Examples: ",
+      example_str
+    )
+  }
+  # --------------------------------------------------------------------------------
+
   # Validate interval if provided
   if (!is.null(interval)) {
     if (
@@ -127,10 +159,14 @@ set_panel <- function(data, group, time, interval = NULL) {
     periods = periods
   )
 
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
   # If interval is given, perform regularity checks and compute missing periods
   if (!is.null(interval)) {
     # Check consistency: all observed times must be equally spaced by multiples of interval
-    # Equivalent to checking that differences between consecutive sorted times are multiples of interval.
     time_diffs <- diff(periods)
     if (!all(time_diffs %% interval == 0)) {
       stop(

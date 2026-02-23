@@ -50,6 +50,11 @@ was inherited from panel attributes), and columns for those periods are added to
 periods as additional columns (in wide format) or additional rows (in long format). The \code{details}
 attribute is updated accordingly, but no new vectors are added beyond those already present.
 
+The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found,
+they are stored in \code{details$entity_time_duplicates}. A message is printed only when the group and time
+variables were explicitly provided (i.e., not taken from \code{panel_data} attributes).
+
 The output format depends on the \code{format} and \code{detailed} parameters:
 \describe{
 \item{\code{format = "wide"}, \code{detailed = TRUE}}{Columns: pattern, \link{time_periods}, count, share.}
@@ -63,10 +68,7 @@ The returned data.frame has class \code{"panel_description"} and the following a
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_patterns}, \code{presence_matrix},
-\code{patterns_groups}, \code{patterns_matrix}. The \code{patterns_groups} element is a list where each
-element corresponds to a pattern identifier and contains the entity IDs that follow that
-pattern. \code{patterns_matrix} is a matrix with one row per distinct pattern (ordered by
-frequency) and one column per time period, containing 0/1 indicators.}
+\code{patterns_groups}, \code{patterns_matrix}, and, if duplicates were found, \code{entity_time_duplicates}.}
 }
 }
 \examples{

@@ -23,6 +23,11 @@
 #' An entity/time combination is considered **present** if the corresponding row contains at least
 #' one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when the group and time
+#' variables were explicitly provided (i.e., not taken from `panel_data` attributes).
+#'
 #' The returned data.frame contains the following columns:
 #' \describe{
 #'   \item{\code{dimension}}{Character vector describing the type of panel element.
@@ -53,7 +58,8 @@
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `presence_matrix`.}
+#'   \item{`details`}{List containing additional information: `presence_matrix` and,
+#'         if duplicates were found, `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -84,6 +90,9 @@ describe_balance <- function(
   detailed = FALSE,
   digits = 3
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -96,6 +105,7 @@ describe_balance <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -125,6 +135,27 @@ describe_balance <- function(
   if (!time %in% names(data)) {
     stop('variable "', time, '" not found in data')
   }
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      # Prepare up to five examples
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # Validate detailed parameter
   if (!is.logical(detailed) || length(detailed) != 1) {
@@ -201,8 +232,7 @@ describe_balance <- function(
     }
   }
 
-  # --- SWAPPED ASSIGNMENTS per user request ---
-  # Statistics for entities row: now based on entities per period (colSums)
+  # Statistics for entities row: based on entities per period (colSums)
   entities_per_period <- colSums(presence_matrix)
   entity_stats <- entities_per_period[entities_per_period > 0]
 
@@ -277,7 +307,7 @@ describe_balance <- function(
     }
   }
 
-  # Statistics for periods row: now based on periods per entity (rowSums)
+  # Statistics for periods row: based on periods per entity (rowSums)
   periods_per_entity <- rowSums(presence_matrix)
   period_stats <- periods_per_entity[periods_per_entity > 0]
 
@@ -390,12 +420,17 @@ describe_balance <- function(
     digits = digits
   )
 
-  # Build details list (only non-metadata info)
+  # Build details list
   details <- list(
     presence_matrix = presence_matrix
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
 

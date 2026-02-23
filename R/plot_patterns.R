@@ -27,6 +27,12 @@
 #' (all zeros) before plotting. The heatmap will therefore include those missing periods on the x‑axis,
 #' and all entities will appear as missing (color for 0) in those columns.
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in the returned list under `details$entity_time_duplicates`. A message is printed
+#' only when the group and time variables were explicitly provided (i.e., not taken from `panel_data`
+#' attributes).
+#'
 #' The heatmap shows:
 #' \itemize{
 #'   \item \strong{Present}: Entity is present in the time period
@@ -41,10 +47,7 @@
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
-#'         `patterns_groups`, `patterns_matrix`. The `patterns_groups` element is a list where each
-#'         element corresponds to a pattern rank and contains the entity IDs that follow that pattern.
-#'         `patterns_matrix` is a matrix with one row per distinct pattern (ordered by frequency)
-#'         and one column per time period, containing 0/1 indicators.}
+#'         `patterns_groups`, `patterns_matrix`, and, if duplicates were found, `entity_time_duplicates`.}
 #' }
 #'
 #' @seealso
@@ -77,6 +80,9 @@ plot_patterns <- function(
   # Capture original interval argument
   user_interval <- interval
 
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # --- Panel attribute handling and validation ---
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -89,6 +95,7 @@ plot_patterns <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
     if (is.null(interval) && !is.null(metadata$interval)) {
       interval <- metadata$interval
     }
@@ -132,6 +139,26 @@ plot_patterns <- function(
       class(colors)[1]
     )
   }
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # --- Interval handling ---
   if (!is.null(interval)) {
@@ -373,6 +400,11 @@ plot_patterns <- function(
     count_patterns = length(patterns_groups_sorted),
     patterns_matrix = patterns_matrix
   )
+
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
 
   invisible(list(
     metadata = metadata,

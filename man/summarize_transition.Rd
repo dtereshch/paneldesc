@@ -58,25 +58,33 @@ All possible state combinations are included, even those with zero transitions.
 }
 }
 
-#' The returned data.frame has class \code{"panel_summary"} and the following attributes:
+The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+each entity (group) should have at most one observation per time period. If duplicates are found:
+\itemize{
+\item The distinct duplicate combinations are stored in \code{details$entity_time_duplicates}.
+\item If, for any duplicate combination, the values of the \code{selection} variable differ,
+an error is raised because the state at that time point is ambiguous.
+\item If all duplicate combinations have identical \code{selection} values, the data is
+collapsed to one row per group‑time (taking the first occurrence) before
+computing transitions. A message is printed (only when the identifiers were
+explicitly provided, not taken from \code{panel_data} attributes) indicating the
+number of collapsed duplicate rows.
+}
+
+The shares are \strong{empirical transition proportions} based on observed consecutive
+time periods. They are not necessarily Markov transition probabilities in the strict
+sense because the function does not normalize for missing time periods (gaps in the panel).
+
+Missing values in the variable of interest (\code{selection}) are removed before analysis,
+so transitions from nonmissing to missing (or vice versa) are \strong{excluded}.
+The variable of interest is coerced to a factor if it is not already one.
+At least two distinct levels are required in the factor to compute transitions.
+
+The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{categories} (vector of levels
-of the analyzed variable).}
-}
-}
-\note{
-\itemize{
-\item The shares are \strong{empirical transition proportions} based on observed consecutive
-time periods. They are not necessarily Markov transition probabilities in the strict
-sense because the function does not normalize for missing time periods (gaps in the panel).
-\item If there are gaps in the time variable within a group, transitions are only counted
-between observations that are consecutive in the sorted data; periods with missing
-observations are simply skipped.
-\item Missing values in the variable of interest (\code{selection}) are removed before analysis,
-so transitions from nonmissing to missing (or vice versa) are \strong{excluded}.
-\item The variable of interest is coerced to a factor if it is not already one.
-\item At least two distinct levels are required in the factor to compute transitions.
+of the analyzed variable) and, if duplicates were found, \code{entity_time_duplicates}.}
 }
 }
 \examples{

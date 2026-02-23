@@ -37,25 +37,33 @@
 #'   }
 #' }
 #'
-#' #' The returned data.frame has class `"panel_summary"` and the following attributes:
+#' The function checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found:
+#' \itemize{
+#'   \item The distinct duplicate combinations are stored in `details$entity_time_duplicates`.
+#'   \item If, for any duplicate combination, the values of the `selection` variable differ,
+#'         an error is raised because the state at that time point is ambiguous.
+#'   \item If all duplicate combinations have identical `selection` values, the data is
+#'         collapsed to one row per group‑time (taking the first occurrence) before
+#'         computing transitions. A message is printed (only when the identifiers were
+#'         explicitly provided, not taken from `panel_data` attributes) indicating the
+#'         number of collapsed duplicate rows.
+#' }
+#'
+#' The shares are **empirical transition proportions** based on observed consecutive
+#' time periods. They are not necessarily Markov transition probabilities in the strict
+#' sense because the function does not normalize for missing time periods (gaps in the panel).
+#'
+#' Missing values in the variable of interest (`selection`) are removed before analysis,
+#' so transitions from nonmissing to missing (or vice versa) are **excluded**.
+#' The variable of interest is coerced to a factor if it is not already one.
+#' At least two distinct levels are required in the factor to compute transitions.
+#'
+#' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `categories` (vector of levels
-#'         of the analyzed variable).}
-#' }
-#'
-#' @note
-#' \itemize{
-#'   \item The shares are **empirical transition proportions** based on observed consecutive
-#'         time periods. They are not necessarily Markov transition probabilities in the strict
-#'         sense because the function does not normalize for missing time periods (gaps in the panel).
-#'   \item If there are gaps in the time variable within a group, transitions are only counted
-#'         between observations that are consecutive in the sorted data; periods with missing
-#'         observations are simply skipped.
-#'   \item Missing values in the variable of interest (`selection`) are removed before analysis,
-#'         so transitions from nonmissing to missing (or vice versa) are **excluded**.
-#'   \item The variable of interest is coerced to a factor if it is not already one.
-#'   \item At least two distinct levels are required in the factor to compute transitions.
+#'         of the analyzed variable) and, if duplicates were found, `entity_time_duplicates`.}
 #' }
 #'
 #' @references
@@ -100,6 +108,9 @@ summarize_transition <- function(
   format = "wide",
   digits = 3
 ) {
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -112,6 +123,7 @@ summarize_transition <- function(
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -219,8 +231,58 @@ summarize_transition <- function(
   df[[group]] <- as.character(df[[group]])
   df[[time]] <- as.character(df[[time]])
 
-  # Order data by group and time
-  df <- df[order(df[[group]], df[[time]]), ]
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(df[c(group, time)]) |
+    duplicated(df[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(df[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+
+    # For each duplicate combination, check if selection values are consistent
+    inconsistent <- FALSE
+    for (i in seq_len(nrow(dup_combinations))) {
+      grp <- dup_combinations[i, group]
+      tm <- dup_combinations[i, time]
+      rows <- df[[group]] == grp & df[[time]] == tm
+      sel_vals <- df[[selection]][rows]
+      if (length(unique(sel_vals)) > 1) {
+        inconsistent <- TRUE
+        break
+      }
+    }
+
+    if (inconsistent) {
+      stop(
+        "Duplicate group-time combinations with differing values of '",
+        selection,
+        "' found. The state at these time points is ambiguous. ",
+        "Please resolve duplicates before proceeding."
+      )
+    } else {
+      # All duplicates have identical selection values; collapse to first row per group-time
+      df <- df[!duplicated(df[c(group, time)]), ]
+      if (!group_time_from_metadata) {
+        message(
+          "Duplicate rows with identical '",
+          selection,
+          "' values collapsed."
+        )
+        messages_printed <- TRUE
+      }
+    }
+  }
+  # ----------------------------------------------------
 
   # Remove rows with NA in the variable of interest
   complete_cases <- !is.na(df[[selection]])
@@ -236,11 +298,13 @@ summarize_transition <- function(
     df <- df[complete_cases, ]
   }
 
+  # Order data by group and time
+  df <- df[order(df[[group]], df[[time]]), ]
+
   # Calculate transitions using base R
   transitions <- by(df, df[[group]], function(group_data) {
     if (nrow(group_data) > 1) {
-      # Order within group by time
-      group_data <- group_data[order(group_data[[time]]), ]
+      # Order within group by time (already sorted)
       from_values <- group_data[[selection]][-nrow(group_data)]
       to_values <- group_data[[selection]][-1]
       data.frame(
@@ -338,19 +402,22 @@ summarize_transition <- function(
     digits = digits
   )
 
-  # Build details list (with categories instead of variable)
+  # Build details list
   details <- list(
     categories = all_levels
   )
 
-  # Set attributes in desired order
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
+
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
-
-  # Set class
   class(result_df) <- c("panel_summary", "data.frame")
 
-  # Add empty line before returning data.frame if messages were printed
+  # Add empty line before returning if messages were printed
   if (messages_printed) {
     cat("\n")
   }

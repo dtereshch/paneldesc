@@ -24,6 +24,11 @@
 #'   \item{\bold{variables}}{ Number of substantive variables (all columns except group and time).}
 #' }
 #'
+#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
+#' each entity (group) should have at most one observation per time period. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when the group and time
+#' variables were explicitly provided (i.e., not taken from `panel_data` attributes).
+#'
 #' The returned data.frame has class `"panel_description"` and the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
@@ -32,6 +37,8 @@
 #'           \item{\code{entities}: Vector of unique entity identifiers (original class).}
 #'           \item{\code{periods}: Vector of unique time period identifiers (original class).}
 #'           \item{\code{variables}: Character vector of substantive variable names.}
+#'           \item{\code{entity_time_duplicates}: If duplicates were found, a data frame
+#'                 containing the distinct duplicate combinations.}
 #'         }
 #'   }
 #' }
@@ -72,6 +79,9 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
     }
   }
 
+  # Determine if group/time came from metadata
+  group_time_from_metadata <- FALSE
+
   # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
@@ -84,6 +94,7 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
     }
     group <- metadata$group
     time <- metadata$time
+    group_time_from_metadata <- TRUE
   } else {
     # Handle regular data.frame
     if (!is.data.frame(data)) {
@@ -117,6 +128,26 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
   if (time == group) {
     stop("'time' and 'group' cannot be the same variable")
   }
+
+  # --- Check for duplicate group-time combinations ---
+  dup_combinations <- NULL
+  dup_rows <- duplicated(data[c(group, time)]) |
+    duplicated(data[c(group, time)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    n_dup <- nrow(dup_combinations)
+    if (!group_time_from_metadata) {
+      examples <- utils::head(dup_combinations, 5)
+      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_str <- paste(example_strings, collapse = ", ")
+      message(
+        n_dup,
+        " duplicate group-time combinations found. Examples: ",
+        example_str
+      )
+    }
+  }
+  # ----------------------------------------------------
 
   # Original vectors
   group_orig <- data[[group]]
@@ -159,6 +190,11 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
     periods = periods_vals,
     variables = substantive_vars
   )
+
+  # Add duplicate combinations if any were found
+  if (!is.null(dup_combinations)) {
+    details$entity_time_duplicates <- dup_combinations
+  }
 
   # Set attributes and class
   attr(result, "metadata") <- metadata
