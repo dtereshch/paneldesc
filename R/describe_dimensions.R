@@ -44,7 +44,7 @@
 #' }
 #'
 #' @seealso
-#' [check_panel()], [describe_balance()], [describe_periods()], [describe_patterns()], [set_panel()]
+#' [describe_balance()], [describe_periods()], [describe_patterns()], [set_panel()]
 #'
 #' @examples
 #' data(production)

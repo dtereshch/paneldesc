@@ -71,5 +71,5 @@ attr(dims, "details")$variables
 
 }
 \seealso{
-\code{\link[=check_panel]{check_panel()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=set_panel]{set_panel()}}
+\code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=set_panel]{set_panel()}}
 }

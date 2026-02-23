@@ -63,7 +63,7 @@
 #' }
 #'
 #' @seealso
-#' [describe_periods()], [describe_patterns()], [plot_periods()], [plot_patterns()], [check_panel()]
+#' [describe_periods()], [describe_patterns()], [plot_periods()], [plot_patterns()]
 #'
 #' @examples
 #' data(production)

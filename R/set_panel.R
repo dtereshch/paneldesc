@@ -49,7 +49,7 @@
 #' `details$periods_restored` and `details$periods_missing`, respectively.
 #'
 #' @seealso
-#' [check_panel()], [describe_dimensions()], [describe_balance()]
+#' [describe_dimensions()], [describe_balance()], [describe_periods()]
 #'
 #' @examples
 #' data(production)

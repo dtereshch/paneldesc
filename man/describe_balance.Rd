@@ -94,5 +94,5 @@ describe_balance(production, group = "firm", time = "year", digits = 999999)
 
 }
 \seealso{
-\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}, \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=check_panel]{check_panel()}}
+\code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}, \code{\link[=plot_patterns]{plot_patterns()}}
 }

@@ -78,5 +78,5 @@ panel_data2 <- set_panel(production, group = "firm", time = "year", interval = 1
 
 }
 \seealso{
-\code{\link[=check_panel]{check_panel()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}
+\code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}
 }
