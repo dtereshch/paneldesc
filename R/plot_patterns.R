@@ -41,8 +41,10 @@
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
-#'         `pattern_groups`. The `pattern_groups` element is a list where each element corresponds
-#'         to a pattern rank and contains the entity IDs that follow that pattern.}
+#'         `patterns_groups`, `patterns_matrix`. The `patterns_groups` element is a list where each
+#'         element corresponds to a pattern rank and contains the entity IDs that follow that pattern.
+#'         `patterns_matrix` is a matrix with one row per distinct pattern (ordered by frequency)
+#'         and one column per time period, containing 0/1 indicators.}
 #' }
 #'
 #' @seealso
@@ -235,17 +237,17 @@ plot_patterns <- function(
   # --- Frequency of each pattern ---
   pattern_freq <- table(pattern_strings)
 
-  # --- Create pattern_groups list (before filtering) ---
-  pattern_groups_full <- list()
+  # --- Create patterns_groups list (before filtering) ---
+  patterns_groups_full <- list()
   for (entity in all_groups) {
     pattern_vec <- presence_binary[entity, ]
     pattern_string <- paste(pattern_vec, collapse = "")
 
-    if (!pattern_string %in% names(pattern_groups_full)) {
-      pattern_groups_full[[pattern_string]] <- character(0)
+    if (!pattern_string %in% names(patterns_groups_full)) {
+      patterns_groups_full[[pattern_string]] <- character(0)
     }
-    pattern_groups_full[[pattern_string]] <- c(
-      pattern_groups_full[[pattern_string]],
+    patterns_groups_full[[pattern_string]] <- c(
+      patterns_groups_full[[pattern_string]],
       entity
     )
   }
@@ -260,7 +262,7 @@ plot_patterns <- function(
     pattern_strings <- pattern_strings[keep]
     pattern_freq <- pattern_freq[top_patterns]
 
-    pattern_groups_full <- pattern_groups_full[top_patterns]
+    patterns_groups_full <- patterns_groups_full[top_patterns]
   }
 
   # --- Order rows: least frequent first (bottom), most frequent last (top) ---
@@ -274,13 +276,23 @@ plot_patterns <- function(
     decreasing = TRUE
   )])
 
-  pattern_groups_sorted <- list()
+  patterns_groups_sorted <- list()
   for (i in seq_along(unique_patterns_sorted)) {
     pattern_string <- unique_patterns_sorted[i]
-    pattern_groups_sorted[[as.character(i)]] <- pattern_groups_full[[
+    patterns_groups_sorted[[as.character(i)]] <- patterns_groups_full[[
       pattern_string
     ]]
   }
+
+  # Create patterns matrix (unique patterns in rows)
+  patterns_matrix <- do.call(
+    rbind,
+    lapply(unique_patterns_sorted, function(p) {
+      as.numeric(strsplit(p, "")[[1]])
+    })
+  )
+  rownames(patterns_matrix) <- seq_along(unique_patterns_sorted)
+  colnames(patterns_matrix) <- time_cols
 
   # --- Prepare for plotting ---
   old_par <- par(no.readonly = TRUE)
@@ -357,8 +369,9 @@ plot_patterns <- function(
 
   details <- list(
     presence_matrix = presence_binary_sorted,
-    pattern_groups = pattern_groups_sorted,
-    count_patterns = length(pattern_groups_sorted)
+    patterns_groups = patterns_groups_sorted,
+    count_patterns = length(patterns_groups_sorted),
+    patterns_matrix = patterns_matrix
   )
 
   invisible(list(

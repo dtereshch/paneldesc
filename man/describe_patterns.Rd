@@ -63,8 +63,10 @@ The returned data.frame has class \code{"panel_description"} and the following a
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_patterns}, \code{presence_matrix},
-\code{pattern_groups}. The \code{pattern_groups} element is a list where each element corresponds
-to a pattern identifier and contains the entity IDs that follow that pattern.}
+\code{patterns_groups}, \code{patterns_matrix}. The \code{patterns_groups} element is a list where each
+element corresponds to a pattern identifier and contains the entity IDs that follow that
+pattern. \code{patterns_matrix} is a matrix with one row per distinct pattern (ordered by
+frequency) and one column per time period, containing 0/1 indicators.}
 }
 }
 \examples{
@@ -83,10 +85,10 @@ describe_patterns(production, group = "firm", time = "year", interval = 1)
 # Simplified version
 describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
 
-# Using pattern_groups to extract entities with specific patterns
+# Using patterns_groups to extract entities with specific patterns
 patterns <- describe_patterns(production, group = "firm", time = "year")
-pattern_groups <- attr(patterns, "details")$pattern_groups
-most_common_pattern_entities <- pattern_groups[["1"]]
+patterns_groups <- attr(patterns, "details")$patterns_groups
+most_common_pattern_entities <- patterns_groups[["1"]]
 
 }
 \seealso{

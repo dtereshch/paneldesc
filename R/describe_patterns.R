@@ -40,8 +40,10 @@
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
-#'         `pattern_groups`. The `pattern_groups` element is a list where each element corresponds
-#'         to a pattern identifier and contains the entity IDs that follow that pattern.}
+#'         `patterns_groups`, `patterns_matrix`. The `patterns_groups` element is a list where each
+#'         element corresponds to a pattern identifier and contains the entity IDs that follow that
+#'         pattern. `patterns_matrix` is a matrix with one row per distinct pattern (ordered by
+#'         frequency) and one column per time period, containing 0/1 indicators.}
 #' }
 #'
 #' @seealso
@@ -63,10 +65,10 @@
 #' # Simplified version
 #' describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
 #'
-#' # Using pattern_groups to extract entities with specific patterns
+#' # Using patterns_groups to extract entities with specific patterns
 #' patterns <- describe_patterns(production, group = "firm", time = "year")
-#' pattern_groups <- attr(patterns, "details")$pattern_groups
-#' most_common_pattern_entities <- pattern_groups[["1"]]
+#' patterns_groups <- attr(patterns, "details")$patterns_groups
+#' most_common_pattern_entities <- patterns_groups[["1"]]
 #'
 #' @export
 describe_patterns <- function(
@@ -293,16 +295,16 @@ describe_patterns <- function(
   })
   pattern_counts <- table(pattern_strings)
 
-  # Create pattern_groups list with original class group identifiers
-  pattern_groups <- list()
+  # Create patterns_groups list with original class group identifiers
+  patterns_groups <- list()
   for (i in seq_along(unique_groups_orig)) {
     grp_orig <- unique_groups_orig[i]
     grp_char <- unique_groups_char[i]
     pat_str <- pattern_strings[i]
-    if (!pat_str %in% names(pattern_groups)) {
-      pattern_groups[[pat_str]] <- vector(class(grp_orig), 0)
+    if (!pat_str %in% names(patterns_groups)) {
+      patterns_groups[[pat_str]] <- vector(class(grp_orig), 0)
     }
-    pattern_groups[[pat_str]] <- c(pattern_groups[[pat_str]], grp_orig)
+    patterns_groups[[pat_str]] <- c(patterns_groups[[pat_str]], grp_orig)
   }
 
   # Create result data frame
@@ -329,22 +331,27 @@ describe_patterns <- function(
   result$pattern <- seq_len(nrow(result))
   rownames(result) <- NULL
 
-  # Reorder pattern_groups to match sorted patterns
+  # Reorder patterns_groups to match sorted patterns
   sorted_pattern_strings <- apply(result[time_cols_char], 1, function(x) {
     paste(x, collapse = "")
   })
-  pattern_groups_sorted <- list()
+  patterns_groups_sorted <- list()
   for (i in seq_along(sorted_pattern_strings)) {
     pat_str <- sorted_pattern_strings[i]
-    pattern_groups_sorted[[as.character(i)]] <- pattern_groups[[pat_str]]
+    patterns_groups_sorted[[as.character(i)]] <- patterns_groups[[pat_str]]
   }
-  pattern_groups <- pattern_groups_sorted
+  patterns_groups <- patterns_groups_sorted
 
-  # Build base details list
-  details_base <- list(
+  # Create patterns matrix (unique patterns in rows)
+  patterns_matrix <- as.matrix(result[, time_cols_char, drop = FALSE])
+  rownames(patterns_matrix) <- result$pattern
+
+  # Build details list
+  details <- list(
     count_patterns = nrow(result),
     presence_matrix = presence_binary,
-    pattern_groups = pattern_groups
+    patterns_groups = patterns_groups,
+    patterns_matrix = patterns_matrix
   )
 
   # Convert to long format if requested
@@ -383,7 +390,7 @@ describe_patterns <- function(
         detailed = detailed,
         digits = digits
       )
-      attr(simplified_result, "details") <- details_base
+      attr(simplified_result, "details") <- details
       class(simplified_result) <- c("panel_description", "data.frame")
       return(simplified_result)
     }
@@ -397,7 +404,7 @@ describe_patterns <- function(
       detailed = detailed,
       digits = digits
     )
-    attr(long_result, "details") <- details_base
+    attr(long_result, "details") <- details
     class(long_result) <- c("panel_description", "data.frame")
     return(long_result)
   }
@@ -414,7 +421,7 @@ describe_patterns <- function(
       detailed = detailed,
       digits = digits
     )
-    attr(simplified_result, "details") <- details_base
+    attr(simplified_result, "details") <- details
     class(simplified_result) <- c("panel_description", "data.frame")
     return(simplified_result)
   }
@@ -429,7 +436,7 @@ describe_patterns <- function(
     detailed = detailed,
     digits = digits
   )
-  attr(result, "details") <- details_base
+  attr(result, "details") <- details
   class(result) <- c("panel_description", "data.frame")
 
   return(result)
