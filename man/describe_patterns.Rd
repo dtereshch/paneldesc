@@ -9,6 +9,7 @@ describe_patterns(
   group = NULL,
   time = NULL,
   interval = NULL,
+  max_patterns = NULL,
   format = "wide",
   detailed = TRUE,
   digits = 3
@@ -24,6 +25,9 @@ Not required if data has panel attributes.}
 Not required if data has panel attributes.}
 
 \item{interval}{An optional positive integer giving the expected interval between time periods.}
+
+\item{max_patterns}{An integer specifying the maximum number of distinct patterns to display.
+If not specified, all patterns are shown.}
 
 \item{format}{A character string specifying the output format: "wide" or "long". Default = "wide".}
 
@@ -66,6 +70,10 @@ The output format depends on the \code{format} and \code{detailed} parameters:
 \item{\code{detailed = FALSE}}{Only pattern and time period columns (or presence in long format).}
 }
 
+If \code{max_patterns} is supplied, only the most frequent patterns are retained; the output is limited
+to the top \code{max_patterns} patterns. The \code{patterns_groups} and \code{patterns_matrix} in the \code{details}
+attribute are updated accordingly.
+
 Patterns are sorted by frequency (most common first).
 
 The returned data.frame has class \code{"panel_description"} and the following attributes:
@@ -88,6 +96,9 @@ describe_patterns(panel_data)
 
 # Specify interval to fill gaps
 describe_patterns(production, group = "firm", time = "year", interval = 1)
+
+# Show only top 3 patterns
+describe_patterns(production, group = "firm", time = "year", max_patterns = 3)
 
 # Simplified version
 describe_patterns(production, group = "firm", time = "year", detailed = FALSE)

@@ -8,6 +8,8 @@
 #' @param time A character string specifying the name of the time variable.
 #'        Not required if data has panel attributes.
 #' @param interval An optional positive integer giving the expected interval between time periods.
+#' @param max_patterns An integer specifying the maximum number of distinct patterns to display.
+#'        If not specified, all patterns are shown.
 #' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param detailed A logical flag indicating whether to return detailed patterns. Default = TRUE.
 #' @param digits An integer specifying the number of decimal places for rounding share column.
@@ -43,6 +45,10 @@
 #'   \item{\code{detailed = FALSE}}{Only pattern and time period columns (or presence in long format).}
 #' }
 #'
+#' If `max_patterns` is supplied, only the most frequent patterns are retained; the output is limited
+#' to the top `max_patterns` patterns. The `patterns_groups` and `patterns_matrix` in the `details`
+#' attribute are updated accordingly.
+#'
 #' Patterns are sorted by frequency (most common first).
 #'
 #' The returned data.frame has class `"panel_description"` and the following attributes:
@@ -69,6 +75,9 @@
 #' # Specify interval to fill gaps
 #' describe_patterns(production, group = "firm", time = "year", interval = 1)
 #'
+#' # Show only top 3 patterns
+#' describe_patterns(production, group = "firm", time = "year", max_patterns = 3)
+#'
 #' # Simplified version
 #' describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
 #'
@@ -78,6 +87,7 @@ describe_patterns <- function(
   group = NULL,
   time = NULL,
   interval = NULL,
+  max_patterns = NULL,
   format = "wide",
   detailed = TRUE,
   digits = 3
@@ -172,6 +182,18 @@ describe_patterns <- function(
     stop("'digits' must be a non-negative integer")
   }
   digits <- as.integer(digits)
+
+  # Validate max_patterns (harmonized with plot_patterns: integer check added)
+  if (!is.null(max_patterns)) {
+    if (
+      !is.numeric(max_patterns) ||
+        length(max_patterns) != 1 ||
+        max_patterns < 1 ||
+        max_patterns != round(max_patterns)
+    ) {
+      stop("'max_patterns' must be a single positive integer or NULL")
+    }
+  }
 
   # --- Remove rows with NA in group or time ---
   excluded_rows <- NULL
@@ -389,7 +411,12 @@ describe_patterns <- function(
   result$pattern <- seq_len(nrow(result))
   rownames(result) <- NULL
 
-  # Reorder patterns_groups to match sorted patterns
+  # Filter by max_patterns if requested
+  if (!is.null(max_patterns)) {
+    result <- result[seq_len(min(max_patterns, nrow(result))), , drop = FALSE]
+  }
+
+  # Reorder patterns_groups to match sorted (and possibly filtered) patterns
   sorted_pattern_strings <- apply(result[time_cols_char], 1, function(x) {
     paste(x, collapse = "")
   })
@@ -452,6 +479,7 @@ describe_patterns <- function(
         group = group,
         time = time,
         interval = interval,
+        max_patterns = max_patterns,
         format = format,
         detailed = detailed,
         digits = digits
@@ -466,6 +494,7 @@ describe_patterns <- function(
       group = group,
       time = time,
       interval = interval,
+      max_patterns = max_patterns,
       format = format,
       detailed = detailed,
       digits = digits
@@ -483,6 +512,7 @@ describe_patterns <- function(
       group = group,
       time = time,
       interval = interval,
+      max_patterns = max_patterns,
       format = format,
       detailed = detailed,
       digits = digits
@@ -498,6 +528,7 @@ describe_patterns <- function(
     group = group,
     time = time,
     interval = interval,
+    max_patterns = max_patterns,
     format = format,
     detailed = detailed,
     digits = digits
