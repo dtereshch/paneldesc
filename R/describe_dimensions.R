@@ -84,10 +84,11 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
     }
   }
 
-  # Determine if group/time came from metadata
+  # --- Consistent initialisation ---
+  user_group <- group
+  user_time <- time
   group_time_from_metadata <- FALSE
 
-  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
@@ -97,14 +98,20 @@ describe_dimensions <- function(data, group = NULL, time = NULL) {
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    time <- metadata$time
-    group_time_from_metadata <- TRUE
-  } else {
-    if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+    if (is.null(group)) {
+      group <- metadata$group
+    }
+    if (is.null(time)) {
+      time <- metadata$time
     }
 
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    group_time_from_metadata <- group_from_metadata && time_from_metadata
+  } else {
+    if (!is.data.frame(data)) {
+      stop("'data' must be a data.frame")
+    }
     if (is.null(group) || is.null(time)) {
       stop(
         "For regular data.frames, both 'group' and 'time' arguments must be provided"

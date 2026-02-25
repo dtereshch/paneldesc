@@ -94,10 +94,11 @@ decompose_factor <- function(
   format = "wide",
   digits = 3
 ) {
-  # Determine if group/time came from metadata
+  # --- Consistent initialisation: user input overrides metadata ---
+  user_group <- group
+  user_time <- time
   group_time_from_metadata <- FALSE
 
-  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (is.null(metadata) || is.null(metadata$group)) {
@@ -105,20 +106,30 @@ decompose_factor <- function(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    if (!is.null(metadata$time)) {
-      time <- metadata$time
-    } else {
-      time <- NULL
+    # group: use metadata only if user did not supply it
+    if (is.null(group)) {
+      group <- metadata$group
     }
-    group_time_from_metadata <- TRUE
+    # time: use metadata only if user did not supply it and metadata has time
+    if (is.null(time) && !is.null(metadata$time)) {
+      time <- metadata$time
+    }
+
+    # Determine if identifiers came from metadata
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    # Combined flag for duplicate messages (used only when time is not NULL)
+    group_time_from_metadata <- group_from_metadata &&
+      (is.null(time) || time_from_metadata)
   } else {
+    # Regular data frame
     if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+      stop("'data' must be a data.frame")
     }
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
+    # time may be NULL
   }
 
   # Common validation for group

@@ -77,9 +77,6 @@ describe_periods <- function(
   interval = NULL,
   digits = 3
 ) {
-  # Capture original interval argument to distinguish user-supplied vs inherited
-  user_interval <- interval
-
   # Helper to sort unique values preserving original class (for non‑numeric)
   sort_unique_preserve <- function(x) {
     ux <- unique(x)
@@ -105,10 +102,13 @@ describe_periods <- function(
     }
   }
 
-  # Determine if group/time came from metadata
+  # --- Consistent initialisation ---
+  user_group <- group
+  user_time <- time
+  user_interval <- interval
   group_time_from_metadata <- FALSE
+  interval_from_metadata <- FALSE
 
-  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
@@ -118,16 +118,23 @@ describe_periods <- function(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    time <- metadata$time
-    group_time_from_metadata <- TRUE
-    # Use interval from metadata if not overridden by explicit argument
+    if (is.null(group)) {
+      group <- metadata$group
+    }
+    if (is.null(time)) {
+      time <- metadata$time
+    }
     if (is.null(interval) && !is.null(metadata$interval)) {
       interval <- metadata$interval
+      interval_from_metadata <- TRUE
     }
+
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    group_time_from_metadata <- group_from_metadata && time_from_metadata
   } else {
     if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+      stop("'data' must be a data.frame")
     }
     if (is.null(group) || is.null(time)) {
       stop(
@@ -135,9 +142,6 @@ describe_periods <- function(
       )
     }
   }
-
-  # Determine if interval came from metadata
-  interval_from_metadata <- is.null(user_interval) && !is.null(interval)
 
   # Common validation
   if (!is.character(group) || length(group) != 1) {

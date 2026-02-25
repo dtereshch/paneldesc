@@ -81,13 +81,13 @@ plot_patterns <- function(
   max_patterns = NULL,
   colors = c("#1E4A3B", "white")
 ) {
-  # Capture original interval argument
+  # --- Consistent initialisation ---
+  user_group <- group
+  user_time <- time
   user_interval <- interval
-
-  # Determine if group/time came from metadata
   group_time_from_metadata <- FALSE
+  interval_from_metadata <- FALSE
 
-  # --- Panel attribute handling and validation ---
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
@@ -97,15 +97,23 @@ plot_patterns <- function(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    time <- metadata$time
-    group_time_from_metadata <- TRUE
+    if (is.null(group)) {
+      group <- metadata$group
+    }
+    if (is.null(time)) {
+      time <- metadata$time
+    }
     if (is.null(interval) && !is.null(metadata$interval)) {
       interval <- metadata$interval
+      interval_from_metadata <- TRUE
     }
+
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    group_time_from_metadata <- group_from_metadata && time_from_metadata
   } else {
     if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+      stop("'data' must be a data.frame")
     }
     if (is.null(group) || is.null(time)) {
       stop(
@@ -113,9 +121,6 @@ plot_patterns <- function(
       )
     }
   }
-
-  # Determine if interval came from metadata
-  interval_from_metadata <- is.null(user_interval) && !is.null(interval)
 
   # --- Basic checks ---
   if (!is.character(group) || length(group) != 1) {

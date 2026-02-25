@@ -118,10 +118,11 @@ decompose_numeric <- function(
   detailed = TRUE,
   digits = 3
 ) {
-  # Determine if group/time came from metadata
+  # --- Consistent initialisation ---
+  user_group <- group
+  user_time <- time
   group_time_from_metadata <- FALSE
 
-  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (is.null(metadata) || is.null(metadata$group)) {
@@ -129,41 +130,23 @@ decompose_numeric <- function(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    if (!is.null(metadata$time)) {
-      time <- metadata$time
-    } else {
-      time <- NULL
+    if (is.null(group)) {
+      group <- metadata$group
     }
-    group_time_from_metadata <- TRUE
+    if (is.null(time) && !is.null(metadata$time)) {
+      time <- metadata$time
+    }
+
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    group_time_from_metadata <- group_from_metadata &&
+      (is.null(time) || time_from_metadata)
   } else {
     if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+      stop("'data' must be a data.frame")
     }
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
-    }
-  }
-
-  # Common validation for group
-  if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string, not ", class(group)[1])
-  }
-
-  if (!group %in% names(data)) {
-    stop('variable "', group, '" not found in data')
-  }
-
-  # Validate time if provided
-  if (!is.null(time)) {
-    if (!is.character(time) || length(time) != 1) {
-      stop("'time' must be a single character string, not ", class(time)[1])
-    }
-    if (!time %in% names(data)) {
-      stop('variable "', time, '" not found in data')
-    }
-    if (time == group) {
-      stop("'time' and 'group' must be different variables")
     }
   }
 

@@ -81,37 +81,38 @@ describe_incomplete <- function(
   time = NULL,
   detailed = FALSE
 ) {
-  # Determine if group/time came from metadata
+  # --- Consistent initialisation ---
+  user_group <- group
+  user_time <- time
   group_time_from_metadata <- FALSE
 
-  # Check for panel_data class and extract info from metadata
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
-    if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
-    ) {
+    if (is.null(metadata) || is.null(metadata$group)) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    group <- metadata$group
-    # Use metadata$time as default, but allow user override via argument
-    if (!is.null(time)) {
-      # user explicitly provided time; use that and note that it's not from metadata
-      group_time_from_metadata <- FALSE
-    } else {
-      time <- metadata$time
-      group_time_from_metadata <- TRUE
+    if (is.null(group)) {
+      group <- metadata$group
     }
+    # time is optional: use metadata only if user didn't provide and metadata has time
+    if (is.null(time) && !is.null(metadata$time)) {
+      time <- metadata$time
+    }
+
+    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
+    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
+    group_time_from_metadata <- group_from_metadata &&
+      (is.null(time) || time_from_metadata)
   } else {
-    # Handle regular data.frame
     if (!is.data.frame(data)) {
-      stop("'data' must be a data.frame, not ", class(data)[1])
+      stop("'data' must be a data.frame")
     }
     if (is.null(group)) {
       stop("For regular data.frames, 'group' argument must be provided")
     }
-    # time is optional; if provided, it's from user
+    # time may be NULL
   }
 
   # Common validation for group
