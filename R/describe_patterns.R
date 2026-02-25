@@ -359,7 +359,8 @@ describe_patterns <- function(
     grp_char <- unique_groups_char[i]
     pat_str <- pattern_strings[i]
     if (!pat_str %in% names(patterns_groups)) {
-      patterns_groups[[pat_str]] <- vector(class(grp_orig), 0)
+      # Use grp_orig[0] to create an empty vector of the same class as grp_orig
+      patterns_groups[[pat_str]] <- grp_orig[0]
     }
     patterns_groups[[pat_str]] <- c(patterns_groups[[pat_str]], grp_orig)
   }
