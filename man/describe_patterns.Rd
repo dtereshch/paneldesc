@@ -104,6 +104,9 @@ describe_patterns(production, group = "firm", time = "year", max_patterns = 3)
 describe_patterns(production, group = "firm", time = "year", detailed = FALSE)
 
 }
+\references{
+For Stata users: This corresponds to the \code{xtdes} command.
+}
 \seealso{
 \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_balance]{describe_balance()}}
 }

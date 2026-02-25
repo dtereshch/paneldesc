@@ -59,6 +59,9 @@
 #'         `entity_time_duplicates`.}
 #' }
 #'
+#' @references
+#' For Stata users: This corresponds to the `xtdes` command.
+#'
 #' @seealso
 #' [plot_patterns()], [describe_periods()], [describe_incomplete()], [describe_balance()]
 #'
