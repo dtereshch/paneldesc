@@ -286,6 +286,12 @@ decompose_factor <- function(
     }
   }
 
+  # --- NEW CHECK: ensure group variable is not in selection ---
+  if (group %in% selection) {
+    stop("'selection' cannot be the same as 'group' variable ('", group, "')")
+  }
+  # ------------------------------------------------------------
+
   # Convert group to character for consistent handling
   data[[group]] <- as.character(data[[group]])
 

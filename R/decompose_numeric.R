@@ -287,6 +287,12 @@ decompose_numeric <- function(
     )
   }
 
+  # --- NEW CHECK: ensure group variable is not in selection ---
+  if (group %in% selection) {
+    stop("'selection' cannot be the same as 'group' variable ('", group, "')")
+  }
+  # ------------------------------------------------------------
+
   # Check group variable
   group_vector <- data[[group]]
   if (length(group_vector) == 0) {

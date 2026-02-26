@@ -125,6 +125,16 @@ plot_heterogeneity <- function(
     )
   }
 
+  # --- NEW CHECK: ensure selection is not in group ---
+  if (selection %in% group) {
+    stop(
+      "'selection' cannot be the same as 'group' variable ('",
+      selection,
+      "')"
+    )
+  }
+  # ---------------------------------------------------
+
   # Validate colors parameter
   if (!is.character(colors) || length(colors) != 2) {
     stop(

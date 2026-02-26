@@ -140,6 +140,17 @@ summarize_missing <- function(
     stop("'time' and 'group' cannot be the same variable")
   }
 
+  # --- NEW CHECK: ensure selection does not include group or time (if provided) ---
+  if (!is.null(selection)) {
+    if (group %in% selection) {
+      stop("'selection' cannot be the same as 'group' variable ('", group, "')")
+    }
+    if (time %in% selection) {
+      stop("'selection' cannot be the same as 'time' variable ('", time, "')")
+    }
+  }
+  # --------------------------------------------------------------------------------
+
   if (!is.logical(detailed) || length(detailed) != 1) {
     stop("'detailed' must be a single logical value, not ", class(detailed)[1])
   }
@@ -240,7 +251,7 @@ summarize_missing <- function(
     )
   }
 
-  # Remove group and time from selection if included
+  # Remove group and time from selection if included (redundant after check, but safe)
   selection <- setdiff(selection, c(group, time))
   if (length(selection) == 0) {
     stop("no variables to analyze (excluding group and time variables)")

@@ -36,6 +36,16 @@
 #'
 #' When no grouping variable is specified, statistics are calculated overall.
 #' When a grouping variable is specified, statistics are calculated for each group.
+#' If a grouping variable is provided, it cannot be included in `selection`; otherwise an error is raised.
+#'
+#' If the input data is a `panel_data` object (e.g., from the **panelr** package),
+#' the function automatically retrieves the group and time identifiers from its
+#' metadata. These variables are then excluded from the default selection of
+#' numeric variables (i.e., when `selection = NULL`) because they typically do
+#' not represent substantive measurements. However, if you explicitly include
+#' them in the `selection` argument, they will be analyzed. The `group` argument
+#' for grouping summaries is independent and can be set to any variable,
+#' including the panel's time or group variable.
 #'
 #' The returned data.frame has class `"panel_summary"` and the following attributes:
 #' \describe{
@@ -44,7 +54,7 @@
 #' }
 #'
 #' @note
-#' This function does **not** use panel attributes; it is designed for general use.
+#' This function does **not** use panel attributes for grouping; it is designed for general use.
 #'
 #' @seealso
 #' [decompose_numeric()], [decompose_factor()], [summarize_transition()], [summarize_missing()]
@@ -118,6 +128,18 @@ summarize_numeric <- function(
   }
   digits <- as.integer(digits)
 
+  # --- Panel data handling: extract group/time identifiers if present ---
+  panel_id_vars <- character(0)
+  if (inherits(data, "panel_data")) {
+    metadata <- attr(data, "metadata")
+    if (
+      !is.null(metadata) && !is.null(metadata$group) && !is.null(metadata$time)
+    ) {
+      panel_id_vars <- c(metadata$group, metadata$time)
+    }
+  }
+  # ----------------------------------------------------------------------
+
   # Helper function for rounding
   round_if_needed <- function(x, digits) {
     if (is.numeric(x) && !all(is.na(x))) {
@@ -141,14 +163,27 @@ summarize_numeric <- function(
       stop("no numeric variables found in the dataset")
     }
 
-    # Remove the group variable from selection if it's numeric and provided
+    # Determine variables to exclude from default selection:
+    # - the grouping variable (if provided and numeric)
+    # - panel identifiers (if they are numeric and present)
+    exclude_vars <- character(0)
     if (!is.null(group) && group %in% selection) {
-      selection <- selection[selection != group]
+      exclude_vars <- c(exclude_vars, group)
+    }
+    if (length(panel_id_vars) > 0) {
+      panel_id_vars_in_selection <- intersect(panel_id_vars, selection)
+      if (length(panel_id_vars_in_selection) > 0) {
+        exclude_vars <- c(exclude_vars, panel_id_vars_in_selection)
+      }
+    }
+    if (length(exclude_vars) > 0) {
+      selection <- selection[!selection %in% exclude_vars]
     }
 
     if (length(selection) == 0) {
       stop(
-        "after removing the grouping variable, there are no numeric variables to analyze"
+        "after removing grouping variable and panel identifiers, ",
+        "there are no numeric variables to analyze"
       )
     }
 
@@ -178,6 +213,15 @@ summarize_numeric <- function(
     stop(
       "the following variables are not numeric: ",
       paste(non_numeric_vars, collapse = ", ")
+    )
+  }
+
+  # Check that selection does not include the grouping variable
+  if (!is.null(group) && group %in% selection) {
+    stop(
+      "'selection' cannot contain the same variable as the 'group' variable ('",
+      group,
+      "')"
     )
   }
 

@@ -55,6 +55,16 @@ When \code{detailed = TRUE}, additional columns are included:
 
 When no grouping variable is specified, statistics are calculated overall.
 When a grouping variable is specified, statistics are calculated for each group.
+If a grouping variable is provided, it cannot be included in \code{selection}; otherwise an error is raised.
+
+If the input data is a \code{panel_data} object (e.g., from the \strong{panelr} package),
+the function automatically retrieves the group and time identifiers from its
+metadata. These variables are then excluded from the default selection of
+numeric variables (i.e., when \code{selection = NULL}) because they typically do
+not represent substantive measurements. However, if you explicitly include
+them in the \code{selection} argument, they will be analyzed. The \code{group} argument
+for grouping summaries is independent and can be set to any variable,
+including the panel's time or group variable.
 
 The returned data.frame has class \code{"panel_summary"} and the following attributes:
 \describe{
@@ -63,7 +73,7 @@ The returned data.frame has class \code{"panel_summary"} and the following attri
 }
 }
 \note{
-This function does \strong{not} use panel attributes; it is designed for general use.
+This function does \strong{not} use panel attributes for grouping; it is designed for general use.
 }
 \examples{
 data(production)
