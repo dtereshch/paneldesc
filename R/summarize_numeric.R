@@ -4,16 +4,16 @@
 #' either overall or grouped by a single grouping variable.
 #'
 #' @param data A data.frame containing variables for analysis.
-#' @param selection A character vector specifying which numeric variables to analyze.
+#' @param select A character vector specifying which numeric variables to analyze.
 #'        If not specified, all numeric variables in the data.frame will be used.
 #' @param group A character string specifying the grouping variable name.
 #'        If not specified, overall statistics will be returned.
-#' @param detailed A logical flag indicating whether to return additional statistics (25th, 50th, and 75th percentiles).
+#' @param detail A logical flag indicating whether to return additional statistics (25th, 50th, and 75th percentiles).
 #'        Default = FALSE.
 #' @param digits An integer specifying the number of decimal places for rounding statistics.
 #'        Default = 3.
 #'
-#' @return A data.frame with descriptive statistics summary.
+#' @return A data.frame with descriptive statistics summary, class `"panel_summary"`.
 #'
 #' @details
 #' The returned data.frame contains the following columns:
@@ -27,7 +27,7 @@
 #'   \item{\code{max}}{Maximum value}
 #' }
 #'
-#' When `detailed = TRUE`, additional columns are included:
+#' When `detail = TRUE`, additional columns are included:
 #' \describe{
 #'   \item{\code{p25}}{25th percentile (first quartile)}
 #'   \item{\code{p50}}{50th percentile (median)}
@@ -36,22 +36,16 @@
 #'
 #' When no grouping variable is specified, statistics are calculated overall.
 #' When a grouping variable is specified, statistics are calculated for each group.
-#' If a grouping variable is provided, it cannot be included in `selection`; otherwise an error is raised.
+#' If a grouping variable is provided, it cannot be included in `select`; otherwise an error is raised.
 #'
 #' If the input data is a `panel_data` object (e.g., from the **panelr** package),
-#' the function automatically retrieves the group and time identifiers from its
+#' the function automatically retrieves the entity and time identifiers from its
 #' metadata. These variables are then excluded from the default selection of
-#' numeric variables (i.e., when `selection = NULL`) because they typically do
+#' numeric variables (i.e., when `select = NULL`) because they typically do
 #' not represent substantive measurements. However, if you explicitly include
-#' them in the `selection` argument, they will be analyzed. The `group` argument
+#' them in the `select` argument, they will be analyzed. The `group` argument
 #' for grouping summaries is independent and can be set to any variable,
-#' including the panel's time or group variable.
-#'
-#' The returned data.frame has class `"panel_summary"` and the following attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name, selection, group, detailed, digits.}
-#'   \item{`details`}{List containing additional information: `count_variables`, `count_groups` (if grouping provided), `count_obs`.}
-#' }
+#' including the panel's time or entity variable.
 #'
 #' @note
 #' This function does **not** use panel attributes for grouping; it is designed for general use.
@@ -66,13 +60,13 @@
 #' summarize_numeric(production)
 #'
 #' # Detailed output
-#' summarize_numeric(production, detailed = TRUE)
+#' summarize_numeric(production, detail = TRUE)
 #'
 #' # Show statistics for a single variable
-#' summarize_numeric(production, selection = "sales")
+#' summarize_numeric(production, select = "sales")
 #'
 #' # Show statistics for multiple variables
-#' summarize_numeric(production, selection = c("capital", "labor"))
+#' summarize_numeric(production, select = c("capital", "labor"))
 #'
 #' # Show grouped statistics
 #' summarize_numeric(production, group = "year")
@@ -86,9 +80,9 @@
 #' @export
 summarize_numeric <- function(
   data,
-  selection = NULL,
+  select = NULL,
   group = NULL,
-  detailed = FALSE,
+  detail = FALSE,
   digits = 3
 ) {
   # Input validation
@@ -96,11 +90,8 @@ summarize_numeric <- function(
     stop("'data' must be a data.frame, not ", class(data)[1])
   }
 
-  if (!is.null(selection) && !is.character(selection)) {
-    stop(
-      "'selection' must be a character vector or NULL, not ",
-      class(selection)[1]
-    )
+  if (!is.null(select) && !is.character(select)) {
+    stop("'select' must be a character vector or NULL, not ", class(select)[1])
   }
 
   if (!is.null(group) && (!is.character(group) || length(group) != 1)) {
@@ -114,9 +105,9 @@ summarize_numeric <- function(
     stop('variable "', group, '" not found in data')
   }
 
-  # Validate detailed parameter
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("'detailed' must be a single logical value, not ", class(detailed)[1])
+  # Validate detail parameter
+  if (!is.logical(detail) || length(detail) != 1) {
+    stop("'detail' must be a single logical value, not ", class(detail)[1])
   }
 
   # Harmonized digits validation
@@ -128,14 +119,14 @@ summarize_numeric <- function(
   }
   digits <- as.integer(digits)
 
-  # --- Panel data handling: extract group/time identifiers if present ---
+  # --- Panel data handling: extract entity/time identifiers if present ---
   panel_id_vars <- character(0)
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
-      !is.null(metadata) && !is.null(metadata$group) && !is.null(metadata$time)
+      !is.null(metadata) && !is.null(metadata$entity) && !is.null(metadata$time)
     ) {
-      panel_id_vars <- c(metadata$group, metadata$time)
+      panel_id_vars <- c(metadata$entity, metadata$time)
     }
   }
   # ----------------------------------------------------------------------
@@ -152,14 +143,12 @@ summarize_numeric <- function(
   # Track if any messages were printed
   messages_printed <- FALSE
 
-  # If selection is NULL, use all numeric variables with message
-  if (is.null(selection)) {
-    # Use vapply for more robust type checking
+  # If select is NULL, use all numeric variables with message
+  if (is.null(select)) {
     numeric_vars <- vapply(data, is.numeric, FUN.VALUE = logical(1))
-    selection <- names(data)[numeric_vars]
+    select <- names(data)[numeric_vars]
 
-    # If no numeric variables found, stop with error
-    if (length(selection) == 0) {
+    if (length(select) == 0) {
       stop("no numeric variables found in the dataset")
     }
 
@@ -167,39 +156,38 @@ summarize_numeric <- function(
     # - the grouping variable (if provided and numeric)
     # - panel identifiers (if they are numeric and present)
     exclude_vars <- character(0)
-    if (!is.null(group) && group %in% selection) {
+    if (!is.null(group) && group %in% select) {
       exclude_vars <- c(exclude_vars, group)
     }
     if (length(panel_id_vars) > 0) {
-      panel_id_vars_in_selection <- intersect(panel_id_vars, selection)
+      panel_id_vars_in_selection <- intersect(panel_id_vars, select)
       if (length(panel_id_vars_in_selection) > 0) {
         exclude_vars <- c(exclude_vars, panel_id_vars_in_selection)
       }
     }
     if (length(exclude_vars) > 0) {
-      selection <- selection[!selection %in% exclude_vars]
+      select <- select[!select %in% exclude_vars]
     }
 
-    if (length(selection) == 0) {
+    if (length(select) == 0) {
       stop(
-        "after removing grouping variable and panel identifiers, ",
-        "there are no numeric variables to analyze"
+        "after removing grouping variable and panel identifiers, there are no numeric variables to analyze"
       )
     }
 
     message(
       "Analyzing all numeric variable(s): ",
-      paste(selection, collapse = ", ")
+      paste(select, collapse = ", ")
     )
     messages_printed <- TRUE
   }
 
-  # Validate selection
-  if (length(selection) == 0) {
+  # Validate select
+  if (length(select) == 0) {
     stop("no numeric variables found to analyze")
   }
 
-  missing_vars <- selection[!selection %in% names(data)]
+  missing_vars <- select[!select %in% names(data)]
   if (length(missing_vars) > 0) {
     stop(
       "the following variables were not found in data: ",
@@ -208,7 +196,7 @@ summarize_numeric <- function(
   }
 
   # Check if specified columns are numeric
-  non_numeric_vars <- selection[!sapply(data[selection], is.numeric)]
+  non_numeric_vars <- select[!sapply(data[select], is.numeric)]
   if (length(non_numeric_vars) > 0) {
     stop(
       "the following variables are not numeric: ",
@@ -216,10 +204,10 @@ summarize_numeric <- function(
     )
   }
 
-  # Check that selection does not include the grouping variable
-  if (!is.null(group) && group %in% selection) {
+  # Check that select does not include the grouping variable
+  if (!is.null(group) && group %in% select) {
     stop(
-      "'selection' cannot contain the same variable as the 'group' variable ('",
+      "'select' cannot contain the same variable as the 'group' variable ('",
       group,
       "')"
     )
@@ -247,12 +235,12 @@ summarize_numeric <- function(
 
   # Calculate statistics without grouping
   if (is.null(group)) {
-    results <- lapply(selection, function(var) {
+    results <- lapply(select, function(var) {
       x <- data[[var]]
 
       # Handle case where all values are NA
       if (all(is.na(x))) {
-        if (detailed) {
+        if (detail) {
           stats_row <- data.frame(
             count = 0,
             mean = NA_real_,
@@ -273,7 +261,7 @@ summarize_numeric <- function(
           )
         }
       } else {
-        if (detailed) {
+        if (detail) {
           stats_row <- data.frame(
             count = count_non_na(x),
             mean = mean(x, na.rm = TRUE),
@@ -321,12 +309,12 @@ summarize_numeric <- function(
       ]
 
       # Calculate statistics for each variable in current group
-      group_results <- lapply(selection, function(var) {
+      group_results <- lapply(select, function(var) {
         x <- group_subset[[var]]
 
         # Handle case where all values are NA
         if (all(is.na(x))) {
-          if (detailed) {
+          if (detail) {
             stats_row <- data.frame(
               count = 0,
               mean = NA_real_,
@@ -347,7 +335,7 @@ summarize_numeric <- function(
             )
           }
         } else {
-          if (detailed) {
+          if (detail) {
             stats_row <- data.frame(
               count = count_non_na(x),
               mean = mean(x, na.rm = TRUE),
@@ -410,20 +398,20 @@ summarize_numeric <- function(
   call <- match.call()
   metadata <- list(
     function_name = as.character(call[[1]]),
-    selection = selection,
+    select = select,
     group = group,
-    detailed = detailed,
+    detail = detail,
     digits = digits
   )
 
   # Build details list (only non-metadata info)
   details <- list(
-    count_variables = length(selection),
+    count_variables = length(select),
     count_groups = n_groups,
     count_obs = n_obs
   )
 
-  # Set attributes in desired order
+  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
 

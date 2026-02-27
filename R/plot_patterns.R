@@ -3,258 +3,202 @@
 #' This function creates a heatmap showing the presence/absence pattern of each entity over time.
 #'
 #' @param data A data.frame containing panel data in a long format.
-#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #'        Not required if data has panel attributes.
-#' @param time A character string specifying the name of the time variable.
-#'        Not required if data has panel attributes.
-#' @param interval An optional positive integer giving the expected interval between time periods.
-#' @param max_patterns An integer specifying the maximum number of distinct patterns to display.
+#' @param delta An optional positive integer giving the expected interval between time periods.
+#' @param limits An integer specifying the maximum number of distinct patterns to display.
 #'        If not specified, all patterns are shown.
 #' @param colors A character vector of two colors for present and missing observations.
 #'        Default = c("#1E4A3B", "white").
 #'
-#' @return Invisibly returns a list with summary statistics and metadata.
-#'         Creates a heatmap showing presence/absence patterns.
+#' @return Invisibly returns a list with summary statistics and metadata. Creates a heatmap.
 #'
 #' @details
 #' An entity/time combination is considered **present** if the corresponding row contains at least
-#' one non-NA value in any substantive variable (i.e., all columns except the group and time identifiers).
+#' one non-NA value in any substantive variable (i.e., all columns except the entity and time identifiers).
 #'
-#' Before plotting, rows with missing values (`NA`) in the `group` or `time` variables are removed.
-#' Messages indicate how many rows were excluded due to each variable. The excluded rows are stored in
-#' the returned list under `details$excluded_rows` for further inspection.
+#' Before plotting, rows with missing values (`NA`) in the entity or time variables are removed.
+#' Messages indicate how many rows were excluded. The excluded rows are stored in the returned list.
 #'
-#' If `interval` is supplied, the time variable is coerced to numeric (if possible).
-#' The function then checks that all observed time points are compatible with a regular spacing
-#' of that interval. If gaps are detected, a message lists the missing periods (unless the interval
-#' was inherited from panel attributes), and columns for those periods are added to the presence matrix
-#' (all zeros) before plotting. The heatmap will therefore include those missing periods on the x‑axis,
-#' and all entities will appear as missing (color for 0) in those columns.
+#' If `delta` is supplied, the time variable is coerced to numeric (if possible). The function checks
+#' for regular spacing and adds missing periods (with all zeros) to the plot. A message lists missing periods
+#' unless the interval was inherited from panel attributes.
 #'
-#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
-#' each entity (group) should have at most one observation per time period. If duplicates are found,
-#' they are stored in the returned list under `details$entity_time_duplicates`. A message is printed
-#' only when the identifiers were explicitly provided (i.e., not taken from `panel_data` attributes).
+#' Duplicate entity‑time combinations are checked; if found they are stored and a message is printed
+#' (unless identifiers came from panel attributes).
 #'
-#' The heatmap shows:
-#' \itemize{
-#'   \item \strong{Present}: Entity is present in the time period
-#'   \item \strong{Missing}: Entity is absent in the time period
-#' }
+#' The heatmap shows present (color1) and missing (color2). Rows are ordered by pattern frequency:
+#' the most frequent pattern is at the **top**. Within each pattern block, entities appear in their
+#' original order. If `limits` is given, only the most frequent patterns are retained.
 #'
-#' Rows are ordered by pattern frequency: the most frequent pattern is at the **top**.
-#' Within each pattern block, entities appear in their original order (as they first occur in the data).
-#' If `max_patterns` is given, only the most frequent patterns are retained.
-#'
-#' The returned list contains the following components:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information: `count_patterns`, `presence_matrix`,
-#'         `patterns_groups`, `patterns_matrix`, `excluded_rows` (if any), and, if duplicates were found,
-#'         `entity_time_duplicates`.}
-#' }
-#'
-#' @seealso
-#' [describe_patterns()], [plot_periods()]
+#' @seealso \code{\link{describe_patterns}}, \code{\link{plot_periods}}
 #'
 #' @examples
 #' data(production)
-#'
-#' # Basic usage
-#' plot_patterns(production, group = "firm", time = "year")
-#'
-#' # Only top 3 patterns
-#' plot_patterns(production, group = "firm", time = "year", max_patterns = 3)
-#'
-#' # Specify interval to fill gaps
-#' plot_patterns(production, group = "firm", time = "year", interval = 1)
-#'
-#' # Custom colors
-#' plot_patterns(production, group = "firm", time = "year", colors = c("black", "white"))
+#' plot_patterns(production, index = c("firm", "year"))
+#' plot_patterns(production, index = c("firm", "year"), limits = 3, delta = 1)
 #'
 #' @export
 plot_patterns <- function(
   data,
-  group = NULL,
-  time = NULL,
-  interval = NULL,
-  max_patterns = NULL,
+  index = NULL,
+  delta = NULL,
+  limits = NULL,
   colors = c("#1E4A3B", "white")
 ) {
-  # --- Consistent initialisation ---
-  user_group <- group
-  user_time <- time
-  user_interval <- interval
-  group_time_from_metadata <- FALSE
-  interval_from_metadata <- FALSE
+  # --- Initialisation ---
+  user_index <- index
+  user_delta <- delta
+  entity_time_from_metadata <- FALSE
+  delta_from_metadata <- FALSE
 
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+      is.null(metadata) || is.null(metadata$entity) || is.null(metadata$time)
     ) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    if (is.null(group)) {
-      group <- metadata$group
+    if (is.null(index)) {
+      entity_var <- metadata$entity
+      time_var <- metadata$time
+    } else {
+      if (length(index) != 2 || !is.character(index)) {
+        stop("'index' must be a character vector of length 2")
+      }
+      entity_var <- index[1]
+      time_var <- index[2]
     }
-    if (is.null(time)) {
-      time <- metadata$time
+    if (is.null(delta) && !is.null(metadata$delta)) {
+      delta <- metadata$delta
+      delta_from_metadata <- TRUE
     }
-    if (is.null(interval) && !is.null(metadata$interval)) {
-      interval <- metadata$interval
-      interval_from_metadata <- TRUE
-    }
-
-    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
-    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
-    group_time_from_metadata <- group_from_metadata && time_from_metadata
+    entity_from_metadata <- is.null(user_index) && !is.null(metadata$entity)
+    time_from_metadata <- is.null(user_index) && !is.null(metadata$time)
+    entity_time_from_metadata <- entity_from_metadata && time_from_metadata
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame")
     }
-    if (is.null(group) || is.null(time)) {
-      stop(
-        "For regular data.frames, both 'group' and 'time' arguments must be provided"
-      )
+    if (is.null(index)) {
+      stop("For regular data.frames, 'index' must be provided")
     }
+    if (length(index) != 2 || !is.character(index)) {
+      stop("'index' must be a character vector of length 2")
+    }
+    entity_var <- index[1]
+    time_var <- index[2]
   }
 
-  # --- Basic checks ---
-  if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string, not ", class(group)[1])
+  # Validation
+  if (!entity_var %in% names(data)) {
+    stop('variable "', entity_var, '" not found in data')
   }
-  if (!is.character(time) || length(time) != 1) {
-    stop("'time' must be a single character string, not ", class(time)[1])
+  if (!time_var %in% names(data)) {
+    stop('variable "', time_var, '" not found in data')
   }
-  if (!group %in% names(data)) {
-    stop('variable "', group, '" not found in data')
+  if (time_var == entity_var) {
+    stop("time and entity variables cannot be the same")
   }
-  if (!time %in% names(data)) {
-    stop('variable "', time, '" not found in data')
-  }
-  if (time == group) {
-    stop("'time' and 'group' cannot be the same variable")
-  }
-  if (!is.null(max_patterns)) {
-    if (
-      !is.numeric(max_patterns) ||
-        length(max_patterns) != 1 ||
-        max_patterns < 1 ||
-        max_patterns != round(max_patterns) # explicit integer check
-    ) {
-      stop("'max_patterns' must be a single positive integer or NULL")
-    }
+  if (
+    !is.null(limits) &&
+      (!is.numeric(limits) || limits < 1 || limits != round(limits))
+  ) {
+    stop("'limits' must be a positive integer or NULL")
   }
   if (!is.character(colors) || length(colors) != 2) {
-    stop(
-      "'colors' must be a character vector of length 2, not ",
-      class(colors)[1]
-    )
+    stop("'colors' must be a character vector of length 2")
   }
 
-  # --- Remove rows with NA in group or time ---
+  # --- Remove rows with NA in entity or time ---
   excluded_rows <- NULL
-  na_group <- is.na(data[[group]])
-  na_time <- is.na(data[[time]])
+  na_entity <- is.na(data[[entity_var]])
+  na_time <- is.na(data[[time_var]])
 
-  if (any(na_group)) {
+  if (any(na_entity)) {
     message(
-      "Missing values in ",
-      group,
-      " variable found. Excluding ",
-      sum(na_group),
+      "Missing values in entity variable '",
+      entity_var,
+      "' found. Excluding ",
+      sum(na_entity),
       " rows."
     )
   }
   if (any(na_time)) {
     message(
-      "Missing values in ",
-      time,
-      " variable found. Excluding ",
+      "Missing values in time variable '",
+      time_var,
+      "' found. Excluding ",
       sum(na_time),
       " rows."
     )
   }
 
-  if (any(na_group | na_time)) {
-    excluded_rows <- data[na_group | na_time, , drop = FALSE]
-    data <- data[!(na_group | na_time), , drop = FALSE]
+  if (any(na_entity | na_time)) {
+    excluded_rows <- data[na_entity | na_time, , drop = FALSE]
+    data <- data[!(na_entity | na_time), , drop = FALSE]
     rownames(data) <- NULL
   }
-  # ----------------------------------------------------------------
 
-  # --- Check for duplicate group-time combinations ---
+  # --- Duplicate check ---
   dup_combinations <- NULL
-  dup_rows <- duplicated(data[c(group, time)]) |
-    duplicated(data[c(group, time)], fromLast = TRUE)
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
   if (any(dup_rows)) {
-    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
     n_dup <- nrow(dup_combinations)
-    if (!group_time_from_metadata) {
+    if (!entity_time_from_metadata) {
       examples <- utils::head(dup_combinations, 5)
-      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_strings <- paste0(
+        examples[[entity_var]],
+        "-",
+        examples[[time_var]]
+      )
       example_str <- paste(example_strings, collapse = ", ")
       message(
         n_dup,
-        " duplicate group-time combinations found. Examples: ",
+        " duplicate entity-time combinations found. Examples: ",
         example_str
       )
     }
   }
-  # ----------------------------------------------------
 
-  # --- Interval handling ---
-  if (!is.null(interval)) {
+  # --- Delta handling ---
+  if (!is.null(delta)) {
     if (
-      !is.numeric(interval) ||
-        length(interval) != 1 ||
-        interval <= 0 ||
-        interval != round(interval)
+      !is.numeric(delta) ||
+        length(delta) != 1 ||
+        delta <= 0 ||
+        delta != round(delta)
     ) {
-      stop("'interval' must be a positive integer")
+      stop("'delta' must be a positive integer")
     }
-    # Coerce time to numeric if needed
-    time_vals_orig <- data[[time]]
+    time_vals_orig <- data[[time_var]]
     if (!is.numeric(time_vals_orig)) {
       time_numeric <- suppressWarnings(as.numeric(as.character(time_vals_orig)))
       if (anyNA(time_numeric)) {
-        stop(
-          "Cannot convert the time variable '",
-          time,
-          "' to numeric. ",
-          "Please ensure it contains numbers or convert it manually."
-        )
+        stop("Cannot convert time variable '", time_var, "' to numeric.")
       }
-      data[[time]] <- time_numeric
+      data[[time_var]] <- time_numeric
     }
-
-    # Check consistency
-    obs_periods <- sort(unique(data[[time]]))
+    obs_periods <- sort(unique(data[[time_var]]))
     time_diffs <- diff(obs_periods)
-    if (!all(time_diffs %% interval == 0)) {
+    if (!all(time_diffs %% delta == 0)) {
       stop(
-        "The observed time points are not evenly spaced by multiples of the specified interval (",
-        interval,
-        "). ",
-        "For example, differences such as ",
-        paste(unique(time_diffs[time_diffs %% interval != 0]), collapse = ", "),
-        " are not multiples of ",
-        interval,
-        "."
+        "Observed time points are not evenly spaced by multiples of delta (",
+        delta,
+        ")."
       )
     }
-
-    # Compute full sequence and missing periods
-    full_seq <- seq(
-      from = min(obs_periods),
-      to = max(obs_periods),
-      by = interval
-    )
+    full_seq <- seq(from = min(obs_periods), to = max(obs_periods), by = delta)
     missing <- setdiff(full_seq, obs_periods)
-    if (length(missing) > 0 && !interval_from_metadata) {
+    if (length(missing) > 0 && !delta_from_metadata) {
       message(
         "Irregular time intervals detected. Missing periods: ",
         paste(missing, collapse = ", ")
@@ -262,83 +206,68 @@ plot_patterns <- function(
     }
   }
 
-  # --- Identify data columns (excluding group and time) ---
-  data_cols <- setdiff(names(data), c(group, time))
+  # --- Prepare data for heatmap ---
+  data_cols <- setdiff(names(data), c(entity_var, time_var))
   if (length(data_cols) == 0) {
-    stop("no data columns found (excluding group and time variables)")
+    stop("no data columns found (excluding entity and time)")
   }
 
-  # --- Get all entities and time periods ---
-  all_groups <- unique(as.character(data[[group]]))
-  if (!is.null(interval)) {
-    # Use full_seq (including missing) as time columns
+  all_entities <- unique(as.character(data[[entity_var]]))
+  if (!is.null(delta)) {
     all_times <- as.character(full_seq)
   } else {
-    all_times <- unique(as.character(data[[time]]))
-    # Sort time periods if they appear numeric
+    all_times <- unique(as.character(data[[time_var]]))
     if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", all_times))) {
       all_times <- as.character(sort(as.numeric(all_times)))
     } else {
       all_times <- sort(all_times)
     }
   }
-  time_cols <- all_times
 
-  # --- Create binary presence matrix using "observed" definition ---
   presence_binary <- matrix(
     0,
-    nrow = length(all_groups),
+    nrow = length(all_entities),
     ncol = length(all_times),
-    dimnames = list(all_groups, all_times)
+    dimnames = list(all_entities, all_times)
   )
 
-  group_vec <- as.character(data[[group]])
-  time_vec <- as.character(data[[time]])
+  entity_vec <- as.character(data[[entity_var]])
+  time_vec <- as.character(data[[time_var]])
 
-  has_at_least_one_non_na <- apply(data[data_cols], 1, function(row) {
-    !all(is.na(row))
-  })
-  for (i in seq_along(group_vec)) {
-    if (has_at_least_one_non_na[i] && time_vec[i] %in% all_times) {
-      presence_binary[group_vec[i], time_vec[i]] <- 1
+  has_data <- apply(data[data_cols], 1, function(row) !all(is.na(row)))
+  for (i in seq_along(entity_vec)) {
+    if (has_data[i] && time_vec[i] %in% all_times) {
+      presence_binary[entity_vec[i], time_vec[i]] <- 1
     }
   }
 
-  # --- Compute pattern for each entity ---
+  # Patterns
   pattern_strings <- apply(presence_binary, 1, paste, collapse = "")
-
-  # --- Frequency of each pattern ---
   pattern_freq <- table(pattern_strings)
 
-  # --- Create patterns_groups list (before filtering) ---
-  patterns_groups_full <- list()
-  for (entity in all_groups) {
-    pattern_vec <- presence_binary[entity, ]
-    pattern_string <- paste(pattern_vec, collapse = "")
-
-    if (!pattern_string %in% names(patterns_groups_full)) {
-      patterns_groups_full[[pattern_string]] <- character(0)
+  # Full patterns_entities list
+  patterns_entities_full <- list()
+  for (ent in all_entities) {
+    pat <- paste(presence_binary[ent, ], collapse = "")
+    if (!pat %in% names(patterns_entities_full)) {
+      patterns_entities_full[[pat]] <- character(0)
     }
-    patterns_groups_full[[pattern_string]] <- c(
-      patterns_groups_full[[pattern_string]],
-      entity
-    )
+    patterns_entities_full[[pat]] <- c(patterns_entities_full[[pat]], ent)
   }
 
-  # --- Filter by max_patterns if requested ---
-  if (!is.null(max_patterns)) {
+  # Filter by limits
+  if (!is.null(limits)) {
     top_patterns <- names(sort(pattern_freq, decreasing = TRUE))[
-      1:min(max_patterns, length(pattern_freq))
+      1:min(limits, length(pattern_freq))
     ]
     keep <- pattern_strings %in% top_patterns
     presence_binary <- presence_binary[keep, , drop = FALSE]
     pattern_strings <- pattern_strings[keep]
     pattern_freq <- pattern_freq[top_patterns]
-
-    patterns_groups_full <- patterns_groups_full[top_patterns]
+    patterns_entities_full <- patterns_entities_full[top_patterns]
   }
 
-  # --- Order rows: least frequent first (bottom), most frequent last (top) ---
+  # Order rows: least frequent first (bottom), most frequent last (top)
   entity_freq <- as.numeric(pattern_freq[pattern_strings])
   order_idx <- order(entity_freq, pattern_strings, rownames(presence_binary))
   presence_binary_sorted <- presence_binary[order_idx, , drop = FALSE]
@@ -349,28 +278,22 @@ plot_patterns <- function(
     decreasing = TRUE
   )])
 
-  patterns_groups_sorted <- list()
+  patterns_entities_sorted <- list()
   for (i in seq_along(unique_patterns_sorted)) {
-    pattern_string <- unique_patterns_sorted[i]
-    patterns_groups_sorted[[as.character(i)]] <- patterns_groups_full[[
-      pattern_string
-    ]]
+    pat <- unique_patterns_sorted[i]
+    patterns_entities_sorted[[as.character(i)]] <- patterns_entities_full[[pat]]
   }
 
-  # Create patterns matrix (unique patterns in rows)
   patterns_matrix <- do.call(
     rbind,
-    lapply(unique_patterns_sorted, function(p) {
-      as.numeric(strsplit(p, "")[[1]])
-    })
+    lapply(unique_patterns_sorted, function(p) as.numeric(strsplit(p, "")[[1]]))
   )
   rownames(patterns_matrix) <- seq_along(unique_patterns_sorted)
-  colnames(patterns_matrix) <- time_cols
+  colnames(patterns_matrix) <- all_times
 
-  # --- Prepare for plotting ---
+  # --- Plot ---
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par))
-
   par(mar = c(3, 1, 2.5, 1) + 0.1)
 
   presence_rev <- 1 - presence_binary_sorted
@@ -401,7 +324,7 @@ plot_patterns <- function(
     }
   }
 
-  axis(1, at = 1:nc, labels = time_cols, las = 2, tick = TRUE)
+  axis(1, at = 1:nc, labels = all_times, las = 2, tick = TRUE)
 
   runs <- rle(pattern_strings_sorted)
   if (length(runs$lengths) > 1) {
@@ -429,34 +352,28 @@ plot_patterns <- function(
     cex = 0.9
   )
 
-  # Build metadata
-  call <- match.call()
+  # Build return list
   metadata <- list(
-    function_name = as.character(call[[1]]),
-    group = group,
-    time = time,
-    interval = interval,
-    max_patterns = max_patterns,
+    function_name = as.character(match.call()[[1]]),
+    entity = entity_var,
+    time = time_var,
+    delta = delta,
+    limits = limits,
     colors = colors
   )
 
   details <- list(
     presence_matrix = presence_binary_sorted,
-    patterns_groups = patterns_groups_sorted,
-    count_patterns = length(patterns_groups_sorted),
+    patterns_entities = patterns_entities_sorted,
+    count_patterns = length(patterns_entities_sorted),
     patterns_matrix = patterns_matrix
   )
-
   if (!is.null(excluded_rows)) {
     details$excluded_rows <- excluded_rows
   }
-
   if (!is.null(dup_combinations)) {
     details$entity_time_duplicates <- dup_combinations
   }
 
-  invisible(list(
-    metadata = metadata,
-    details = details
-  ))
+  invisible(list(metadata = metadata, details = details))
 }

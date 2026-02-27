@@ -3,25 +3,24 @@
 #' This function provides a descriptive table of entities with incomplete observations (missing values).
 #'
 #' @param data A data.frame containing panel data in a long format.
-#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param index A character vector of length 1 or 2 specifying the names of the
+#'        entity and (optionally) time variables. The first element is the entity
+#'        variable; if a second element is provided, it is used as the time variable.
 #'        Not required if data has panel attributes.
-#' @param time An optional character string specifying the name of the time variable.
-#'        If provided, the function checks for duplicate group-time combinations.
-#'        Not required if data has panel attributes.
-#' @param detailed A logical flag indicating whether to include detailed missing counts for each variable.
+#' @param detail A logical flag indicating whether to include detailed missing counts for each variable.
 #'        Default = FALSE.
 #'
-#' @return A data.frame with incomplete entities description or a character message.
+#' @return A data.frame with incomplete entities description or a character message, class `"panel_description"`.
 #'
 #' @details
 #' When incomplete entities exist, returns a data.frame with:
 #' \describe{
-#'   \item{\code{[group]}}{The entity/group identifier (name matches input `group`)}
+#'   \item{\code{[entity]}}{The entity identifier (name matches input entity variable)}
 #'   \item{\code{na_count}}{Total number of missing observations for the entity}
 #'   \item{\code{variables}}{Number of variables with at least one missing value for that entity}
 #' }
 #'
-#' When `detailed = TRUE`, additional columns are included:
+#' When `detail = TRUE`, additional columns are included:
 #' \describe{
 #'   \item{\code{[variable1]}}{Number of NAs in variable1 for the entity}
 #'   \item{\code{[variable2]}}{Number of NAs in variable2 for the entity}
@@ -32,21 +31,19 @@
 #' 1. Number of variables with NAs (descending)
 #' 2. Total number of NAs (descending)
 #'
-#' Before analysis, rows with missing values (`NA`) in the `group` or `time` (if provided)
-#' variables are removed. Messages indicate how many rows were excluded due to each variable.
+#' Before analysis, rows with missing values (`NA`) in the entity or (if provided)
+#' time variables are removed. Messages indicate how many rows were excluded.
 #' The excluded rows are stored in `details$excluded_rows` for further inspection.
 #'
 #' If no entities have incomplete data, returns the character message:
-#' "There are no incomplete groups/entities in the data."
+#' "There are no incomplete entities in the data."
 #'
-#' If a time variable is supplied (either by the user or from `panel_data` metadata),
-#' the function checks for duplicate group-time combinations. In a properly structured
-#' panel dataset, each entity (group) should have at most one observation per time period.
-#' If duplicates are found, they are stored in `details$entity_time_duplicates`.
-#' A message is printed only when the identifiers were explicitly provided (i.e., not taken
-#' from `panel_data` attributes).
+#' If a time variable is supplied (either via `index` or from panel metadata),
+#' the function checks for duplicate entity-time combinations. If duplicates are found,
+#' they are stored in `details$entity_time_duplicates`. A message is printed only when
+#' the identifiers were explicitly provided (i.e., not taken from panel attributes).
 #'
-#' The returned data.frame (if any) has class `"panel_description"` and the following attributes:
+#' The returned data.frame (if any) has class `"panel_description"` and attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information:
@@ -56,256 +53,242 @@
 #' }
 #'
 #' @seealso
-#' [summarize_missing()], [describe_patterns()], [describe_balance()]
+#' [summarize_missing()], [describe_patterns()]
 #'
 #' @examples
 #' data(production)
-#'
-#' # Basic usage
-#' describe_incomplete(production, group = "firm")
-#'
-#' # More careful usage with panel balance check and duplicate check
-#' describe_incomplete(production, group = "firm", time = "year")
-#'
-#' # Detailed view with variable-level NA counts
-#' describe_incomplete(production, group = "firm", detailed = TRUE)
-#'
-#' # With panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' describe_incomplete(panel_data)
+#' describe_incomplete(production, index = "firm")
+#' describe_incomplete(production, index = c("firm", "year"), detail = TRUE)
 #'
 #' @export
 describe_incomplete <- function(
   data,
-  group = NULL,
-  time = NULL,
-  detailed = FALSE
+  index = NULL,
+  detail = FALSE
 ) {
-  # --- Consistent initialisation ---
-  user_group <- group
-  user_time <- time
-  group_time_from_metadata <- FALSE
+  # --- Initialisation: entity and time from index or metadata ---
+  user_index <- index
+  entity_time_from_metadata <- FALSE
 
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
-    if (is.null(metadata) || is.null(metadata$group)) {
-      stop(
-        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
-      )
+    if (is.null(metadata) || is.null(metadata$entity)) {
+      stop("Object has class 'panel_data' but missing 'entity' in metadata.")
     }
-    if (is.null(group)) {
-      group <- metadata$group
-    }
-    # time is optional: use metadata only if user didn't provide and metadata has time
-    if (is.null(time) && !is.null(metadata$time)) {
-      time <- metadata$time
-    }
+    time_meta <- if (!is.null(metadata$time)) metadata$time else NULL
 
-    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
-    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
-    group_time_from_metadata <- group_from_metadata &&
-      (is.null(time) || time_from_metadata)
+    if (is.null(index)) {
+      entity_var <- metadata$entity
+      time_var <- time_meta
+    } else {
+      if (length(index) == 1) {
+        entity_var <- index[1]
+        time_var <- NULL
+      } else if (length(index) == 2) {
+        entity_var <- index[1]
+        time_var <- index[2]
+      } else {
+        stop("'index' must be a character vector of length 1 or 2")
+      }
+    }
+    entity_from_metadata <- is.null(user_index) && !is.null(metadata$entity)
+    time_from_metadata <- is.null(user_index) &&
+      !is.null(time_meta) &&
+      (length(user_index) < 2 || is.null(user_index[2]))
+    entity_time_from_metadata <- entity_from_metadata &&
+      (is.null(time_var) || time_from_metadata)
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame")
     }
-    if (is.null(group)) {
-      stop("For regular data.frames, 'group' argument must be provided")
+    if (is.null(index)) {
+      stop("For regular data.frames, 'index' must be provided")
     }
-    # time may be NULL
-  }
-
-  # Common validation for group
-  if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string, not ", class(group)[1])
-  }
-  if (!group %in% names(data)) {
-    stop('variable "', group, '" not found in data')
-  }
-
-  # Validate time if provided
-  if (!is.null(time)) {
-    if (!is.character(time) || length(time) != 1) {
-      stop("'time' must be a single character string, not ", class(time)[1])
-    }
-    if (!time %in% names(data)) {
-      stop('variable "', time, '" not found in data')
-    }
-    if (time == group) {
-      stop("'time' and 'group' must be different variables")
+    if (length(index) == 1) {
+      entity_var <- index[1]
+      time_var <- NULL
+    } else if (length(index) == 2) {
+      entity_var <- index[1]
+      time_var <- index[2]
+    } else {
+      stop("'index' must be a character vector of length 1 or 2")
     }
   }
 
-  # --- Remove rows with NA in group or time (if time provided) ---
+  # --- Validate existence ---
+  if (!entity_var %in% names(data)) {
+    stop('entity variable "', entity_var, '" not found in data')
+  }
+  if (!is.null(time_var) && !time_var %in% names(data)) {
+    stop('time variable "', time_var, '" not found in data')
+  }
+  if (!is.null(time_var) && time_var == entity_var) {
+    stop("entity and time variables cannot be the same")
+  }
+
+  # --- Remove rows with NA in entity or time (if time provided) ---
   excluded_rows <- NULL
-  na_group <- is.na(data[[group]])
-  na_time <- if (!is.null(time)) is.na(data[[time]]) else rep(FALSE, nrow(data))
+  na_entity <- is.na(data[[entity_var]])
+  na_time <- if (!is.null(time_var)) {
+    is.na(data[[time_var]])
+  } else {
+    rep(FALSE, nrow(data))
+  }
 
-  if (any(na_group)) {
+  if (any(na_entity)) {
     message(
-      "Missing values in ",
-      group,
-      " variable found. Excluding ",
-      sum(na_group),
+      "Missing values in entity variable '",
+      entity_var,
+      "' found. Excluding ",
+      sum(na_entity),
       " rows."
     )
   }
-  if (!is.null(time) && any(na_time)) {
+  if (!is.null(time_var) && any(na_time)) {
     message(
-      "Missing values in ",
-      time,
-      " variable found. Excluding ",
+      "Missing values in time variable '",
+      time_var,
+      "' found. Excluding ",
       sum(na_time),
       " rows."
     )
   }
 
-  if (any(na_group | na_time)) {
-    excluded_rows <- data[na_group | na_time, , drop = FALSE]
-    data <- data[!(na_group | na_time), , drop = FALSE]
+  if (any(na_entity | na_time)) {
+    excluded_rows <- data[na_entity | na_time, , drop = FALSE]
+    data <- data[!(na_entity | na_time), , drop = FALSE]
     rownames(data) <- NULL
   }
-  # ----------------------------------------------------------------
 
-  # --- Check for duplicate group-time combinations (only if time is provided) ---
+  # --- Duplicate check (if time provided) ---
   dup_combinations <- NULL
-  if (!is.null(time)) {
-    dup_rows <- duplicated(data[c(group, time)]) |
-      duplicated(data[c(group, time)], fromLast = TRUE)
+  if (!is.null(time_var)) {
+    dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+      duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
     if (any(dup_rows)) {
-      dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+      dup_combinations <- unique(data[
+        dup_rows,
+        c(entity_var, time_var),
+        drop = FALSE
+      ])
       n_dup <- nrow(dup_combinations)
-      if (!group_time_from_metadata) {
+      if (!entity_time_from_metadata) {
         examples <- utils::head(dup_combinations, 5)
-        example_strings <- paste0(examples[[group]], "-", examples[[time]])
+        example_strings <- paste0(
+          examples[[entity_var]],
+          "-",
+          examples[[time_var]]
+        )
         example_str <- paste(example_strings, collapse = ", ")
         message(
           n_dup,
-          " duplicate group-time combinations found. Examples: ",
+          " duplicate entity-time combinations found. Examples: ",
           example_str
         )
       }
     }
   }
-  # -------------------------------------------------------------
 
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("'detailed' must be a single logical value, not ", class(detailed)[1])
+  # --- Validate detail ---
+  if (!is.logical(detail) || length(detail) != 1) {
+    stop("'detail' must be a single logical value, not ", class(detail)[1])
   }
 
-  # Check if group variable has valid values
-  if (length(data[[group]]) == 0) {
-    stop("group variable has no observations")
+  # Check if entity variable has observations
+  if (length(data[[entity_var]]) == 0) {
+    stop("entity variable has no observations")
   }
 
-  # Check panel balance if time variable is provided
-  if (!is.null(time)) {
-    # Check if panel is unbalanced
-    time_counts <- table(data[[group]], data[[time]])
+  # If time provided, warn if panel unbalanced? (optional, but kept from original)
+  if (!is.null(time_var)) {
+    time_counts <- table(data[[entity_var]], data[[time_var]])
     if (!all(time_counts == 1)) {
       warning("The panel is unbalanced.")
     }
   }
 
-  # Get unique groups while preserving original type and order
-  unique_groups <- unique(data[[group]])
+  # Get unique entities preserving original type and order
+  unique_entities <- unique(data[[entity_var]])
 
-  # Get variable names excluding group and time variables
-  exclude_vars <- group
-  if (!is.null(time)) {
-    exclude_vars <- c(exclude_vars, time)
+  # Variables to analyze: all except entity and (if present) time
+  exclude <- entity_var
+  if (!is.null(time_var)) {
+    exclude <- c(exclude, time_var)
   }
-  vars <- setdiff(names(data), exclude_vars)
+  vars <- setdiff(names(data), exclude)
 
   if (length(vars) == 0) {
-    stop("no variables to analyze (only group and time variables found)")
+    stop("no variables to analyze (only entity and time variables found)")
   }
 
-  # Initialize base results with original group type
+  # Initialize result data frame
   result <- data.frame(
-    group = unique_groups,
-    na_count = 0,
-    variables = 0,
+    entity = unique_entities,
+    na_count = 0L,
+    variables = 0L,
     stringsAsFactors = FALSE
   )
-  names(result)[1] <- group
+  names(result)[1] <- entity_var
 
-  # If detailed = TRUE, pre-allocate columns for each variable
-  if (detailed) {
-    for (var in vars) {
-      result[[var]] <- 0
+  if (detail) {
+    for (v in vars) {
+      result[[v]] <- 0L
     }
   }
 
-  # For each group, calculate missing statistics
-  for (i in seq_along(unique_groups)) {
-    current_group <- unique_groups[i]
+  # Compute missing statistics per entity
+  for (i in seq_along(unique_entities)) {
+    ent <- unique_entities[i]
+    idx <- data[[entity_var]] == ent
+    ent_data <- data[idx, vars, drop = FALSE]
 
-    group_indices <- data[[group]] == current_group
-    group_data <- data[group_indices, vars, drop = FALSE]
-
-    vars_with_na <- sum(vapply(
-      group_data,
-      function(x) any(is.na(x)),
-      logical(1)
-    ))
-
-    na_count <- sum(vapply(group_data, function(x) sum(is.na(x)), numeric(1)))
+    vars_with_na <- sum(vapply(ent_data, function(x) any(is.na(x)), logical(1)))
+    total_na <- sum(vapply(ent_data, function(x) sum(is.na(x)), integer(1)))
 
     result$variables[i] <- vars_with_na
-    result$na_count[i] <- na_count
+    result$na_count[i] <- total_na
 
-    if (detailed) {
-      for (var in vars) {
-        result[[var]][i] <- sum(is.na(group_data[[var]]))
+    if (detail) {
+      for (v in vars) {
+        result[[v]][i] <- sum(is.na(ent_data[[v]]))
       }
     }
   }
 
-  # Filter groups with any missing variables and arrange
-  incomplete_result <- result[result$variables > 0, ]
-  incomplete_ids <- result[[group]][result$variables > 0]
+  # Keep only incomplete entities
+  incomplete <- result[result$variables > 0, ]
+  incomplete_ids <- result[[entity_var]][result$variables > 0]
 
-  # Check if there are any incomplete groups
-  if (nrow(incomplete_result) == 0) {
-    return("There are no incomplete groups/entities in the data.")
+  if (nrow(incomplete) == 0) {
+    return("There are no incomplete entities in the data.")
   }
 
-  # Sort by primary and secondary criteria
-  incomplete_result <- incomplete_result[
-    order(-incomplete_result$variables, -incomplete_result$na_count),
-  ]
+  # Sort by variables (desc) then na_count (desc)
+  incomplete <- incomplete[order(-incomplete$variables, -incomplete$na_count), ]
+  rownames(incomplete) <- NULL
 
-  rownames(incomplete_result) <- NULL
-
-  # Build metadata
-  call <- match.call()
+  # Build metadata and details
   metadata <- list(
-    function_name = as.character(call[[1]]),
-    group = group,
-    time = time,
-    detailed = detailed
+    function_name = as.character(match.call()[[1]]),
+    entity = entity_var,
+    time = time_var,
+    detail = detail
   )
-
-  # Build details list
   details <- list(
-    count_entities_total = length(unique_groups),
-    count_entities_incomplete = nrow(incomplete_result),
+    count_entities_total = length(unique_entities),
+    count_entities_incomplete = nrow(incomplete),
     entities_incomplete = incomplete_ids
   )
-
   if (!is.null(excluded_rows)) {
     details$excluded_rows <- excluded_rows
   }
-
   if (!is.null(dup_combinations)) {
     details$entity_time_duplicates <- dup_combinations
   }
 
-  # Set attributes
-  attr(incomplete_result, "metadata") <- metadata
-  attr(incomplete_result, "details") <- details
-  class(incomplete_result) <- c("panel_description", "data.frame")
+  attr(incomplete, "metadata") <- metadata
+  attr(incomplete, "details") <- details
+  class(incomplete) <- c("panel_description", "data.frame")
 
-  return(incomplete_result)
+  return(incomplete)
 }

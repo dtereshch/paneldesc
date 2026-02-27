@@ -1,83 +1,51 @@
 #' Time Periods Completeness Description
 #'
-#' This function calculates, for each time period, the number of entities (groups)
-#' that have at least one non‑missing value in any substantive variable,
-#' and the corresponding share of all entities.
+#' This function calculates, for each time period, the number of entities that have at least one
+#' non‑missing value in any substantive variable, and the corresponding share of all entities.
 #'
 #' @param data A data.frame containing panel data in a long format.
-#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #'        Not required if data has panel attributes.
-#' @param time A character string specifying the name of the time variable.
-#'        Not required if data has panel attributes.
-#' @param interval An optional positive integer giving the expected interval between time periods.
+#' @param delta An optional positive integer giving the expected interval between time periods.
 #' @param digits An integer specifying the number of decimal places for rounding the share column.
 #'        Default = 3.
 #'
-#' @return A data.frame with entities presence summary by time period.
+#' @return A data.frame with entities presence summary by time period, class `"panel_description"`.
 #'
 #' @details
 #' The returned data.frame contains the following columns:
 #' \describe{
-#'   \item{\code{[time]}}{Time period identifier (name matches the input `time` argument)}
-#'   \item{\code{count}}{Number of distinct entities (groups) observed in that period,
+#'   \item{\code{[time]}}{Time period identifier (name matches the input `time` variable)}
+#'   \item{\code{count}}{Number of distinct entities observed in that period,
 #'         i.e., entities with at least one row containing a non‑NA value in substantive variables}
-#'   \item{\code{share}}{Proportion of entities observed in that period,
-#'         relative to the total number of unique entities in the data (0 to 1),
-#'         rounded to `digits` decimal places.}
+#'   \item{\code{share}}{Proportion of entities observed in that period (0 to 1), rounded to `digits`.}
 #' }
 #'
-#' Before analysis, rows with missing values (`NA`) in the `group` or `time` variables are removed.
-#' Messages indicate how many rows were excluded due to each variable. The excluded rows are stored in
-#' `details$excluded_rows` for further inspection.
+#' Before analysis, rows with missing values (`NA`) in the entity or time variables are removed.
+#' Messages indicate how many rows were excluded. The excluded rows are stored in `details$excluded_rows`.
 #'
-#' If `interval` is supplied, the time variable is coerced to numeric (if possible).
-#' The function then checks that all observed time points are compatible with a regular spacing
-#' of that interval. If gaps are detected, a message lists the missing periods (unless the interval
-#' was inherited from panel attributes), and rows for those periods are added to the output with
-#' `count = 0` and `share = 0`. The `entities` list in the `details` attribute includes empty vectors
-#' for those missing periods.
+#' If `delta` is supplied, the time variable is coerced to numeric (if possible). The function checks
+#' that all observed time points are compatible with a regular spacing of that interval. If gaps are detected,
+#' a message lists the missing periods (unless the interval was inherited from panel attributes), and rows
+#' for those periods are added to the output with `count = 0` and `share = 0`.
 #'
-#' The function also checks for duplicate group-time combinations. In a properly structured panel dataset,
-#' each entity (group) should have at most one observation per time period. If duplicates are found,
-#' they are stored in `details$entity_time_duplicates`. A message is printed only when the identifiers
-#' were explicitly provided (i.e., not taken from `panel_data` attributes).
+#' Duplicate entity‑time combinations are checked; if found they are stored in `details$entity_time_duplicates`
+#' and a message is printed (unless identifiers came from panel attributes).
 #'
-#' Time periods are sorted naturally (numeric order).
-#'
-#' The returned data.frame has class `"panel_description"` and the following attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name, group, time, interval, and digits.}
-#'   \item{`details`}{List containing additional information: `entities` (a named list where
-#'         names are time periods and values are vectors of entity identifiers observed in that period),
-#'         `excluded_rows` (if any), and, if duplicates were found, `entity_time_duplicates`.}
-#' }
-#'
-#' @seealso
-#' [plot_periods()], [describe_balance()], [describe_patterns()]
+#' @seealso \code{\link{plot_periods}}, \code{\link{describe_balance}}, \code{\link{describe_patterns}}
 #'
 #' @examples
 #' data(production)
-#' describe_periods(production, group = "firm", time = "year")
-#'
-#' # With custom rounding
-#' describe_periods(production, group = "firm", time = "year", digits = 4)
-#'
-#' # With panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' describe_periods(panel_data)
-#'
-#' # Specify interval to fill gaps (if any)
-#' describe_periods(production, group = "firm", time = "year", interval = 1)
+#' describe_periods(production, index = c("firm", "year"))
+#' describe_periods(production, index = c("firm", "year"), delta = 1, digits = 4)
 #'
 #' @export
 describe_periods <- function(
   data,
-  group = NULL,
-  time = NULL,
-  interval = NULL,
+  index = NULL,
+  delta = NULL,
   digits = 3
 ) {
-  # Helper to sort unique values preserving original class (for non‑numeric)
   sort_unique_preserve <- function(x) {
     ux <- unique(x)
     if (is.numeric(ux)) {
@@ -85,192 +53,171 @@ describe_periods <- function(
     } else if (inherits(ux, "Date") || inherits(ux, "POSIXt")) {
       sort(ux)
     } else if (is.factor(ux)) {
-      char_lev <- as.character(ux)
-      sorted_char <- sort(char_lev)
+      sorted_char <- sort(as.character(ux))
       factor(sorted_char, levels = sorted_char, ordered = is.ordered(ux))
     } else {
       sort(ux)
     }
   }
 
-  # Helper function for rounding
-  round_if_needed <- function(x, digits) {
-    if (is.numeric(x) && !all(is.na(x))) {
-      round(x, digits)
-    } else {
-      x
-    }
+  round_if_needed <- function(x, d) {
+    if (is.numeric(x) && !all(is.na(x))) round(x, d) else x
   }
 
-  # --- Consistent initialisation ---
-  user_group <- group
-  user_time <- time
-  user_interval <- interval
-  group_time_from_metadata <- FALSE
-  interval_from_metadata <- FALSE
+  # --- Initialisation ---
+  user_index <- index
+  user_delta <- delta
+  entity_time_from_metadata <- FALSE
+  delta_from_metadata <- FALSE
 
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+      is.null(metadata) || is.null(metadata$entity) || is.null(metadata$time)
     ) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    if (is.null(group)) {
-      group <- metadata$group
+    if (is.null(index)) {
+      entity_var <- metadata$entity
+      time_var <- metadata$time
+    } else {
+      if (length(index) != 2 || !is.character(index)) {
+        stop("'index' must be a character vector of length 2")
+      }
+      entity_var <- index[1]
+      time_var <- index[2]
     }
-    if (is.null(time)) {
-      time <- metadata$time
+    if (is.null(delta) && !is.null(metadata$delta)) {
+      delta <- metadata$delta
+      delta_from_metadata <- TRUE
     }
-    if (is.null(interval) && !is.null(metadata$interval)) {
-      interval <- metadata$interval
-      interval_from_metadata <- TRUE
-    }
-
-    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
-    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
-    group_time_from_metadata <- group_from_metadata && time_from_metadata
+    entity_from_metadata <- is.null(user_index) && !is.null(metadata$entity)
+    time_from_metadata <- is.null(user_index) && !is.null(metadata$time)
+    entity_time_from_metadata <- entity_from_metadata && time_from_metadata
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame")
     }
-    if (is.null(group) || is.null(time)) {
-      stop(
-        "For regular data.frames, both 'group' and 'time' arguments must be provided"
-      )
+    if (is.null(index)) {
+      stop("For regular data.frames, 'index' must be provided")
     }
+    if (length(index) != 2 || !is.character(index)) {
+      stop("'index' must be a character vector of length 2")
+    }
+    entity_var <- index[1]
+    time_var <- index[2]
   }
 
   # Common validation
-  if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string, not ", class(group)[1])
+  if (!entity_var %in% names(data)) {
+    stop('variable "', entity_var, '" not found in data')
   }
-  if (!is.character(time) || length(time) != 1) {
-    stop("'time' must be a single character string, not ", class(time)[1])
+  if (!time_var %in% names(data)) {
+    stop('variable "', time_var, '" not found in data')
   }
-  if (!group %in% names(data)) {
-    stop('variable "', group, '" not found in data')
-  }
-  if (!time %in% names(data)) {
-    stop('variable "', time, '" not found in data')
-  }
-  if (time == group) {
-    stop("'time' and 'group' cannot be the same variable")
+  if (time_var == entity_var) {
+    stop("time and entity variables cannot be the same")
   }
 
-  # Harmonized digits validation
-  if (!is.numeric(digits) || length(digits) != 1) {
-    stop("'digits' must be a single non-negative integer")
-  }
-  if (digits < 0 || digits != round(digits)) {
+  if (
+    !is.numeric(digits) ||
+      length(digits) != 1 ||
+      digits < 0 ||
+      digits != round(digits)
+  ) {
     stop("'digits' must be a non-negative integer")
   }
   digits <- as.integer(digits)
 
-  # --- Remove rows with NA in group or time ---
+  # --- Remove rows with NA in entity or time ---
   excluded_rows <- NULL
-  na_group <- is.na(data[[group]])
-  na_time <- is.na(data[[time]])
+  na_entity <- is.na(data[[entity_var]])
+  na_time <- is.na(data[[time_var]])
 
-  if (any(na_group)) {
+  if (any(na_entity)) {
     message(
-      "Missing values in ",
-      group,
-      " variable found. Excluding ",
-      sum(na_group),
+      "Missing values in entity variable '",
+      entity_var,
+      "' found. Excluding ",
+      sum(na_entity),
       " rows."
     )
   }
   if (any(na_time)) {
     message(
-      "Missing values in ",
-      time,
-      " variable found. Excluding ",
+      "Missing values in time variable '",
+      time_var,
+      "' found. Excluding ",
       sum(na_time),
       " rows."
     )
   }
 
-  if (any(na_group | na_time)) {
-    excluded_rows <- data[na_group | na_time, , drop = FALSE]
-    data <- data[!(na_group | na_time), , drop = FALSE]
+  if (any(na_entity | na_time)) {
+    excluded_rows <- data[na_entity | na_time, , drop = FALSE]
+    data <- data[!(na_entity | na_time), , drop = FALSE]
     rownames(data) <- NULL
   }
-  # ----------------------------------------------------------------
 
-  # --- Check for duplicate group-time combinations ---
+  # --- Duplicate check ---
   dup_combinations <- NULL
-  dup_rows <- duplicated(data[c(group, time)]) |
-    duplicated(data[c(group, time)], fromLast = TRUE)
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
   if (any(dup_rows)) {
-    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
     n_dup <- nrow(dup_combinations)
-    if (!group_time_from_metadata) {
+    if (!entity_time_from_metadata) {
       examples <- utils::head(dup_combinations, 5)
-      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_strings <- paste0(
+        examples[[entity_var]],
+        "-",
+        examples[[time_var]]
+      )
       example_str <- paste(example_strings, collapse = ", ")
       message(
         n_dup,
-        " duplicate group-time combinations found. Examples: ",
+        " duplicate entity-time combinations found. Examples: ",
         example_str
       )
     }
   }
-  # ----------------------------------------------------
 
-  # --- Interval handling ---
-  if (!is.null(interval)) {
-    # Validate interval
+  # --- Delta handling ---
+  if (!is.null(delta)) {
     if (
-      !is.numeric(interval) ||
-        length(interval) != 1 ||
-        interval <= 0 ||
-        interval != round(interval)
+      !is.numeric(delta) ||
+        length(delta) != 1 ||
+        delta <= 0 ||
+        delta != round(delta)
     ) {
-      stop("'interval' must be a positive integer")
+      stop("'delta' must be a positive integer")
     }
-
-    # Attempt to coerce time variable to numeric
-    time_vals_orig <- data[[time]]
+    time_vals_orig <- data[[time_var]]
     if (!is.numeric(time_vals_orig)) {
       time_numeric <- suppressWarnings(as.numeric(as.character(time_vals_orig)))
       if (anyNA(time_numeric)) {
-        stop(
-          "Cannot convert the time variable '",
-          time,
-          "' to numeric. ",
-          "Please ensure it contains numbers or convert it manually."
-        )
+        stop("Cannot convert time variable '", time_var, "' to numeric.")
       }
-      data[[time]] <- time_numeric
+      data[[time_var]] <- time_numeric
     }
-
-    # Check consistency: observed time points must be equally spaced by multiples of interval
-    obs_periods <- sort(unique(data[[time]]))
+    obs_periods <- sort(unique(data[[time_var]]))
     time_diffs <- diff(obs_periods)
-    if (!all(time_diffs %% interval == 0)) {
+    if (!all(time_diffs %% delta == 0)) {
       stop(
-        "The observed time points are not evenly spaced by multiples of the specified interval (",
-        interval,
-        "). ",
-        "For example, differences such as ",
-        paste(unique(time_diffs[time_diffs %% interval != 0]), collapse = ", "),
-        " are not multiples of ",
-        interval,
-        "."
+        "Observed time points are not evenly spaced by multiples of delta (",
+        delta,
+        ")."
       )
     }
-
-    # Compute full sequence and missing periods
-    full_seq <- seq(
-      from = min(obs_periods),
-      to = max(obs_periods),
-      by = interval
-    )
+    full_seq <- seq(from = min(obs_periods), to = max(obs_periods), by = delta)
     missing <- setdiff(full_seq, obs_periods)
-    if (length(missing) > 0 && !interval_from_metadata) {
+    if (length(missing) > 0 && !delta_from_metadata) {
       message(
         "Irregular time intervals detected. Missing periods: ",
         paste(missing, collapse = ", ")
@@ -279,18 +226,12 @@ describe_periods <- function(
   }
 
   # Original vectors
-  group_orig <- data[[group]]
-  time_orig <- data[[time]]
+  entity_orig <- data[[entity_var]]
+  time_orig <- data[[time_var]]
 
-  # Character versions for internal matching
-  time_char <- as.character(time_orig)
-
-  # Unique time periods (numeric if interval used, else original class)
-  if (!is.null(interval)) {
-    # Use numeric periods (including missing) for sorting and output
-    unique_times <- sort(unique(data[[time]]))
+  if (!is.null(delta)) {
+    unique_times <- sort(unique(data[[time_var]]))
     if (exists("missing") && length(missing) > 0) {
-      # Add missing periods and re-sort
       unique_times <- sort(c(unique_times, missing))
     }
   } else {
@@ -298,87 +239,65 @@ describe_periods <- function(
   }
   unique_times_char <- as.character(unique_times)
 
-  # Total number of unique entities
-  total_entities <- length(unique(group_orig))
-
-  # Identify substantive variables (excluding group and time)
-  substantive_vars <- setdiff(names(data), c(group, time))
+  total_entities <- length(unique(entity_orig))
+  substantive_vars <- setdiff(names(data), c(entity_var, time_var))
   if (length(substantive_vars) == 0) {
-    stop("no substantive variables found (besides group and time variables)")
+    stop("no substantive variables found (besides entity and time variables)")
   }
 
-  # Initialize result vectors and entity list
   period_counts <- integer(length(unique_times))
   entities <- vector("list", length(unique_times))
   names(entities) <- unique_times_char
 
-  # Calculate observed statistics for each time period
   for (i in seq_along(unique_times)) {
     current_time <- unique_times[i]
     current_time_char <- unique_times_char[i]
 
-    if (!is.null(interval) && exists("missing") && current_time %in% missing) {
-      # Missing period: count = 0, empty entity vector
+    if (!is.null(delta) && exists("missing") && current_time %in% missing) {
       period_counts[i] <- 0
-      entities[[i]] <- vector(class(group_orig), 0)
+      entities[[i]] <- vector(class(entity_orig), 0)
     } else {
-      # Indices of rows with this time value
-      time_indices <- which(time_orig == current_time) # works because coerced if needed
+      time_indices <- which(time_orig == current_time)
       if (length(time_indices) > 0) {
-        # Subset data for this period
         period_data <- data[time_indices, substantive_vars, drop = FALSE]
-        period_groups_orig <- group_orig[time_indices]
-
-        # Observed: at least one non-NA value in substantive variables
+        period_entities <- entity_orig[time_indices]
         has_some_data <- apply(period_data, 1, function(x) any(!is.na(x)))
-
-        # Count distinct entities with data in this period
         if (any(has_some_data)) {
-          period_counts[i] <- length(unique(period_groups_orig[has_some_data]))
-          entities[[i]] <- unique(period_groups_orig[has_some_data])
+          period_counts[i] <- length(unique(period_entities[has_some_data]))
+          entities[[i]] <- unique(period_entities[has_some_data])
         } else {
           period_counts[i] <- 0
-          entities[[i]] <- vector(class(group_orig), 0)
+          entities[[i]] <- vector(class(entity_orig), 0)
         }
       } else {
         period_counts[i] <- 0
-        entities[[i]] <- vector(class(group_orig), 0)
+        entities[[i]] <- vector(class(entity_orig), 0)
       }
     }
   }
 
-  # Compute share (proportion of total entities) and round
-  share <- period_counts / total_entities
-  share <- round_if_needed(share, digits)
+  share <- round_if_needed(period_counts / total_entities, digits)
 
-  # Create result data.frame – first column uses the computed time periods (numeric if interval used)
   result_df <- data.frame(
     time_period = unique_times,
     count = period_counts,
     share = share,
     stringsAsFactors = FALSE
   )
-  names(result_df)[1] <- time
+  names(result_df)[1] <- time_var
 
-  # Build metadata
-  call <- match.call()
   metadata <- list(
-    function_name = as.character(call[[1]]),
-    group = group,
-    time = time,
-    interval = interval,
+    function_name = as.character(match.call()[[1]]),
+    entity = entity_var,
+    time = time_var,
+    delta = delta,
     digits = digits
   )
 
-  # Build details list
-  details <- list(
-    entities = entities
-  )
-
+  details <- list(entities = entities)
   if (!is.null(excluded_rows)) {
     details$excluded_rows <- excluded_rows
   }
-
   if (!is.null(dup_combinations)) {
     details$entity_time_duplicates <- dup_combinations
   }

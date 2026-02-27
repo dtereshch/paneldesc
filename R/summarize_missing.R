@@ -4,311 +4,231 @@
 #' providing both overall and detailed period-specific missing value counts.
 #'
 #' @param data A data.frame containing panel data in a long format.
-#' @param selection A character vector specifying which variables to analyze for missing values.
-#'        If not specified, all variables in the data.frame will be used.
-#' @param group A character string specifying the name of the entity/group variable in panel data.
+#' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #'        Not required if data has panel attributes.
-#' @param time A character string specifying the name of the time variable.
-#'        Not required if data has panel attributes.
-#' @param detailed A logical flag indicating whether to return detailed period-specific NA counts.
+#' @param select A character vector specifying which variables to analyze for missing values.
+#'        If not specified, all variables (except entity and time) will be used.
+#' @param detail A logical flag indicating whether to return detailed period-specific NA counts.
 #'        Default = FALSE.
 #' @param digits An integer indicating the number of decimal places to round the share column.
 #'        Default = 3.
 #'
-#' @return A data.frame with missing value summary statistics.
+#' @return A data.frame with missing value summary statistics, class `"panel_summary"`.
 #'
 #' @details
-#' When `detailed = FALSE` (default), returns a data.frame with the following columns:
-#' \describe{
-#'   \item{\code{variable}}{The name of the analyzed variable}
-#'   \item{\code{na_count}}{Total number of missing values (NAs) for the variable}
-#'   \item{\code{na_share}}{Proportion of observations that are missing (0 to 1), rounded to specified digits}
-#'   \item{\code{entities}}{Number of entities/groups with at least one missing value for this variable}
-#'   \item{\code{periods}}{Number of time periods with at least one missing value for this variable}
-#' }
+#' When `detail = FALSE`, returns columns: variable, na_count, na_share, entities, periods.
+#' When `detail = TRUE`, additional columns for each time period contain NA counts.
 #'
-#' When `detailed = TRUE`, additional columns are included:
-#' \describe{
-#'   \item{\code{[period1]}}{Column with NA counts for period1 (name matches the time period value)}
-#'   \item{\code{[period2]}}{Column with NA counts for period2 (name matches the time period value)}
-#'   \item{...}{Additional columns for each unique time period in the data}
-#' }
+#' Before analysis, rows with missing values (`NA`) in the entity or time variables are removed.
+#' Messages indicate how many rows were excluded. The excluded rows are stored in `details$excluded_rows`.
 #'
-#' Before analysis, rows with missing values (`NA`) in the `group` or `time` variables are removed.
-#' Messages indicate how many rows were excluded due to each variable. The excluded rows are stored in
-#' `details$excluded_rows` for further inspection.
+#' Duplicate entity‑time combinations are checked; if found they are stored in `details$entity_time_duplicates`
+#' and a message is printed (unless identifiers came from panel attributes).
 #'
-#' The function checks for duplicate group-time combinations. In a properly structured panel dataset,
-#' each entity (group) should have at most one observation per time period. If duplicates are found,
-#' they are stored in `details$entity_time_duplicates`. A message is printed only when the identifiers
-#' were explicitly provided (i.e., not taken from `panel_data` attributes).
-#'
-#' The returned data.frame has class `"panel_summary"` and the following attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{List containing additional information:
-#'         `count_variables_with_na`, `count_variables_without_na`, `count_variables` (total analyzed),
-#'         `variables_with_na`, `variables_without_na`, `excluded_rows` (if any), and, if duplicates exist,
-#'         `entity_time_duplicates`.}
-#' }
-#'
-#' @seealso
-#' [describe_incomplete()], [describe_balance()], [describe_periods()], [summarize_numeric()]
+#' @seealso \code{\link{describe_balance}}, \code{\link{describe_periods}}, \code{\link{summarize_transition}}
 #'
 #' @examples
 #' data(production)
-#'
-#' # Basic usage with statistics for all variables
-#' summarize_missing(production, group = "firm", time = "year")
-#'
-#' # With panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' summarize_missing(panel_data)
-#'
-#' # Detailed output with period-specific NA counts
-#' summarize_missing(production, group = "firm", time = "year", detailed = TRUE)
+#' summarize_missing(production, index = c("firm", "year"))
+#' summarize_missing(production, index = c("firm", "year"), select = c("sales", "employees"), detail = TRUE)
 #'
 #' @export
 summarize_missing <- function(
   data,
-  selection = NULL,
-  group = NULL,
-  time = NULL,
-  detailed = FALSE,
+  index = NULL,
+  select = NULL,
+  detail = FALSE,
   digits = 3
 ) {
-  # --- Consistent initialisation ---
-  user_group <- group
-  user_time <- time
-  group_time_from_metadata <- FALSE
+  # --- Initialisation ---
+  user_index <- index
+  entity_time_from_metadata <- FALSE
 
   if (inherits(data, "panel_data")) {
     metadata <- attr(data, "metadata")
     if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+      is.null(metadata) || is.null(metadata$entity) || is.null(metadata$time)
     ) {
       stop(
         "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
       )
     }
-    if (is.null(group)) {
-      group <- metadata$group
+    if (is.null(index)) {
+      entity_var <- metadata$entity
+      time_var <- metadata$time
+    } else {
+      if (length(index) != 2 || !is.character(index)) {
+        stop("'index' must be a character vector of length 2")
+      }
+      entity_var <- index[1]
+      time_var <- index[2]
     }
-    if (is.null(time)) {
-      time <- metadata$time
-    }
-
-    group_from_metadata <- is.null(user_group) && !is.null(metadata$group)
-    time_from_metadata <- is.null(user_time) && !is.null(metadata$time)
-    group_time_from_metadata <- group_from_metadata && time_from_metadata
+    entity_from_metadata <- is.null(user_index) && !is.null(metadata$entity)
+    time_from_metadata <- is.null(user_index) && !is.null(metadata$time)
+    entity_time_from_metadata <- entity_from_metadata && time_from_metadata
   } else {
     if (!is.data.frame(data)) {
       stop("'data' must be a data.frame")
     }
-    if (is.null(group) || is.null(time)) {
-      stop(
-        "For regular data.frames, both 'group' and 'time' arguments must be provided"
-      )
+    if (is.null(index)) {
+      stop("For regular data.frames, 'index' must be provided")
+    }
+    if (length(index) != 2 || !is.character(index)) {
+      stop("'index' must be a character vector of length 2")
+    }
+    entity_var <- index[1]
+    time_var <- index[2]
+  }
+
+  # Validation
+  if (!is.null(select) && !is.character(select)) {
+    stop("'select' must be a character vector or NULL")
+  }
+  if (!entity_var %in% names(data)) {
+    stop('entity variable "', entity_var, '" not found in data')
+  }
+  if (!time_var %in% names(data)) {
+    stop('time variable "', time_var, '" not found in data')
+  }
+  if (time_var == entity_var) {
+    stop("time and entity variables cannot be the same")
+  }
+  if (!is.null(select)) {
+    if (entity_var %in% select) {
+      stop("'select' cannot contain the entity variable '", entity_var, "'")
+    }
+    if (time_var %in% select) {
+      stop("'select' cannot contain the time variable '", time_var, "'")
     }
   }
-
-  # Common validation
-  if (!is.null(selection) && !is.character(selection)) {
-    stop(
-      "'selection' must be a character vector or NULL, not ",
-      class(selection)[1]
-    )
+  if (!is.logical(detail) || length(detail) != 1) {
+    stop("'detail' must be a single logical")
   }
-
-  if (!is.character(group) || length(group) != 1) {
-    stop("'group' must be a single character string, not ", class(group)[1])
+  if (
+    !is.numeric(digits) ||
+      length(digits) != 1 ||
+      digits < 0 ||
+      digits != round(digits)
+  ) {
+    stop("'digits' must be a non-negative integer")
   }
+  digits <- as.integer(digits)
 
-  if (!is.character(time) || length(time) != 1) {
-    stop("'time' must be a single character string, not ", class(time)[1])
-  }
-
-  if (!group %in% names(data)) {
-    stop('variable "', group, '" not found in data')
-  }
-
-  if (!time %in% names(data)) {
-    stop('variable "', time, '" not found in data')
-  }
-
-  if (time == group) {
-    stop("'time' and 'group' cannot be the same variable")
-  }
-
-  # --- NEW CHECK: ensure selection does not include group or time (if provided) ---
-  if (!is.null(selection)) {
-    if (group %in% selection) {
-      stop("'selection' cannot be the same as 'group' variable ('", group, "')")
-    }
-    if (time %in% selection) {
-      stop("'selection' cannot be the same as 'time' variable ('", time, "')")
-    }
-  }
-  # --------------------------------------------------------------------------------
-
-  if (!is.logical(detailed) || length(detailed) != 1) {
-    stop("'detailed' must be a single logical value, not ", class(detailed)[1])
-  }
-
-  # --- Remove rows with NA in group or time ---
+  # --- Remove rows with NA in entity or time ---
   excluded_rows <- NULL
-  na_group <- is.na(data[[group]])
-  na_time <- is.na(data[[time]])
+  na_entity <- is.na(data[[entity_var]])
+  na_time <- is.na(data[[time_var]])
 
-  if (any(na_group)) {
+  if (any(na_entity)) {
     message(
-      "Missing values in ",
-      group,
-      " variable found. Excluding ",
-      sum(na_group),
+      "Missing values in entity variable '",
+      entity_var,
+      "' found. Excluding ",
+      sum(na_entity),
       " rows."
     )
   }
   if (any(na_time)) {
     message(
-      "Missing values in ",
-      time,
-      " variable found. Excluding ",
+      "Missing values in time variable '",
+      time_var,
+      "' found. Excluding ",
       sum(na_time),
       " rows."
     )
   }
 
-  if (any(na_group | na_time)) {
-    excluded_rows <- data[na_group | na_time, , drop = FALSE]
-    data <- data[!(na_group | na_time), , drop = FALSE]
+  if (any(na_entity | na_time)) {
+    excluded_rows <- data[na_entity | na_time, , drop = FALSE]
+    data <- data[!(na_entity | na_time), , drop = FALSE]
     rownames(data) <- NULL
   }
-  # ----------------------------------------------------------------
 
-  # --- Check for duplicate group-time combinations ---
+  # --- Duplicate check ---
   dup_combinations <- NULL
-  dup_rows <- duplicated(data[c(group, time)]) |
-    duplicated(data[c(group, time)], fromLast = TRUE)
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
   if (any(dup_rows)) {
-    dup_combinations <- unique(data[dup_rows, c(group, time), drop = FALSE])
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
     n_dup <- nrow(dup_combinations)
-    if (!group_time_from_metadata) {
+    if (!entity_time_from_metadata) {
       examples <- utils::head(dup_combinations, 5)
-      example_strings <- paste0(examples[[group]], "-", examples[[time]])
+      example_strings <- paste0(
+        examples[[entity_var]],
+        "-",
+        examples[[time_var]]
+      )
       example_str <- paste(example_strings, collapse = ", ")
       message(
         n_dup,
-        " duplicate group-time combinations found. Examples: ",
+        " duplicate entity-time combinations found. Examples: ",
         example_str
       )
     }
   }
-  # ----------------------------------------------------
 
-  # Harmonized digits validation
-  if (!is.numeric(digits) || length(digits) != 1) {
-    stop("'digits' must be a single non-negative integer")
+  round_if_needed <- function(x, d) {
+    if (is.numeric(x) && !all(is.na(x))) round(x, d) else x
   }
-  if (digits < 0 || digits != round(digits)) {
-    stop("'digits' must be a non-negative integer")
-  }
-  digits <- as.integer(digits)
 
-  # Helper function for rounding
-  round_if_needed <- function(x, digits) {
-    if (is.numeric(x) && !all(is.na(x))) {
-      round(x, digits)
-    } else {
-      x
+  # Determine variables to analyze
+  if (is.null(select)) {
+    select <- setdiff(names(data), c(entity_var, time_var))
+    if (length(select) == 0) {
+      stop("no variables found to analyze (besides entity and time)")
+    }
+    message("Analyzing all variable(s): ", paste(select, collapse = ", "))
+  } else {
+    missing_vars <- select[!select %in% names(data)]
+    if (length(missing_vars) > 0) {
+      stop("variables not found: ", paste(missing_vars, collapse = ", "))
+    }
+    select <- setdiff(select, c(entity_var, time_var))
+    if (length(select) == 0) {
+      stop("no variables to analyze (excluding entity and time)")
     }
   }
 
-  # Track if any messages were printed
-  messages_printed <- FALSE
-
-  # If selection is not specified, use all variables except group and time
-  if (is.null(selection)) {
-    selection <- setdiff(names(data), c(group, time))
-
-    if (length(selection) == 0) {
-      stop("no variables found to analyze (besides group and time variables)")
-    }
-
-    message(
-      "Analyzing all variable(s): ",
-      paste(selection, collapse = ", ")
-    )
-    messages_printed <- TRUE
-  }
-
-  # Validate selection
-  missing_vars <- selection[!selection %in% names(data)]
-  if (length(missing_vars) > 0) {
-    stop(
-      "the following variables were not found in data: ",
-      paste(missing_vars, collapse = ", ")
-    )
-  }
-
-  # Remove group and time from selection if included (redundant after check, but safe)
-  selection <- setdiff(selection, c(group, time))
-  if (length(selection) == 0) {
-    stop("no variables to analyze (excluding group and time variables)")
-  }
-
-  # Get unique time periods and sort them
-  time_values <- as.character(data[[time]])
+  # Unique time periods
+  time_values <- as.character(data[[time_var]])
   unique_periods <- unique(time_values)
-
-  # Sort time periods if they appear numeric
   if (all(grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", unique_periods))) {
     ordered_periods <- as.character(sort(as.numeric(unique_periods)))
   } else {
     ordered_periods <- sort(unique_periods)
   }
 
-  # Get unique groups
-  unique_groups <- unique(as.character(data[[group]]))
-
-  # Total counts for attributes
+  unique_entities <- unique(as.character(data[[entity_var]]))
   total_obs <- nrow(data)
-  total_entities <- length(unique_groups)
+  total_entities <- length(unique_entities)
   total_periods <- length(ordered_periods)
 
-  # Initialize result list
   results <- list()
 
-  # Calculate missing value statistics for each variable
-  for (var in selection) {
-    # Total NA count
+  for (var in select) {
     na_count <- sum(is.na(data[[var]]))
-
-    # NA share (proportion) - rounded to specified digits
     na_share <- ifelse(total_obs > 0, na_count / total_obs, 0)
     na_share <- round_if_needed(na_share, digits)
 
-    # Entities with at least one NA
     if (na_count > 0) {
-      entity_has_na <- tapply(data[[var]], data[[group]], function(x) {
+      entity_has_na <- tapply(data[[var]], data[[entity_var]], function(x) {
         any(is.na(x))
       })
       entities_with_na <- sum(entity_has_na, na.rm = TRUE)
-    } else {
-      entities_with_na <- 0
-    }
-
-    # Periods with at least one NA
-    if (na_count > 0) {
-      period_has_na <- tapply(data[[var]], data[[time]], function(x) {
+      period_has_na <- tapply(data[[var]], data[[time_var]], function(x) {
         any(is.na(x))
       })
       periods_with_na <- sum(period_has_na, na.rm = TRUE)
     } else {
+      entities_with_na <- 0
       periods_with_na <- 0
     }
 
-    result_row <- data.frame(
+    row_df <- data.frame(
       variable = var,
       na_count = na_count,
       na_share = na_share,
@@ -317,62 +237,52 @@ summarize_missing <- function(
       stringsAsFactors = FALSE
     )
 
-    # Add detailed period-specific NA counts if requested
-    if (detailed) {
-      for (period in ordered_periods) {
-        period_data <- data[time_values == period, var, drop = FALSE]
-        period_na_count <- sum(is.na(period_data[[var]]))
-        result_row[[period]] <- period_na_count
+    if (detail) {
+      for (per in ordered_periods) {
+        per_data <- data[time_values == per, var, drop = FALSE]
+        row_df[[per]] <- sum(is.na(per_data[[var]]))
       }
     }
 
-    results[[var]] <- result_row
+    results[[var]] <- row_df
   }
 
-  # Combine all results
   result_df <- do.call(rbind, results)
   rownames(result_df) <- NULL
 
-  # Identify variables with and without missing values
   vars_with_na <- result_df$variable[result_df$na_count > 0]
   vars_without_na <- result_df$variable[result_df$na_count == 0]
 
-  # Build metadata
-  call <- match.call()
   metadata <- list(
-    function_name = as.character(call[[1]]),
-    selection = selection,
-    group = group,
-    time = time,
-    detailed = detailed,
+    function_name = as.character(match.call()[[1]]),
+    select = select,
+    entity = entity_var,
+    time = time_var,
+    detail = detail,
     digits = digits
   )
 
-  # Build details list
   details <- list(
     count_variables_with_na = length(vars_with_na),
     count_variables_without_na = length(vars_without_na),
-    count_variables = length(selection),
+    count_variables = length(select),
     variables_with_na = vars_with_na,
     variables_without_na = vars_without_na
   )
-
   if (!is.null(excluded_rows)) {
     details$excluded_rows <- excluded_rows
   }
-
   if (!is.null(dup_combinations)) {
     details$entity_time_duplicates <- dup_combinations
   }
 
-  # Set attributes
   attr(result_df, "metadata") <- metadata
   attr(result_df, "details") <- details
   class(result_df) <- c("panel_summary", "data.frame")
 
-  # Add empty line before returning if messages were printed
+  # Print newline if messages were printed
   if (
-    messages_printed || !is.null(excluded_rows) || !is.null(dup_combinations)
+    !is.null(excluded_rows) || !is.null(dup_combinations) || is.null(select)
   ) {
     cat("\n")
   }

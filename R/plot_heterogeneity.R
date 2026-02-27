@@ -3,10 +3,10 @@
 #' This function creates visualizations of heterogeneity among groups.
 #'
 #' @param data A data.frame containing variables for analysis.
-#' @param selection A character string specifying the numeric variable of interest.
+#' @param select A character string specifying the numeric variable of interest.
 #' @param group A character string or vector of character strings specifying the grouping variable(s).
 #'        If data has panel attributes and group is not specified,
-#'        both panel_group and panel_time will be used as group variables.
+#'        both the entity and time variables will be used as grouping variables.
 #' @param colors A character vector of two colors: first for mean line and points, second for individual points.
 #'        Default = c("#1E4A3B", "#D4B87A").
 #'
@@ -32,31 +32,31 @@
 #' data(production)
 #'
 #' # Method 1: With regular data.frame
-#' plot_heterogeneity(production, selection = "labor", group = "year")
+#' plot_heterogeneity(production, select = "labor", group = "year")
 #'
 #' # Method 2: With data.frame with panel attributes
-#' panel_data <- set_panel(production, group = "firm", time = "year")
-#' plot_heterogeneity(panel_data, selection = "labor")
+#' panel_data <- make_panel(production, index = c("firm", "year"))
+#' plot_heterogeneity(panel_data, select = "labor")
 #'
 #' # Method 3: Explicit grouping even with panel data
-#' plot_heterogeneity(panel_data, selection = "capital", group = "year")
+#' plot_heterogeneity(panel_data, select = "capital", group = "year")
 #'
 #' # Plot labor by year
-#' plot_heterogeneity(production, selection = "labor", group = "year")
+#' plot_heterogeneity(production, select = "labor", group = "year")
 #'
 #' # Plot capital by firm
-#' plot_heterogeneity(production, selection = "capital", group = "firm")
+#' plot_heterogeneity(production, select = "capital", group = "firm")
 #'
 #' # Plot sales with multiple grouping variables
-#' plot_heterogeneity(production, selection = "sales", group = c("firm", "year"))
+#' plot_heterogeneity(production, select = "sales", group = c("firm", "year"))
 #'
 #' # Customize colors
-#' plot_heterogeneity(production, selection = "sales", group = "year", colors = c("black", "gray"))
+#' plot_heterogeneity(production, select = "sales", group = "year", colors = c("black", "gray"))
 #'
 #' @export
 plot_heterogeneity <- function(
   data,
-  selection,
+  select,
   group = NULL,
   colors = c("#1E4A3B", "#D4B87A")
 ) {
@@ -67,14 +67,14 @@ plot_heterogeneity <- function(
   if (has_panel_attrs && is.null(group)) {
     metadata <- attr(data, "metadata")
     if (
-      is.null(metadata) || is.null(metadata$group) || is.null(metadata$time)
+      is.null(metadata) || is.null(metadata$entity) || is.null(metadata$time)
     ) {
       stop(
-        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute (requires 'entity' and 'time')."
       )
     }
-    # Extract group and time from attributes and use both as group variables
-    group <- c(metadata$group, metadata$time)
+    # Extract entity and time from attributes and use both as group variables
+    group <- c(metadata$entity, metadata$time)
   }
 
   # Input validation for data
@@ -82,23 +82,17 @@ plot_heterogeneity <- function(
     stop("'data' must be a data.frame, not ", class(data)[1])
   }
 
-  # Input validation for selection
-  if (!is.character(selection) || length(selection) != 1) {
-    stop(
-      "'selection' must be a single character string, not ",
-      class(selection)[1]
-    )
+  # Input validation for select
+  if (!is.character(select) || length(select) != 1) {
+    stop("'select' must be a single character string, not ", class(select)[1])
   }
 
-  if (!selection %in% names(data)) {
-    stop('variable "', selection, '" not found in data')
+  if (!select %in% names(data)) {
+    stop('variable "', select, '" not found in data')
   }
 
-  if (!is.numeric(data[[selection]])) {
-    stop(
-      "'selection' must be a numeric variable, not ",
-      class(data[[selection]])[1]
-    )
+  if (!is.numeric(data[[select]])) {
+    stop("'select' must be a numeric variable, not ", class(data[[select]])[1])
   }
 
   # Input validation for group (after potential extraction from panel attributes)
@@ -125,13 +119,9 @@ plot_heterogeneity <- function(
     )
   }
 
-  # --- NEW CHECK: ensure selection is not in group ---
-  if (selection %in% group) {
-    stop(
-      "'selection' cannot be the same as 'group' variable ('",
-      selection,
-      "')"
-    )
+  # --- NEW CHECK: ensure select is not in group ---
+  if (select %in% group) {
+    stop("'select' cannot be the same as 'group' variable ('", select, "')")
   }
   # ---------------------------------------------------
 
@@ -162,10 +152,7 @@ plot_heterogeneity <- function(
   nrow <- NULL
 
   # Function to create single plot
-  create_single_plot <- function(
-    data_sub,
-    group_var
-  ) {
+  create_single_plot <- function(data_sub, group_var) {
     x_var <- data_sub[[group_var]]
 
     # Check group variable type
@@ -193,15 +180,15 @@ plot_heterogeneity <- function(
     )
 
     # Calculate group means
-    group_means <- tapply(data_sub[[selection]], x_var, mean, na.rm = TRUE)
+    group_means <- tapply(data_sub[[select]], x_var, mean, na.rm = TRUE)
 
     # Create the plot
     plot(
       NA,
       xlim = c(0.5, length(levels(x_var)) + 0.5),
-      ylim = range(data_sub[[selection]], na.rm = TRUE),
+      ylim = range(data_sub[[select]], na.rm = TRUE),
       xlab = group_var,
-      ylab = selection,
+      ylab = select,
       main = "", # Remove title
       xaxt = "n",
       frame.plot = FALSE
@@ -214,7 +201,7 @@ plot_heterogeneity <- function(
     x_pos <- as.numeric(x_var)
     points(
       x_pos,
-      data_sub[[selection]],
+      data_sub[[select]],
       col = point_col_alpha,
       pch = 1, # open circle for a cleaner look when points overlay
       cex = 0.8 * cex
@@ -246,8 +233,8 @@ plot_heterogeneity <- function(
     # Return summary statistics for this group
     list(
       means = group_means,
-      sd = tapply(data_sub[[selection]], x_var, sd, na.rm = TRUE),
-      n = tapply(data_sub[[selection]], x_var, function(x) sum(!is.na(x)))
+      sd = tapply(data_sub[[select]], x_var, sd, na.rm = TRUE),
+      n = tapply(data_sub[[select]], x_var, function(x) sum(!is.na(x)))
     )
   }
 
@@ -301,9 +288,9 @@ plot_heterogeneity <- function(
       }
 
       group_stats_list[[group_var]] <- list(
-        means = tapply(data[[selection]], x_var, mean, na.rm = TRUE),
-        sd = tapply(data[[selection]], x_var, sd, na.rm = TRUE),
-        n = tapply(data[[selection]], x_var, function(x) sum(!is.na(x)))
+        means = tapply(data[[select]], x_var, mean, na.rm = TRUE),
+        sd = tapply(data[[select]], x_var, sd, na.rm = TRUE),
+        n = tapply(data[[select]], x_var, function(x) sum(!is.na(x)))
       )
     }
   }
@@ -312,7 +299,7 @@ plot_heterogeneity <- function(
   call <- match.call()
   metadata <- list(
     function_name = as.character(call[[1]]),
-    selection = selection,
+    select = select,
     group = group,
     colors = colors
   )
