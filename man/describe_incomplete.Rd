@@ -62,6 +62,13 @@ The returned data.frame (if any) has class \code{"panel_description"} and attrib
 \code{count_entities_total}, \code{count_entities_incomplete}, \code{entities_incomplete}.}
 }
 }
+\note{
+The interpretation of incomplete entities may differ depending on whether the panel is balanced or unbalanced.
+In a balanced panel, each entity has the same number of time periods, so the total possible observations per entity are equal.
+In an unbalanced panel, entities may have different numbers of time periods, so the number of missing values should be interpreted relative to the entity's total observations.
+The function does not adjust for the number of time periods per entity; the missing counts reflect absolute counts of NAs in the data.
+Users should consider the panel structure when interpreting the results.
+}
 \examples{
 data(production)
 describe_incomplete(production, index = "firm")

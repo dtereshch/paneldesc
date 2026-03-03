@@ -49,6 +49,13 @@
 #'         `count_entities_total`, `count_entities_incomplete`, `entities_incomplete`.}
 #' }
 #'
+#' @note
+#' The interpretation of incomplete entities may differ depending on whether the panel is balanced or unbalanced.
+#' In a balanced panel, each entity has the same number of time periods, so the total possible observations per entity are equal.
+#' In an unbalanced panel, entities may have different numbers of time periods, so the number of missing values should be interpreted relative to the entity's total observations.
+#' The function does not adjust for the number of time periods per entity; the missing counts reflect absolute counts of NAs in the data.
+#' Users should consider the panel structure when interpreting the results.
+#'
 #' @seealso
 #' [summarize_missing()], [describe_patterns()]
 #'
@@ -189,14 +196,6 @@ describe_incomplete <- function(
   # Check if entity variable has observations
   if (length(data[[entity_var]]) == 0) {
     stop("entity variable has no observations")
-  }
-
-  # If time provided, warn if panel unbalanced? (optional, but kept from original)
-  if (!is.null(time_var)) {
-    time_counts <- table(data[[entity_var]], data[[time_var]])
-    if (!all(time_counts == 1)) {
-      warning("The panel is unbalanced.")
-    }
   }
 
   # Get unique entities preserving original type and order

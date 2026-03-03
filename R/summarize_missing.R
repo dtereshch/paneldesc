@@ -25,6 +25,14 @@
 #' Duplicate entity‑time combinations are checked; if found, a message is printed
 #' (unless identifiers came from panel attributes).
 #'
+#' @note
+#' The interpretation of missing counts may differ depending on whether the panel is balanced or unbalanced.
+#' In a balanced panel, each time period contains the same number of entities, so the raw NA counts per period
+#' (when `detail = TRUE`) are directly comparable across periods. In an unbalanced panel, the number of entities
+#' varies by period, so the raw NA counts should be interpreted relative to the number of observations available
+#' in each period. The function does not standardize the counts by period size; users should account for the
+#' panel structure when interpreting the results.
+#'
 #' @seealso \code{\link{describe_balance}}, \code{\link{describe_periods}}, \code{\link{summarize_transition}}
 #'
 #' @examples
