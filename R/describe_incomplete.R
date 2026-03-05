@@ -49,8 +49,7 @@
 #' Users should consider the panel structure when interpreting the results.
 #'
 #' @seealso
-#' [summarize_missing()] for variable‑wise missing value summaries.
-#' [describe_patterns()] for entity presence patterns over time.
+#' See also [summarize_missing()], [describe_patterns()], [describe_periods()].
 #'
 #' @examples
 #' data(production)

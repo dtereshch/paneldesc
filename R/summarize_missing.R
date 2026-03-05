@@ -49,8 +49,7 @@
 #' panel structure when interpreting the results.
 #'
 #' @seealso
-#' [describe_incomplete()] for entity‑wise missing description.
-#' [summarize_transition()] for transition summaries.
+#' See also [describe_incomplete()], [describe_patterns()], [describe_periods()].
 #'
 #' @examples
 #' data(production)

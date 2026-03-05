@@ -78,8 +78,5 @@ attr(panel, "details")
 
 }
 \seealso{
-\code{\link[=describe_dimensions]{describe_dimensions()}} for basic dimension counts.
-\code{\link[=describe_balance]{describe_balance()}} for balance statistics.
-\code{\link[=describe_periods]{describe_periods()}} for period‑wise entity counts.
-\code{\link[=describe_patterns]{describe_patterns()}} for entity presence patterns.
+See also \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

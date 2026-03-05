@@ -68,9 +68,7 @@
 #' patterns are retained.
 #'
 #' @seealso
-#' [plot_patterns()] for visualisation of presence patterns.
-#' [describe_periods()] for period‑wise entity counts.
-#' [describe_balance()] for balance statistics.
+#' See also [plot_patterns()], [describe_periods()], [describe_balance()].
 #'
 #' @examples
 #' data(production)

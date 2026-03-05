@@ -43,9 +43,7 @@
 #' (unless identifiers came from panel attributes).
 #'
 #' @seealso
-#' [plot_periods()] for visualisation of time coverage distribution.
-#' [describe_balance()] for balance statistics.
-#' [describe_patterns()] for entity presence patterns.
+#' See also [plot_periods()], [describe_balance()], [describe_patterns()].
 #'
 #' @examples
 #' data(production)

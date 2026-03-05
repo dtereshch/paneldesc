@@ -71,6 +71,5 @@ out_plo_het$details
 
 }
 \seealso{
-\code{\link[=decompose_numeric]{decompose_numeric()}} for decomposition of numeric variables.
-\code{\link[=summarize_numeric]{summarize_numeric()}} for numeric summaries.
+See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=summarize_numeric]{summarize_numeric()}}.
 }

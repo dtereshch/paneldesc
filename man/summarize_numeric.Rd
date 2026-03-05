@@ -102,8 +102,5 @@ attr(out_sum_num, "details")
 
 }
 \seealso{
-\code{\link[=decompose_numeric]{decompose_numeric()}} for variance decomposition.
-\code{\link[=decompose_factor]{decompose_factor()}} for factor variable decomposition.
-\code{\link[=summarize_transition]{summarize_transition()}} for transition summaries.
-\code{\link[=summarize_missing]{summarize_missing()}} for missing value summaries.
+See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}.
 }

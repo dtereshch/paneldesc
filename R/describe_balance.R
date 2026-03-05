@@ -56,10 +56,7 @@
 #' were explicitly provided (i.e., not taken from panel attributes).
 #'
 #' @seealso
-#' [describe_periods()] for period‑wise entity counts.
-#' [describe_patterns()] for entity presence patterns over time.
-#' [plot_periods()] for visualisation of time coverage distribution.
-#' [plot_patterns()] for visualisation of presence patterns.
+#' See also [describe_dimensions()], [describe_periods()], [describe_patterns()], [plot_periods()].
 #'
 #' @examples
 #' data(production)

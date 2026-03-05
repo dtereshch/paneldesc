@@ -58,10 +58,7 @@
 #' This function does **not** use panel attributes for grouping; it is designed for general use.
 #'
 #' @seealso
-#' [decompose_numeric()] for variance decomposition.
-#' [decompose_factor()] for factor variable decomposition.
-#' [summarize_transition()] for transition summaries.
-#' [summarize_missing()] for missing value summaries.
+#' See also [decompose_numeric()], [plot_heterogeneity()].
 #'
 #' @examples
 #' data(production)

@@ -90,6 +90,5 @@ attr(out_sum_mis, "details")
 
 }
 \seealso{
-\code{\link[=describe_incomplete]{describe_incomplete()}} for entity‑wise missing description.
-\code{\link[=summarize_transition]{summarize_transition()}} for transition summaries.
+See also \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

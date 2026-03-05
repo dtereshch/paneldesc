@@ -94,6 +94,5 @@ out_plo_pat$details
 
 }
 \seealso{
-\code{\link[=describe_patterns]{describe_patterns()}} for tabular description of presence patterns.
-\code{\link[=plot_periods]{plot_periods()}} for histogram of time coverage.
+See also \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}.
 }

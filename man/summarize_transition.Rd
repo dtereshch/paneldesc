@@ -85,6 +85,5 @@ attr(out_sum_tra, "details")
 
 }
 \seealso{
-\code{\link[=describe_patterns]{describe_patterns()}} for entity presence patterns.
-\code{\link[=summarize_missing]{summarize_missing()}} for missing value summaries.
+See also \code{\link[=decompose_factor]{decompose_factor()}}.
 }

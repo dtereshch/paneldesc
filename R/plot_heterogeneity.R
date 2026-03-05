@@ -31,8 +31,7 @@
 #' underlying `tapply` calls (they are removed with `na.rm = TRUE` for mean and sd).
 #'
 #' @seealso
-#' [decompose_numeric()] for decomposition of numeric variables.
-#' [summarize_numeric()] for numeric summaries.
+#' See also [decompose_numeric()], [summarize_numeric()].
 #'
 #' @examples
 #' data(production)

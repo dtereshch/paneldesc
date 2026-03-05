@@ -103,6 +103,5 @@ attr(out_dec_fac, "details")
 For Stata users: This corresponds to the \code{xttab} command.
 }
 \seealso{
-\code{\link[=decompose_numeric]{decompose_numeric()}} for decomposition of numeric variables into between and within components.
-\code{\link[=summarize_transition]{summarize_transition()}} for transition summaries between states of a factor variable.
+See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=summarize_transition]{summarize_transition()}}.
 }

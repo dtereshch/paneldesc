@@ -49,8 +49,7 @@
 #' The variable is coerced to a factor if not already one, and must have at least two levels.
 #'
 #' @seealso
-#' [describe_patterns()] for entity presence patterns.
-#' [summarize_missing()] for missing value summaries.
+#' See also [decompose_factor()].
 #'
 #' @examples
 #' data(production)

@@ -122,7 +122,5 @@ attr(out_des_pat, "details")
 
 }
 \seealso{
-\code{\link[=plot_patterns]{plot_patterns()}} for visualisation of presence patterns.
-\code{\link[=describe_periods]{describe_periods()}} for period‑wise entity counts.
-\code{\link[=describe_balance]{describe_balance()}} for balance statistics.
+See also \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_balance]{describe_balance()}}.
 }

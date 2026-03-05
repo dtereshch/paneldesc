@@ -59,8 +59,7 @@
 #' For Stata users: This corresponds to the `xttab` command.
 #'
 #' @seealso
-#' [decompose_numeric()] for decomposition of numeric variables into between and within components.
-#' [summarize_transition()] for transition summaries between states of a factor variable.
+#' See also [decompose_numeric()], [summarize_transition()].
 #'
 #' @examples
 #' data(production)

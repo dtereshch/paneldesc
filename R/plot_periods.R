@@ -32,8 +32,7 @@
 #' (unless the identifiers came from panel attributes).
 #'
 #' @seealso
-#' [describe_periods()] for period‑wise entity counts.
-#' [plot_patterns()] for heatmap of presence patterns.
+#' See also [describe_periods()], [plot_patterns()].
 #'
 #' @examples
 #' data(production)

@@ -87,8 +87,7 @@
 #' For Stata users: This corresponds to the `xtsum` command.
 #'
 #' @seealso
-#' [decompose_factor()] for decomposition of factor variables.
-#' [summarize_transition()] for transition summaries.
+#' See also [decompose_factor()], [summarize_numeric()], [plot_heterogeneity()].
 #'
 #' @examples
 #' data(production)

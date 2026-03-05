@@ -47,10 +47,7 @@
 #' automatically removed (first occurrence kept) and a message is issued.
 #'
 #' @seealso
-#' [describe_dimensions()] for basic dimension counts.
-#' [describe_balance()] for balance statistics.
-#' [describe_periods()] for period‑wise entity counts.
-#' [describe_patterns()] for entity presence patterns.
+#' See also [describe_dimensions()], [describe_balance()], [describe_periods()].
 #'
 #' @examples
 #' data(production)

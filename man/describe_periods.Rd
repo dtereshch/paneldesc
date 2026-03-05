@@ -77,7 +77,5 @@ attr(out_des_per, "details")
 
 }
 \seealso{
-\code{\link[=plot_periods]{plot_periods()}} for visualisation of time coverage distribution.
-\code{\link[=describe_balance]{describe_balance()}} for balance statistics.
-\code{\link[=describe_patterns]{describe_patterns()}} for entity presence patterns.
+See also \code{\link[=plot_periods]{plot_periods()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_patterns]{describe_patterns()}}.
 }

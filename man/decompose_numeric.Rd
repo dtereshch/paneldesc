@@ -133,6 +133,5 @@ attr(out_dec_num, "details")
 For Stata users: This corresponds to the \code{xtsum} command.
 }
 \seealso{
-\code{\link[=decompose_factor]{decompose_factor()}} for decomposition of factor variables.
-\code{\link[=summarize_transition]{summarize_transition()}} for transition summaries.
+See also \code{\link[=decompose_factor]{decompose_factor()}}, \code{\link[=summarize_numeric]{summarize_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}.
 }

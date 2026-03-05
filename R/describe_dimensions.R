@@ -38,8 +38,7 @@
 #' (unless identifiers came from panel attributes).
 #'
 #' @seealso
-#' [describe_balance()] for balance statistics.
-#' [make_panel()] for creating a panel_data object.
+#' See also [describe_balance()], [describe_periods()].
 #'
 #' @examples
 #' data(production)

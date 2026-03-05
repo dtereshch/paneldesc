@@ -64,6 +64,5 @@ attr(out_des_dim, "details")
 
 }
 \seealso{
-\code{\link[=describe_balance]{describe_balance()}} for balance statistics.
-\code{\link[=make_panel]{make_panel()}} for creating a panel_data object.
+See also \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

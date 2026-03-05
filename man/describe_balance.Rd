@@ -90,8 +90,5 @@ attr(out_des_bal, "details")
 
 }
 \seealso{
-\code{\link[=describe_periods]{describe_periods()}} for period‑wise entity counts.
-\code{\link[=describe_patterns]{describe_patterns()}} for entity presence patterns over time.
-\code{\link[=plot_periods]{plot_periods()}} for visualisation of time coverage distribution.
-\code{\link[=plot_patterns]{plot_patterns()}} for visualisation of presence patterns.
+See also \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}.
 }

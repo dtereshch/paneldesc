@@ -62,6 +62,5 @@ out_plo_par$details
 
 }
 \seealso{
-\code{\link[=describe_periods]{describe_periods()}} for period‑wise entity counts.
-\code{\link[=plot_patterns]{plot_patterns()}} for heatmap of presence patterns.
+See also \code{\link[=describe_periods]{describe_periods()}}, \code{\link[=plot_patterns]{plot_patterns()}}.
 }

@@ -84,6 +84,5 @@ attr(out_des_inc, "details")
 
 }
 \seealso{
-\code{\link[=summarize_missing]{summarize_missing()}} for variable‑wise missing value summaries.
-\code{\link[=describe_patterns]{describe_patterns()}} for entity presence patterns over time.
+See also \code{\link[=summarize_missing]{summarize_missing()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

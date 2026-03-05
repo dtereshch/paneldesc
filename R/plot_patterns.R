@@ -47,8 +47,7 @@
 #' If `limits` is given, only the requested patterns are retained.
 #'
 #' @seealso
-#' [describe_patterns()] for tabular description of presence patterns.
-#' [plot_periods()] for histogram of time coverage.
+#' See also [describe_patterns()], [plot_periods()].
 #'
 #' @examples
 #' data(production)
