@@ -82,17 +82,25 @@
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' describe_patterns(panel)
 #'
-#' # Changing the delta argument
+#' # Specifying time interval
 #' describe_patterns(production, index = c("firm", "year"), delta = 1)
 #'
-#' # Show only the top 3 patterns
+#' # Showing only the top 3 patterns
 #' describe_patterns(production, index = c("firm", "year"), limits = 3)
 #'
-#' # Show patterns ranked 4 to 6
+#' # Showing patterns ranked 4 to 6
 #' describe_patterns(production, index = c("firm", "year"), limits = c(4, 6))
 #'
-#' # Changing the detail argument
-#' describe_patterns(production, index = c("firm", "year"), detail = FALSE)
+#' # Returning results in a long format without excessive details
+#' describe_patterns(production, index = c("firm", "year"), detail = FALSE, format = "long")
+#'
+#' # Custom rounding
+#' describe_patterns(production, index = c("firm", "year"), digits = 2)
+#'
+#' # Accessing attributes
+#' out_des_pat <- describe_patterns(production, index = c("firm", "year"))
+#' attr(out_des_pat, "metadata")
+#' attr(out_des_pat, "details")
 #'
 #' @export
 describe_patterns <- function(

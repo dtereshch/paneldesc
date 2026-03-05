@@ -74,8 +74,13 @@ describe_incomplete(production, index = c("firm", "year"))
 panel <- make_panel(production, index = c("firm", "year"))
 describe_incomplete(panel)
 
-# Changing the detail argument
+# Returning detailed results
 describe_incomplete(production, index = "firm", detail = TRUE)
+
+# Accessing attributes
+out_des_inc <- describe_incomplete(production, index = c("firm", "year"))
+attr(out_des_inc, "metadata")
+attr(out_des_inc, "details")
 
 }
 \seealso{

@@ -84,15 +84,19 @@ decompose_factor(production, index = "firm")
 panel <- make_panel(production, index = c("firm", "year"))
 decompose_factor(panel)
 
-# Changing the format argument
-decompose_factor(production, index = "firm", format = "long")
-
 # Selecting specific variables
 decompose_factor(production, select = "industry", index = "firm")
 
-# Accessing metadata attributes
-res <- decompose_factor(production, index = "firm")
-attr(res, "metadata")
+# Returning results in a long format
+decompose_factor(production, index = "firm", format = "long")
+
+# Custom rounding
+decompose_factor(production, index = "firm", digits = 2)
+
+# Accessing attributes
+out_dec_fac <- decompose_factor(production, index = "firm")
+attr(out_dec_fac, "metadata")
+attr(out_dec_fac, "details")
 
 }
 \references{

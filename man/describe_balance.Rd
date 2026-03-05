@@ -77,11 +77,16 @@ describe_balance(production, index = c("firm", "year"))
 panel <- make_panel(production, index = c("firm", "year"))
 describe_balance(panel)
 
-# Changing the detail argument
+# Returning detailed statisitcs
 describe_balance(production, index = c("firm", "year"), detail = TRUE)
 
-# Customizing digits
-describe_balance(production, index = c("firm", "year"), digits = 4)
+# Custom rounding
+describe_balance(production, index = c("firm", "year"), digits = 2)
+
+# Accessing attributes
+out_des_bal <- describe_balance(production, index = c("firm", "year"))
+attr(out_des_bal, "metadata")
+attr(out_des_bal, "details")
 
 }
 \seealso{

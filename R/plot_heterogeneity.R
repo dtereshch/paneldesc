@@ -40,19 +40,21 @@
 #' # Basic usage with regular data.frame
 #' plot_heterogeneity(production, select = "labor", group = "year")
 #'
+#' # Using multiple grouping variables
+#' plot_heterogeneity(production, select = "sales", group = c("firm", "year"))
+#'
 #' # With panel_data object (uses both entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' plot_heterogeneity(panel, select = "labor")
 #'
-#' # Explicit grouping with panel_data
-#' plot_heterogeneity(panel, select = "capital", group = "year")
-#'
-#' # Multiple grouping variables
-#' plot_heterogeneity(production, select = "sales", group = c("firm", "year"))
-#'
 #' # Custom colors
 #' plot_heterogeneity(production, select = "sales", group = "year",
 #'                    colors = c("black", "gray"))
+#'
+#' # Accessing list components
+#' out_plo_het <- plot_heterogeneity(panel, select = "capital", group = "year")
+#' out_plo_het$metadata
+#' out_plo_het$details
 #'
 #' @export
 plot_heterogeneity <- function(

@@ -55,16 +55,24 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic usage (wide format)
+#' # Basic usage
 #' summarize_transition(production, select = "industry", index = c("firm", "year"))
-#'
-#' # Changing the format argument
-#' summarize_transition(production, select = "industry",
-#'                      index = c("firm", "year"), format = "long")
 #'
 #' # With panel_data object
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' summarize_transition(panel, select = "industry")
+#'
+#' # Returning results in a long format
+#' summarize_transition(production, select = "industry",
+#'                      index = c("firm", "year"), format = "long")
+#'
+#' # Custom rounding
+#' summarize_transition(production, select = "industry", index = c("firm", "year"), digits = 2)
+#'
+#' # Accessing attributes
+#' out_sum_tra <- summarize_transition(production, select = "industry", index = c("firm", "year"))
+#' attr(out_sum_tra, "metadata")
+#' attr(out_sum_tra, "details")
 #'
 #' @export
 summarize_transition <- function(

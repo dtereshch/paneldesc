@@ -12,7 +12,7 @@ describe_periods(data, index = NULL, delta = NULL, digits = 3)
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
 Not required if data has panel attributes.}
 
-\item{delta}{An optional positive integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.}
 
 \item{digits}{An integer specifying the number of decimal places for rounding the share column.
 Default = 3.}
@@ -64,11 +64,16 @@ describe_periods(production, index = c("firm", "year"))
 panel <- make_panel(production, index = c("firm", "year"))
 describe_periods(panel)
 
-# Changing the delta argument
+# Specifying time interval
 describe_periods(production, index = c("firm", "year"), delta = 1)
 
-# Customizing digits
-describe_periods(production, index = c("firm", "year"), digits = 4)
+# Custom rounding
+describe_periods(production, index = c("firm", "year"), digits = 2)
+
+# Accessing attributes
+out_des_per <- describe_periods(production, index = c("firm", "year"))
+attr(out_des_per, "metadata")
+attr(out_des_per, "details")
 
 }
 \seealso{

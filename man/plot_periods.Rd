@@ -55,6 +55,11 @@ plot_periods(panel)
 # Custom colors
 plot_periods(production, index = c("firm", "year"), colors = c("gray", "black"))
 
+# Accessing list components
+out_plo_per <- plot_periods(production, index = c("firm", "year"))
+out_plo_per$metadata
+out_plo_par$details
+
 }
 \seealso{
 \code{\link[=describe_periods]{describe_periods()}} for period‑wise entity counts.

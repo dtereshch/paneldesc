@@ -5,7 +5,7 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #'        Not required if data has panel attributes.
-#' @param delta An optional positive integer giving the expected interval between time periods.
+#' @param delta An optional integer giving the expected interval between time periods.
 #' @param limits Either a single integer (show that many most frequent patterns)
 #'        or a vector of two integers (show patterns with ranks between the two values, inclusive).
 #'        If not specified, all patterns are shown.
@@ -56,17 +56,26 @@
 #' # Basic usage
 #' plot_patterns(production, index = c("firm", "year"))
 #'
+#' # With panel_data object
+#' panel <- make_panel(production, index = c("firm", "year"))
+#' plot_patterns(panel)
+#'
+#' # Specifying time interval
+#' plot_patterns(production, index = c("firm", "year"), delta = 1)
+#'
 #' # Show only the top 3 patterns
 #' plot_patterns(production, index = c("firm", "year"), limits = 3)
 #'
 #' # Show patterns ranked 4 to 6
 #' plot_patterns(production, index = c("firm", "year"), limits = c(4, 6))
 #'
-#' # Changing the delta argument
-#' plot_patterns(production, index = c("firm", "year"), delta = 1)
-#'
 #' # Custom colors
 #' plot_patterns(production, index = c("firm", "year"), colors = c("black", "white"))
+#'
+#' # Accessing list components
+#' out_plo_pat <- plot_patterns(production, index = c("firm", "year"))
+#' out_plo_pat$metadata
+#' out_plo_pat$details
 #'
 #' @export
 plot_patterns <- function(

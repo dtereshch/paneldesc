@@ -1,15 +1,14 @@
 #' Panel Data Structure Setting and Balancing
 #'
 #' This function adds panel structure attributes to a data.frame, storing entity and time variable names,
-#' and optionally checks the expected interval between time periods. It can also balance the panel by
-#' keeping only entities present in all periods, keeping only periods where all entities are present,
-#' or creating all entity‑time combinations (filling missing combinations with `NA`).
+#' and optionally checks the expected interval between time periods.
+#' It can also balance the panel with a chosen method.
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#' @param delta An optional positive integer giving the expected interval between time periods.
-#' @param balance One of `NULL` (default), `"entities"`, `"periods"`, or `"rows"`. If not `NULL`,
-#'        the panel is balanced according to the chosen method (see Details).
+#' @param delta An optional integer giving the expected interval between time periods.
+#' @param balance One `"entities"`, `"periods"`, or `"rows"`.
+#'        If specified, the panel is balanced according to the chosen method.
 #'
 #' @return The input data.frame with additional attributes, after possibly filtering or expanding rows.
 #'
@@ -59,17 +58,17 @@
 #' # Basic usage
 #' panel <- make_panel(production, index = c("firm", "year"))
 #'
+#' # Specifying time interval
+#' panel <- make_panel(production, index = c("firm", "year"), delta = 1)
+#'
+#' # Creating balanced panels
+#' panel_bal_ent <- make_panel(production, index = c("firm", "year"), balance = "entities")
+#' panel_bal_per <- make_panel(production, index = c("firm", "year"), balance = "periods")
+#' panel_bal_row <- make_panel(production, index = c("firm", "year"), balance = "rows", delta = 1)
+#'
 #' # Accessing attributes
 #' attr(panel, "metadata")
 #' attr(panel, "details")
-#'
-#' # Changing the delta argument
-#' make_panel(production, index = c("firm", "year"), delta = 1)
-#'
-#' # Balancing options
-#' make_panel(production, index = c("firm", "year"), balance = "entities")
-#' make_panel(production, index = c("firm", "year"), balance = "periods")
-#' make_panel(production, index = c("firm", "year"), balance = "rows", delta = 1)
 #'
 #' @export
 make_panel <- function(data, index, delta = NULL, balance = NULL) {

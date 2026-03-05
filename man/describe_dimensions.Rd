@@ -57,9 +57,10 @@ describe_dimensions(production, index = c("firm", "year"))
 panel <- make_panel(production, index = c("firm", "year"))
 describe_dimensions(panel)
 
-# Accessing detailed information
-dims <- describe_dimensions(production, index = c("firm", "year"))
-attr(dims, "details")
+# Accessing attributes
+out_des_dim <- describe_dimensions(production, index = c("firm", "year"))
+attr(out_des_dim, "metadata")
+attr(out_des_dim, "details")
 
 }
 \seealso{

@@ -103,12 +103,16 @@
 #' # Selecting specific variables
 #' decompose_numeric(production, select = c("sales", "labor"), index = "firm")
 #'
-#' # Changing the format and detail arguments
-#' decompose_numeric(production, index = "firm", format = "wide", detail = TRUE)
+#' # Returning results in a wide format without excessive details
+#' decompose_numeric(production, index = "firm", detail = FALSE, format = "wide")
 #'
-#' # Accessing metadata attributes
-#' res <- decompose_numeric(production, index = "firm")
-#' attr(res, "metadata")
+#' # Custom rounding
+#' decompose_numeric(production, index = "firm", digits = 2)
+#'
+#' # Accessing attributes
+#' out_dec_num <- decompose_numeric(production, index = "firm")
+#' attr(out_dec_num, "metadata")
+#' attr(out_dec_num, "details")
 #'
 #' @export
 decompose_numeric <- function(

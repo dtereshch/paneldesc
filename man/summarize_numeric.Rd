@@ -79,11 +79,8 @@ This function does \strong{not} use panel attributes for grouping; it is designe
 \examples{
 data(production)
 
-# Basic usage (overall statistics)
+# Basic usage
 summarize_numeric(production)
-
-# Changing the detail argument
-summarize_numeric(production, detail = TRUE)
 
 # Selecting specific variables
 summarize_numeric(production, select = "sales")
@@ -92,8 +89,16 @@ summarize_numeric(production, select = c("capital", "labor"))
 # Grouped statistics
 summarize_numeric(production, group = "year")
 
-# Customizing digits
+# Detailed statistics
+summarize_numeric(production, detail = TRUE)
+
+# Custom rounding
 summarize_numeric(production, digits = 2)
+
+# Accessing attributes
+out_sum_num <- summarize_numeric(production)
+attr(out_sum_num, "metadata")
+attr(out_sum_num, "details")
 
 }
 \seealso{

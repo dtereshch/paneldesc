@@ -11,19 +11,18 @@ make_panel(data, index, delta = NULL, balance = NULL)
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.}
 
-\item{delta}{An optional positive integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.}
 
-\item{balance}{One of \code{NULL} (default), \code{"entities"}, \code{"periods"}, or \code{"rows"}. If not \code{NULL},
-the panel is balanced according to the chosen method (see Details).}
+\item{balance}{One \code{"entities"}, \code{"periods"}, or \code{"rows"}.
+If specified, the panel is balanced according to the chosen method.}
 }
 \value{
 The input data.frame with additional attributes, after possibly filtering or expanding rows.
 }
 \description{
 This function adds panel structure attributes to a data.frame, storing entity and time variable names,
-and optionally checks the expected interval between time periods. It can also balance the panel by
-keeping only entities present in all periods, keeping only periods where all entities are present,
-or creating all entity‑time combinations (filling missing combinations with \code{NA}).
+and optionally checks the expected interval between time periods.
+It can also balance the panel with a chosen method.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
@@ -65,17 +64,17 @@ data(production)
 # Basic usage
 panel <- make_panel(production, index = c("firm", "year"))
 
+# Specifying time interval
+panel <- make_panel(production, index = c("firm", "year"), delta = 1)
+
+# Creating balanced panels
+panel_bal_ent <- make_panel(production, index = c("firm", "year"), balance = "entities")
+panel_bal_per <- make_panel(production, index = c("firm", "year"), balance = "periods")
+panel_bal_row <- make_panel(production, index = c("firm", "year"), balance = "rows", delta = 1)
+
 # Accessing attributes
 attr(panel, "metadata")
 attr(panel, "details")
-
-# Changing the delta argument
-make_panel(production, index = c("firm", "year"), delta = 1)
-
-# Balancing options
-make_panel(production, index = c("firm", "year"), balance = "entities")
-make_panel(production, index = c("firm", "year"), balance = "periods")
-make_panel(production, index = c("firm", "year"), balance = "rows", delta = 1)
 
 }
 \seealso{

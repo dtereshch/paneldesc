@@ -62,8 +62,16 @@
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' summarize_missing(panel)
 #'
-#' # Changing the detail argument
+#' # Returning detailed results
 #' summarize_missing(production, index = c("firm", "year"), detail = TRUE)
+#'
+#' # Custom rounding
+#' summarize_missing(production, index = c("firm", "year"), digits = 2)
+#'
+#' # Accessing attributes
+#' out_sum_mis <- summarize_missing(production, index = c("firm", "year"))
+#' attr(out_sum_mis, "metadata")
+#' attr(out_sum_mis, "details")
 #'
 #' @export
 summarize_missing <- function(
