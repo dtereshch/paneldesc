@@ -258,11 +258,10 @@ summarize_transition <- function(
   complete <- !is.na(df[[select]])
   if (sum(!complete) > 0) {
     message(
-      "Removing ",
       sum(!complete),
       " rows with NA values in '",
       select,
-      "'"
+      "' removed."
     )
     msg_printed <- TRUE
     df <- df[complete, ]
