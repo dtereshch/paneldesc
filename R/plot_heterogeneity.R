@@ -34,7 +34,7 @@
 #' plot_heterogeneity(production, select = "labor", group = "year")
 #'
 #' # Using multiple grouping variables
-#' plot_heterogeneity(production, select = "sales", group = c("firm", "year"))
+#' plot_heterogeneity(production, select = "sales", group = c("firm", "industry", "year"))
 #'
 #' # With panel_data object (uses both entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
@@ -228,7 +228,7 @@ plot_heterogeneity <- function(
     list(
       means = group_means,
       sd = tapply(data_sub[[select]], x_var, sd, na.rm = TRUE),
-      n = tapply(data_sub[[select]], x_var, function(x) sum(!is.na(x)))
+      count = tapply(data_sub[[select]], x_var, function(x) sum(!is.na(x)))
     )
   }
 
@@ -284,7 +284,7 @@ plot_heterogeneity <- function(
       results_list[[group_var]] <- list(
         means = tapply(data[[select]], x_var, mean, na.rm = TRUE),
         sd = tapply(data[[select]], x_var, sd, na.rm = TRUE),
-        n = tapply(data[[select]], x_var, function(x) sum(!is.na(x)))
+        count = tapply(data[[select]], x_var, function(x) sum(!is.na(x)))
       )
     }
   }

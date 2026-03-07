@@ -48,7 +48,7 @@ data(production)
 plot_heterogeneity(production, select = "labor", group = "year")
 
 # Using multiple grouping variables
-plot_heterogeneity(production, select = "sales", group = c("firm", "year"))
+plot_heterogeneity(production, select = "sales", group = c("firm", "industry", "year"))
 
 # With panel_data object (uses both entity and time)
 panel <- make_panel(production, index = c("firm", "year"))
