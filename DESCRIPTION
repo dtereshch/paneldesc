@@ -1,7 +1,7 @@
 Package: bamboo
 Type: Package
 Title: R package for exploring and describing panel data
-Version: 0.0.0.0
+Version: 0.1.0
 LazyData: true
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)  # Enable markdown parsing
