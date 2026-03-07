@@ -10,22 +10,29 @@ This is an R package that I developed for my personal use to make it easier for 
 
 ```
 library(devtools)
-install_github("dtereshch/panelDT")
+install_github("dtereshch/bamboo")
 ```
 
 ## Usage
 ```
-library(panelDT)
+library(bamboo)
 
-?decompose_variation
-?describe
-?describe_participation
-?describe_transition
-?explore_incomplete
-?find_incomplete
+?decompose_factor
+?decompose_numeric
+?describe_balance
+?describe_dimensions
+?describe_incomplete
+?describe_patterns
+?describe_periods
+?make_panel
 ?plot_heterogeneity
-?plot_participation
+?plot_missing
+?plot_patterns
+?plot_periods
 ?production
+?summarize_missing
+?summarize_numeric
+?summarize_transition
 ```
 
 ## Acknowledgments
@@ -34,4 +41,4 @@ This package was developed using [DeepSeek](https://www.deepseek.com/) as a codi
 
 ## Contribution
 
-If you think you have encountered a bug, please submit an [issue](https://github.com/dtereshch/panelDT/issues). 
+If you think you have encountered a bug, please submit an [issue](https://github.com/dtereshch/bamboo/issues). 
