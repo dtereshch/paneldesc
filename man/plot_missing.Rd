@@ -74,5 +74,5 @@ out_plo_mis$details
 
 }
 \seealso{
-\link{summarize_missing}, \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}.
+See also \link{summarize_missing}, \code{\link[=plot_patterns]{plot_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}.
 }

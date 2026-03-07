@@ -39,7 +39,7 @@
 #' one non‑NA value in any substantive variable (all columns except the entity and time identifiers).
 #'
 #' @seealso
-#' See also [describe_patterns()], [plot_periods()].
+#' See also [describe_patterns()], [plot_periods()], [plot_missing()].
 #'
 #' @examples
 #' data(production)

@@ -43,7 +43,7 @@
 #' when interpreting the results.
 #'
 #' @seealso
-#' See also [describe_incomplete()], [describe_patterns()], [describe_periods()].
+#' See also [plot_missing()], [describe_incomplete()], [describe_patterns()], [describe_periods()].
 #'
 #' @examples
 #' data(production)

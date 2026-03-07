@@ -87,5 +87,5 @@ attr(out_sum_mis, "details")
 
 }
 \seealso{
-See also \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}.
+See also \code{\link[=plot_missing]{plot_missing()}}, \code{\link[=describe_incomplete]{describe_incomplete()}}, \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

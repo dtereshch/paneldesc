@@ -86,5 +86,5 @@ out_plo_pat$details
 
 }
 \seealso{
-See also \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}.
+See also \code{\link[=describe_patterns]{describe_patterns()}}, \code{\link[=plot_periods]{plot_periods()}}, \code{\link[=plot_missing]{plot_missing()}}.
 }

@@ -35,7 +35,7 @@
 #' when interpreting the results.
 #'
 #' @seealso
-#' [summarize_missing], [plot_patterns()], [plot_periods()].
+#' See also [summarize_missing], [plot_patterns()], [plot_periods()].
 #'
 #' @examples
 #' data(production)
