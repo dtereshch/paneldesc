@@ -7,7 +7,7 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #' @param delta An optional integer giving the expected interval between time periods.
-#' @param balance One of `"entities"`, `"periods"`, or `"rows"`.
+#' @param balance One of `"rows"`, `"entities"`, or `"periods"`.
 #'        If specified, the panel is balanced according to the chosen method.
 #'
 #' @return The input data.frame with additional attributes, after possibly filtering or expanding rows.
@@ -33,11 +33,11 @@
 #'
 #' **Balancing the panel** (presence definition as in `describe_patterns`):
 #' \describe{
-#'   \item{`balance = "entities"`}{Keep only entities present in **all** time periods.}
-#'   \item{`balance = "periods"`}{Keep only time periods where **all** entities are present.}
 #'   \item{`balance = "rows"`}{Create a row for every entity‑time combination. If `delta` is supplied,
 #'         the full time sequence (including missing periods) is used. Missing combinations get `NA`
 #'         in all other columns.}
+#'   \item{`balance = "entities"`}{Keep only entities present in **all** time periods.}
+#'   \item{`balance = "periods"`}{Keep only time periods where **all** entities are present.}
 #' }
 #'
 #' @seealso

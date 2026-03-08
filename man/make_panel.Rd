@@ -13,7 +13,7 @@ make_panel(data, index, delta = NULL, balance = NULL)
 
 \item{delta}{An optional integer giving the expected interval between time periods.}
 
-\item{balance}{One of \code{"entities"}, \code{"periods"}, or \code{"rows"}.
+\item{balance}{One of \code{"rows"}, \code{"entities"}, or \code{"periods"}.
 If specified, the panel is balanced according to the chosen method.}
 }
 \value{
@@ -45,11 +45,11 @@ If gaps are detected, a message lists the missing periods and the full sequence 
 
 \strong{Balancing the panel} (presence definition as in \code{describe_patterns}):
 \describe{
-\item{\code{balance = "entities"}}{Keep only entities present in \strong{all} time periods.}
-\item{\code{balance = "periods"}}{Keep only time periods where \strong{all} entities are present.}
 \item{\code{balance = "rows"}}{Create a row for every entity‑time combination. If \code{delta} is supplied,
 the full time sequence (including missing periods) is used. Missing combinations get \code{NA}
 in all other columns.}
+\item{\code{balance = "entities"}}{Keep only entities present in \strong{all} time periods.}
+\item{\code{balance = "periods"}}{Keep only time periods where \strong{all} entities are present.}
 }
 }
 \examples{
