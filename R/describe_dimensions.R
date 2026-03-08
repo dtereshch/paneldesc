@@ -12,9 +12,9 @@
 #' @details
 #' The returned data.frame has the following structure:
 #' \itemize{
+#'   \item{\code{rows}}{ Total number of rows in the data frame.}
 #'   \item{\code{entities}}{ Number of distinct values in the entity variable.}
 #'   \item{\code{periods}}{ Number of distinct values in the time variable.}
-#'   \item{\code{rows}}{ Total number of rows in the data frame.}
 #'   \item{\code{variables}}{ Number of substantive variables (all columns except entity and time).}
 #' }
 #'
@@ -161,9 +161,9 @@ describe_dimensions <- function(data, index = NULL) {
 
   # Create output data frame (single row with named columns)
   out <- data.frame(
+    rows = nrow(data),
     entities = length(entities_vals),
     periods = length(periods_vals),
-    rows = nrow(data),
     variables = length(substantive_vars),
     stringsAsFactors = FALSE
   )
