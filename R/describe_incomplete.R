@@ -10,10 +10,10 @@
 #' @param detail A logical flag indicating whether to include detailed missing counts for each variable.
 #'        Default = FALSE.
 #'
-#' @return A data.frame with incomplete entities description, or a character message if none exist.
+#' @return A data.frame with incomplete entities description.
 #'
 #' @details
-#' When incomplete entities exist, the returned data.frame has the following structure:
+#' The returned data.frame has the following structure:
 #' \describe{
 #'   \item{\code{[entity]}}{The entity identifier (name matches input entity variable)}
 #'   \item{\code{na_count}}{Total number of missing observations for the entity}

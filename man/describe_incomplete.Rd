@@ -18,13 +18,13 @@ Not required if data has panel attributes.}
 Default = FALSE.}
 }
 \value{
-A data.frame with incomplete entities description, or a character message if none exist.
+A data.frame with incomplete entities description.
 }
 \description{
 This function provides a descriptive table of entities with incomplete observations (missing values).
 }
 \details{
-When incomplete entities exist, the returned data.frame has the following structure:
+The returned data.frame has the following structure:
 \describe{
 \item{\code{[entity]}}{The entity identifier (name matches input entity variable)}
 \item{\code{na_count}}{Total number of missing observations for the entity}
