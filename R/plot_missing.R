@@ -282,7 +282,8 @@ plot_missing <- function(
   }
 
   # --- Set up layout: top row for colour bar, bottom row for heatmap ---
-  layout(matrix(c(1, 2), nrow = 2), heights = c(1, 6))
+  # Increased height of top row to give more room for legend and labels
+  layout(matrix(c(1, 2), nrow = 2), heights = c(1.5, 6))
   old_par <- par(no.readonly = TRUE)
   on.exit({
     par(old_par)
@@ -303,14 +304,14 @@ plot_missing <- function(
   for (k in seq_along(x_left)) {
     rect(
       xleft = x_left[k],
-      ybottom = 0.3,
+      ybottom = 0.4,
       xright = x_right[k],
-      ytop = 0.7,
+      ytop = 0.8,
       col = ramp_seq_colors[k],
       border = NA
     )
   }
-  # Add min/max labels at the edges of the column region (aligned with the heatmap cells)
+  # Add min/max labels at the edges of the column region, well below the bar
   text(0.5, 0.15, labels = paste("Min =", min_val), adj = c(0, 0.5), cex = 0.9)
   text(
     nc + 0.5,
