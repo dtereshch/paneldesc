@@ -355,7 +355,7 @@ plot_missing <- function(
     1,
     at = 1:nc,
     labels = colnames(missing_mat_rev),
-    las = 2,
+    las = 1,
     tick = TRUE,
     cex.axis = 0.8
   )

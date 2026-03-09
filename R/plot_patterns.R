@@ -396,7 +396,7 @@ plot_patterns <- function(
     }
   }
 
-  axis(1, at = 1:nc, labels = all_times, las = 2, tick = TRUE)
+  axis(1, at = 1:nc, labels = all_times, las = 1, tick = TRUE)
 
   runs <- rle(pattern_str_sorted)
   if (length(runs$lengths) > 1) {
