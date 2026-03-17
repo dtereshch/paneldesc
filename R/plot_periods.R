@@ -44,7 +44,7 @@
 #' # Accessing list components
 #' out_plo_per <- plot_periods(production, index = c("firm", "year"))
 #' out_plo_per$metadata
-#' out_plo_par$details
+#' out_plo_per$details
 #'
 #' @export
 plot_periods <- function(
