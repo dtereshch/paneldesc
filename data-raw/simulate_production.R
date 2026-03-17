@@ -3,10 +3,10 @@ set.seed(123)
 
 # Parameters
 n_firms <- 30
-n_years <- 6 # still 6 periods internally
+n_years <- 6
 total_obs <- n_firms * n_years
 
-# Generate firm and year identifiers (years 1 to 6 internally)
+# Generate firm and year identifiers
 firm <- rep(1:n_firms, each = n_years)
 year <- rep(1:n_years, times = n_firms)
 
@@ -57,6 +57,7 @@ if (length(entry_exit_firms) > 0) {
 
 # Assign initial industries to firms
 industries <- c("Industry 1", "Industry 2", "Industry 3")
+# Firms have different probabilities of being in each industry
 industry_probs <- c(0.4, 0.35, 0.25)
 initial_industries <- sample(
   industries,
@@ -72,36 +73,41 @@ panel_data$industry <- factor(
 )
 
 # Simulate occasional industry changes over time
+# About 20% of firms will change industry at least once
 firms_that_change <- sample(1:n_firms, size = round(n_firms * 0.2))
-change_probability <- 0.15
+change_probability <- 0.15 # Probability of changing industry in any given year
 
 for (firm_id in firms_that_change) {
   firm_indices <- which(panel_data$firm == firm_id & panel_data$active)
 
   for (idx in firm_indices) {
     if (panel_data$year[idx] > 1) {
+      # No changes in first year
       if (runif(1) < change_probability) {
+        # Change to a different industry
         current_industry <- as.character(panel_data$industry[idx])
         possible_new_industries <- setdiff(industries, current_industry)
         new_industry <- sample(possible_new_industries, 1)
+        # Apply change for all future years (or until next change)
         future_indices <- firm_indices[firm_indices >= idx]
         panel_data$industry[future_indices] <- new_industry
-        break
+        break # Only one change per loop, continue with next firm
       }
     }
   }
 }
 
-# True Cobb-Douglas parameters (by industry)
-alpha_values <- c(0.25, 0.35, 0.3)
-beta_values <- c(0.65, 0.55, 0.6)
-A_values <- c(2.0, 2.2, 1.8)
+# True Cobb-Douglas parameters (can vary by industry)
+alpha_values <- c(0.25, 0.35, 0.3) # Different capital elasticities by industry
+beta_values <- c(0.65, 0.55, 0.6) # Different labor elasticities by industry
+A_values <- c(2.0, 2.2, 1.8) # Different productivity by industry
 
 # Generate firm-specific effects
 firm_effects <- rnorm(n_firms, mean = 0, sd = 0.5)
 
-# Generate capital with industry-specific trends
+# Generate capital (log-normal distribution) with industry-specific trends
 capital_base <- exp(rnorm(total_obs, mean = 3 + firm_effects[firm], sd = 0.8))
+# Industry-specific capital growth
 capital_growth <- numeric(total_obs)
 for (i in 1:total_obs) {
   industry_idx <- which(industries == panel_data$industry[i])
@@ -110,16 +116,18 @@ for (i in 1:total_obs) {
 }
 panel_data$capital <- capital_base * capital_growth
 
-# Generate labor with industry-specific trends
+# Generate labor (log-normal distribution) with industry-specific trends
 labor_base <- exp(rnorm(total_obs, mean = 4 + firm_effects[firm], sd = 0.7))
+# Industry-specific labor growth
 labor_growth <- numeric(total_obs)
 for (i in 1:total_obs) {
   industry_idx <- which(industries == panel_data$industry[i])
-  labor_growth[i] <- 1 + (0.02 + 0.01 * industry_idx) * (panel_data$year[i] - 1)
+  labor_growth[i] <- 1 +
+    (0.02 + 0.01 * industry_idx) * (panel_data$year[i] - 1)
 }
 panel_data$labor <- labor_base * labor_growth
 
-# Generate sales using Cobb-Douglas function
+# Generate sales using Cobb-Douglas production function with industry-specific parameters
 technology_shock <- rnorm(total_obs, mean = 0, sd = 0.1)
 panel_data$sales <- numeric(total_obs)
 
@@ -140,83 +148,29 @@ panel_data$capital[!panel_data$active] <- NA
 panel_data$labor[!panel_data$active] <- NA
 panel_data$industry[!panel_data$active] <- NA
 
-# Add random missing values (approx. 2% of remaining non-NA values)
+# Add random missing values (approximately 2% of remaining non-NA values)
 non_na_indices <- which(panel_data$active)
 
+# Random NAs for sales (2% of active observations)
 sales_na_indices <- sample(
   non_na_indices,
   size = round(0.02 * length(non_na_indices))
 )
 panel_data$sales[sales_na_indices] <- NA
 
+# Random NAs for capital (2% of active observations)
 capital_na_indices <- sample(
   non_na_indices,
   size = round(0.02 * length(non_na_indices))
 )
 panel_data$capital[capital_na_indices] <- NA
 
+# Random NAs for labor (2% of active observations)
 labor_na_indices <- sample(
   non_na_indices,
   size = round(0.02 * length(non_na_indices))
 )
 panel_data$labor[labor_na_indices] <- NA
-
-# ------------------------------------------------------------
-# Generate ownership variable (stable but with occasional changes)
-# ------------------------------------------------------------
-ownership_levels <- c("private", "public", "mixed")
-# Initial ownership probabilities (can be adjusted)
-ownership_probs <- c(0.5, 0.3, 0.2)
-
-# Initialize ownership vector
-panel_data$ownership <- factor(NA, levels = ownership_levels)
-
-# For each firm, generate ownership over time
-for (f in 1:n_firms) {
-  firm_rows <- which(panel_data$firm == f)
-
-  # Year 1 ownership
-  current_own <- sample(ownership_levels, 1, prob = ownership_probs)
-  panel_data$ownership[firm_rows[1]] <- current_own
-
-  # Subsequent years: small probability of change
-  for (t in 2:n_years) {
-    if (runif(1) < 0.05) {
-      # 5% chance of change per year
-      # Change to a different ownership category
-      other_levels <- setdiff(ownership_levels, current_own)
-      current_own <- sample(other_levels, 1)
-    }
-    panel_data$ownership[firm_rows[t]] <- current_own
-  }
-}
-
-# Set ownership to NA for inactive periods
-panel_data$ownership[!panel_data$active] <- NA
-
-# ------------------------------------------------------------
-# Remap years: internal 1..6 -> observed 1,2,3,5,6,7
-# ------------------------------------------------------------
-year_mapping <- c(1, 2, 3, 5, 6, 7)
-panel_data$year <- year_mapping[panel_data$year]
-
-# ------------------------------------------------------------
-# Insert completely missing year 4 for all firms
-# ------------------------------------------------------------
-year4_rows <- data.frame(
-  firm = rep(1:n_firms, each = 1),
-  year = 4,
-  active = FALSE,
-  industry = factor(NA, levels = industries),
-  capital = NA_real_,
-  labor = NA_real_,
-  sales = NA_real_,
-  ownership = factor(NA, levels = ownership_levels)
-)
-
-# Combine and sort
-panel_data <- rbind(panel_data, year4_rows)
-panel_data <- panel_data[order(panel_data$firm, panel_data$year), ]
 
 # Remove the 'active' column and reorder
 production <- panel_data[, c(
@@ -225,9 +179,11 @@ production <- panel_data[, c(
   "industry",
   "sales",
   "capital",
-  "labor",
-  "ownership"
+  "labor"
 )]
+
+# Sort by firm and year
+production <- production[order(production$firm, production$year), ]
 
 # Save to data/ directory
 save(production, file = "data/production.rda", compress = "xz")
