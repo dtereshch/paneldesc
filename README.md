@@ -1,10 +1,10 @@
 # bamboo
 
-R package for exploring and describing panel data
+Descriptive Analysis and Visualization for Panel Data
 
-## Overview
+## Description
 
-This is an R package that I developed for my personal use to make it easier for myself to work with panel data. However, everyone is welcome to use it if they find it helpful. 
+This package provides a comprehensive set of tools for describing and visualizing panel data structures, as well as for summarizing and visualizing variables within a panel data context.
 
 ## Installation
 
