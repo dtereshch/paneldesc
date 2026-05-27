@@ -2,9 +2,9 @@
 % Please edit documentation in R/make_panel.R
 \name{make_panel}
 \alias{make_panel}
-\title{Panel Data Structure Setting and Balancing}
+\title{Panel Data Structure Setting}
 \usage{
-make_panel(data, index, delta = NULL, balance = NULL)
+make_panel(data, index, delta = NULL, ...)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
@@ -13,23 +13,21 @@ make_panel(data, index, delta = NULL, balance = NULL)
 
 \item{delta}{An optional integer giving the expected interval between time periods.}
 
-\item{balance}{One of \code{"rows"}, \code{"entities"}, or \code{"periods"}.
-If specified, the panel is balanced according to the chosen method.}
+\item{...}{Additional arguments (not used, except to catch deprecated \code{balance}).}
 }
 \value{
-The input data.frame with additional attributes, after possibly filtering or expanding rows.
+The input data.frame with additional attributes.
 }
 \description{
 This function adds panel structure attributes to a data.frame, storing entity and time variable names,
 and optionally checks the expected interval between time periods.
-It can also balance the panel with a chosen method.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
 The returned object has class \code{"panel_data"} and includes the following attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used
-(\code{entity}, \code{time}, \code{delta}, and \code{balance} if provided).}
+(\code{entity}, \code{time}, and \code{delta} if provided).}
 \item{\code{details}}{List with diagnostic vectors:
 \describe{
 \item{\code{entities}}{Unique values of the entity variable.}
@@ -42,15 +40,6 @@ the full sequence and missing periods.}
 \strong{Effect of \code{delta}:}
 If \code{delta} is supplied, the function checks that all observed time points are separated by multiples of \code{delta}.
 If gaps are detected, a message lists the missing periods and the full sequence is stored in \code{details$periods_restored}.
-
-\strong{Balancing the panel} (presence definition as in \code{describe_patterns}):
-\describe{
-\item{\code{balance = "rows"}}{Create a row for every entity‑time combination. If \code{delta} is supplied,
-the full time sequence (including missing periods) is used. Missing combinations get \code{NA}
-in all other columns.}
-\item{\code{balance = "entities"}}{Keep only entities present in \strong{all} time periods.}
-\item{\code{balance = "periods"}}{Keep only time periods where \strong{all} entities are present.}
-}
 }
 \examples{
 data(production)
@@ -61,16 +50,11 @@ panel <- make_panel(production, index = c("firm", "year"))
 # Specifying time interval
 panel <- make_panel(production, index = c("firm", "year"), delta = 1)
 
-# Creating balanced panels
-panel_bal_ent <- make_panel(production, index = c("firm", "year"), balance = "entities")
-panel_bal_per <- make_panel(production, index = c("firm", "year"), balance = "periods")
-panel_bal_row <- make_panel(production, index = c("firm", "year"), balance = "rows", delta = 1)
-
 # Accessing attributes
 attr(panel, "metadata")
 attr(panel, "details")
 
 }
 \seealso{
-See also \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}.
+See also \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}.
 }

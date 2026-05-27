@@ -1,0 +1,377 @@
+#' Create a Balanced Panel Dataset
+#'
+#' This function creates a balanced panel dataset by either keeping only entities
+#' present in all time periods, keeping only periods where all entities are present,
+#' or expanding the data to include all entity-time combinations.
+#'
+#' @param data A data.frame containing panel data in a long format, or a `panel_data`
+#'        object created by [make_panel()].
+#' @param index A character vector of length 2 specifying the names of the entity and
+#'        time variables. For `panel_data` objects, this is optional and will be
+#'        extracted from the object's attributes.
+#' @param delta An optional integer giving the expected interval between time periods.
+#'        For `panel_data` objects, this is optional and will be extracted from the
+#'        object's attributes if not provided.
+#' @param balance One of `"rows"`, `"entities"`, or `"periods"`. Specifies the
+#'        balancing method (see Details). Default is `"rows"`.
+#'
+#' @return A balanced `panel_data` object (data.frame with additional attributes).
+#'
+#' @details
+#' This function balances a panel dataset according to the chosen method.
+#' The returned object has class `"panel_data"` and includes metadata attributes
+#' similar to [make_panel()].
+#'
+#' **Balancing methods:**
+#' \describe{
+#'   \item{`balance = "rows"`}{Create a row for every entity‑time combination.
+#'         If `delta` is supplied, the full time sequence (including missing periods)
+#'         is used. Missing combinations get `NA` in all other columns.}
+#'   \item{`balance = "entities"`}{Keep only entities present in **all** time periods.}
+#'   \item{`balance = "periods"`}{Keep only time periods where **all** entities are present.}
+#' }
+#'
+#' **Duplicates:** If duplicate entity-time combinations exist, the function stops
+#' with an error, as balancing requires a unique key.
+#'
+#' **Missing values:** Rows with missing entity or time values are automatically removed
+#' before balancing.
+#'
+#' **Handling of `panel_data` objects:** If `data` is a `panel_data` object, the
+#' function will use the entity, time, and delta values stored in its attributes
+#' unless overridden by explicit `index` or `delta` arguments.
+#'
+#' @seealso
+#' See also [make_panel()], [describe_dimensions()], [describe_balance()].
+#'
+#' @examples
+#' data(production)
+#'
+#' # Create a panel object first
+#' panel <- make_panel(production, index = c("firm", "year"))
+#'
+#' # Expand to full grid (default method)
+#' balanced_rows <- make_balanced(panel)
+#'
+#' # Keep only entities present in all periods
+#' balanced_entities <- make_balanced(panel, balance = "entities")
+#'
+#' # Keep only periods where all entities are present
+#' balanced_periods <- make_balanced(panel, balance = "periods")
+#'
+#' # Using a regular data frame (index must be provided)
+#' balanced_rows2 <- make_balanced(production,
+#'   index = c("firm", "year")
+#' )
+#'
+#' # Specifying time interval for yearly data
+#' balanced_rows_delta <- make_balanced(panel, delta = 1)
+#'
+#' @export
+make_balanced <- function(data, index = NULL, delta = NULL, balance = "rows") {
+  # --- Validate balance argument ---
+  valid_balance <- c("entities", "periods", "rows")
+  if (!balance %in% valid_balance) {
+    stop(
+      "'balance' must be one of: 'entities', 'periods', or 'rows'",
+      call. = FALSE
+    )
+  }
+
+  # --- Extract or validate index and delta from panel_data if applicable ---
+  entity_var <- NULL
+  time_var <- NULL
+  delta_from_attr <- NULL
+
+  if (inherits(data, "panel_data")) {
+    metadata <- attr(data, "metadata")
+    if (
+      is.null(metadata) || is.null(metadata$entity) || is.null(metadata$time)
+    ) {
+      stop(
+        "Object has class 'panel_data' but missing or incomplete 'metadata' attribute."
+      )
+    }
+    # Use stored values unless overridden
+    if (is.null(index)) {
+      entity_var <- metadata$entity
+      time_var <- metadata$time
+    }
+    if (is.null(delta) && !is.null(metadata$delta)) {
+      delta_from_attr <- metadata$delta
+    }
+  }
+
+  # --- If index not determined, require explicit or check data.frame ---
+  if (is.null(entity_var) || is.null(time_var)) {
+    if (!is.data.frame(data)) {
+      stop("'data' must be a data.frame or panel_data object")
+    }
+    if (is.null(index)) {
+      stop("For regular data.frames, 'index' must be provided")
+    }
+    if (length(index) != 2 || !is.character(index)) {
+      stop("'index' must be a character vector of length 2")
+    }
+    entity_var <- index[1]
+    time_var <- index[2]
+  }
+
+  # --- Use delta from attribute if not provided ---
+  if (is.null(delta) && !is.null(delta_from_attr)) {
+    delta <- delta_from_attr
+  }
+
+  # --- Basic validations ---
+  if (!entity_var %in% names(data)) {
+    stop('entity variable "', entity_var, '" not found in data')
+  }
+  if (!time_var %in% names(data)) {
+    stop('time variable "', time_var, '" not found in data')
+  }
+  if (time_var == entity_var) {
+    stop("entity and time variables cannot be the same")
+  }
+
+  msg_printed <- FALSE
+
+  # --- Remove rows with NA in entity or time ---
+  na_entity <- is.na(data[[entity_var]])
+  na_time <- is.na(data[[time_var]])
+
+  if (any(na_entity)) {
+    message(
+      sum(na_entity),
+      " rows with missing values in '",
+      entity_var,
+      "' variable found and excluded."
+    )
+    msg_printed <- TRUE
+  }
+  if (any(na_time)) {
+    message(
+      sum(na_time),
+      " rows with missing values in '",
+      time_var,
+      "' variable found and excluded."
+    )
+    msg_printed <- TRUE
+  }
+
+  if (any(na_entity | na_time)) {
+    data <- data[!(na_entity | na_time), , drop = FALSE]
+    rownames(data) <- NULL
+  }
+
+  # --- Duplicate check: error if any duplicates (balancing requires unique key) ---
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
+    n_dup <- nrow(dup_combinations)
+    examples <- utils::head(dup_combinations, 5)
+    example_strings <- paste0(examples[[entity_var]], "-", examples[[time_var]])
+    example_str <- paste(example_strings, collapse = ", ")
+    stop(
+      "Duplicate entity-time combinations found when balancing. ",
+      "Please resolve duplicates before balancing. Examples: ",
+      example_str,
+      call. = FALSE
+    )
+  }
+
+  # --- Delta validation and coercion ---
+  if (!is.null(delta)) {
+    if (
+      !is.numeric(delta) ||
+        length(delta) != 1 ||
+        delta <= 0 ||
+        delta != round(delta)
+    ) {
+      stop("'delta' must be a positive integer")
+    }
+    time_vals_orig <- data[[time_var]]
+    if (!is.numeric(time_vals_orig)) {
+      time_numeric <- suppressWarnings(as.numeric(as.character(time_vals_orig)))
+      if (anyNA(time_numeric)) {
+        stop("Cannot convert time variable '", time_var, "' to numeric.")
+      }
+      data[[time_var]] <- time_numeric
+    }
+  }
+
+  # --- Balancing logic (identical to original make_panel) ---
+  data_cols <- setdiff(names(data), c(entity_var, time_var))
+  if (length(data_cols) == 0) {
+    stop(
+      "No data columns found (excluding entity and time). Cannot determine presence."
+    )
+  }
+
+  unique_entities <- sort_unique_preserve(data[[entity_var]])
+  unique_times <- sort_unique_preserve(data[[time_var]])
+  entity_char <- as.character(unique_entities)
+  time_char <- as.character(unique_times)
+
+  # Build presence matrix based on non-NA values in any data column
+  presence_mat <- matrix(
+    FALSE,
+    nrow = length(entity_char),
+    ncol = length(time_char),
+    dimnames = list(entity_char, time_char)
+  )
+  for (i in seq_len(nrow(data))) {
+    e <- as.character(data[[entity_var]][i])
+    t <- as.character(data[[time_var]][i])
+    if (any(!is.na(data[i, data_cols, drop = TRUE]))) {
+      presence_mat[e, t] <- TRUE
+    }
+  }
+
+  if (balance == "entities") {
+    keep_entities <- entity_char[apply(presence_mat, 1, all)]
+    if (length(keep_entities) == 0) {
+      stop("No entity is present in all time periods.")
+    }
+    data <- data[
+      as.character(data[[entity_var]]) %in% keep_entities,
+      ,
+      drop = FALSE
+    ]
+    rownames(data) <- NULL
+  } else if (balance == "periods") {
+    keep_periods <- time_char[apply(presence_mat, 2, all)]
+    if (length(keep_periods) == 0) {
+      stop("No time period has all entities present.")
+    }
+    data <- data[
+      as.character(data[[time_var]]) %in% keep_periods,
+      ,
+      drop = FALSE
+    ]
+    rownames(data) <- NULL
+  } else if (balance == "rows") {
+    if (!is.null(delta)) {
+      time_vals <- sort(unique(data[[time_var]]))
+      full_time <- seq(from = min(time_vals), to = max(time_vals), by = delta)
+      full_time_char <- as.character(full_time)
+    } else {
+      full_time_char <- time_char
+      full_time <- unique_times
+    }
+
+    all_combos <- expand.grid(
+      entity = entity_char,
+      time = full_time_char,
+      stringsAsFactors = FALSE
+    )
+    names(all_combos) <- c(entity_var, time_var)
+
+    data_merge <- data
+    data_merge[[entity_var]] <- as.character(data_merge[[entity_var]])
+    data_merge[[time_var]] <- as.character(data_merge[[time_var]])
+
+    merged <- merge(
+      all_combos,
+      data_merge,
+      by = c(entity_var, time_var),
+      all.x = TRUE,
+      sort = FALSE
+    )
+
+    # Restore original classes
+    if (is.factor(unique_entities)) {
+      merged[[entity_var]] <- factor(
+        merged[[entity_var]],
+        levels = levels(unique_entities)
+      )
+    } else if (inherits(unique_entities, "Date")) {
+      merged[[entity_var]] <- as.Date(merged[[entity_var]])
+    } else if (is.numeric(unique_entities)) {
+      merged[[entity_var]] <- as.numeric(merged[[entity_var]])
+    }
+
+    if (is.factor(unique_times)) {
+      merged[[time_var]] <- factor(
+        merged[[time_var]],
+        levels = levels(unique_times)
+      )
+    } else if (inherits(unique_times, "Date")) {
+      if (!is.null(delta) && inherits(unique_times, "Date")) {
+        merged[[time_var]] <- as.Date(
+          merged[[time_var]],
+          origin = "1970-01-01"
+        )
+      } else {
+        merged[[time_var]] <- as.Date(merged[[time_var]])
+      }
+    } else if (is.numeric(unique_times)) {
+      merged[[time_var]] <- as.numeric(merged[[time_var]])
+    }
+
+    group_char_merged <- as.character(merged[[entity_var]])
+    time_char_merged <- as.character(merged[[time_var]])
+    ord <- order(
+      factor(group_char_merged, levels = entity_char),
+      factor(time_char_merged, levels = full_time_char)
+    )
+    data <- merged[ord, , drop = FALSE]
+    rownames(data) <- NULL
+  }
+
+  # --- Build metadata and details (similar to make_panel) ---
+  entities <- sort_unique_preserve(data[[entity_var]])
+  periods <- sort_unique_preserve(data[[time_var]])
+
+  details <- list(entities = entities, periods = periods)
+
+  if (!is.null(delta)) {
+    time_vals <- data[[time_var]]
+    if (!is.numeric(time_vals)) {
+      time_vals <- suppressWarnings(as.numeric(as.character(time_vals)))
+    }
+    obs_periods <- sort(unique(time_vals))
+    time_diffs <- diff(obs_periods)
+    if (!all(time_diffs %% delta == 0)) {
+      stop(
+        "Observed time points are not evenly spaced by multiples of delta (",
+        delta,
+        ")."
+      )
+    }
+    full_seq <- seq(from = min(obs_periods), to = max(obs_periods), by = delta)
+    missing <- setdiff(full_seq, obs_periods)
+    if (length(missing) > 0) {
+      details$periods_restored <- full_seq
+      details$periods_missing <- missing
+      message(
+        "Irregular time intervals detected. Missing periods: ",
+        paste(missing, collapse = ", ")
+      )
+      msg_printed <- TRUE
+    }
+  }
+
+  metadata <- list(
+    function_name = as.character(match.call()[[1]]),
+    entity = entity_var,
+    time = time_var,
+    delta = delta,
+    balance = balance
+  )
+
+  out <- data
+  attr(out, "metadata") <- metadata
+  attr(out, "details") <- details
+  class(out) <- c("panel_data", class(out))
+
+  if (msg_printed) {
+    cat("\n")
+  }
+
+  return(out)
+}
