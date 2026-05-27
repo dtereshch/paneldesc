@@ -43,7 +43,7 @@
 #' }
 #'
 #' @seealso
-#' See also [make_panel()], [make_balanced()].
+#' See also [make_panel()], [make_balanced()], [make_wide()], [make_long()].
 #'
 #' @examples
 #' data(production)

@@ -38,7 +38,7 @@
 #' unless overridden by explicit `index` or `delta` arguments.
 #'
 #' @seealso
-#' See also [make_panel()], [describe_dimensions()], [describe_balance()].
+#' See also [make_panel()], [make_wide()], [make_long()], [describe_dimensions()], [describe_balance()].
 #'
 #' @examples
 #' data(production)

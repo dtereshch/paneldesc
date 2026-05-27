@@ -56,5 +56,6 @@ attr(panel, "details")
 
 }
 \seealso{
-See also \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}, \code{\link[=describe_periods]{describe_periods()}}.
+See also \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=make_demeaned]{make_demeaned()}},
+\code{\link[=describe_dimensions]{describe_dimensions()}}.
 }

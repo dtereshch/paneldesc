@@ -30,7 +30,8 @@
 #' If gaps are detected, a message lists the missing periods and the full sequence is stored in `details$periods_restored`.
 #'
 #' @seealso
-#' See also [make_balanced()], [describe_dimensions()], [describe_balance()], [describe_periods()].
+#' See also [make_balanced()], [make_balanced()], [make_wide()], [make_long()], [make_demeaned()],
+#' [describe_dimensions()].
 #'
 #' @examples
 #' data(production)
