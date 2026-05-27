@@ -11,7 +11,7 @@
 #' @param balance One of "rows", "entities", or "periods". Specifies the
 #'        balancing method (see Details). Default = "rows".
 #'
-#' @return A balanced `panel_data` object (data.frame with additional attributes).
+#' @return A balanced panel data.frame with additional attributes.
 #'
 #' @details
 #' This function balances a panel dataset according to the chosen method.
