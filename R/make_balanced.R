@@ -4,16 +4,12 @@
 #' present in all time periods, keeping only periods where all entities are present,
 #' or expanding the data to include all entity-time combinations.
 #'
-#' @param data A data.frame containing panel data in a long format, or a `panel_data`
-#'        object created by [make_panel()].
+#' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and
-#'        time variables. For `panel_data` objects, this is optional and will be
-#'        extracted from the object's attributes.
+#'        time variables.
 #' @param delta An optional integer giving the expected interval between time periods.
-#'        For `panel_data` objects, this is optional and will be extracted from the
-#'        object's attributes if not provided.
-#' @param balance One of `"rows"`, `"entities"`, or `"periods"`. Specifies the
-#'        balancing method (see Details). Default is `"rows"`.
+#' @param balance One of "rows", "entities", or "periods". Specifies the
+#'        balancing method (see Details). Default = "rows".
 #'
 #' @return A balanced `panel_data` object (data.frame with additional attributes).
 #'
@@ -60,12 +56,10 @@
 #' balanced_periods <- make_balanced(panel, balance = "periods")
 #'
 #' # Using a regular data frame (index must be provided)
-#' balanced_rows2 <- make_balanced(production,
-#'   index = c("firm", "year")
-#' )
+#' balanced_rows2 <- make_balanced(production, index = c("firm", "year"))
 #'
 #' # Specifying time interval for yearly data
-#' balanced_rows_delta <- make_balanced(panel, delta = 1)
+#' balanced_rows_delta <- make_balanced(production, index = c("firm", "year"), delta = 1)
 #'
 #' @export
 make_balanced <- function(data, index = NULL, delta = NULL, balance = "rows") {
