@@ -18,7 +18,7 @@ time variables.}
 balancing method (see Details). Default = "rows".}
 }
 \value{
-A balanced panel data.frame with additional attributes.
+A balanced \code{panel_data} object (data.frame with additional attributes).
 }
 \description{
 This function creates a balanced panel dataset by either keeping only entities
