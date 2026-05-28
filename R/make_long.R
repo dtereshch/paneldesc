@@ -3,18 +3,17 @@
 #' This function reshapes panel data from wide format to long format,
 #' stacking time-varying columns into rows based on the pattern of column names.
 #'
-#' @param data A data.frame containing panel data in a wide format (e.g., created
-#'        by `make_wide()`).
+#' @param data A data.frame containing panel data in a wide format.
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
-#'        column in the long format (second element). Not required if data has
-#'        panel attributes (e.g., from `make_wide()`).
+#'        column in the long format (second element).
 #' @param spacer A character string used to separate variable names and time
-#'        values in the wide column names. Default = `"_"`.
+#'        values in the wide column names. Default = "_".
 #' @param invert A logical flag indicating the order of components in column
 #'        names. If `FALSE` (default), column names are
-#'        `"variable_spacer_time"`; if `TRUE`, they are
-#'        `"time_spacer_variable"`. Must match the structure of the input data.
+#'        `"variable_spacer_time"` (or `"variable"` + `time` when `spacer = ""`);
+#'        if `TRUE`, they are `"time_spacer_variable"` (or `time` + `"variable"`
+#'        when `spacer = ""`). Must match the structure of the input data.
 #'
 #' @return A data frame in long format, with one row per entity-time combination.
 #'
@@ -23,10 +22,10 @@
 #' * If `data` has panel attributes (e.g., from `make_wide()`) and `index` is
 #'   not specified, the entity column, time column name, `spacer`, and `invert`
 #'   are taken from the metadata.
-#' * Columns that do not contain the `spacer` (e.g., entity identifier,
-#'   time‑constant covariates) are treated as time‑constant and are replicated
+#' * Columns that do not contain the `spacer` (or do not match the expected
+#'   pattern when `spacer = ""`) are treated as time‑constant and are replicated
 #'   for each time period.
-#' * Columns that contain the `spacer` are split into variable names and time
+#' * Columns that match the pattern are split into variable names and time
 #'   values; the set of unique time values defines the periods.
 #' * The data are reshaped to long format using `stats::reshape()`.
 #'
@@ -41,11 +40,17 @@
 #' }
 #'
 #' @note
+#' When `spacer = ""`, the function assumes that all time‑varying columns have
+#' a numeric suffix (if `invert = FALSE`) or numeric prefix (if `invert = TRUE`)
+#' that represents the time period. Variable names may contain digits, but the
+#' last contiguous block of digits is treated as the time suffix; for prefixes,
+#' the first contiguous block of digits is treated as the time value. If a
+#' column does not contain any digit, it is considered time‑constant.
+#'
 #' The function assumes that all time-varying columns follow a consistent naming
 #' pattern and that every variable appears for exactly the same set of time
 #' periods (balanced in the wide sense). If some variable‑time combinations are
-#' missing, a message is printed and those variables are omitted. The entity
-#' column is never treated as time‑varying.
+#' missing, a message is printed and those variables are omitted.
 #'
 #' @seealso
 #' See also [make_panel()], [make_wide()], [make_balanced()], [make_demeaned()].
@@ -66,6 +71,10 @@
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' wide3 <- make_wide(panel)
 #' long3 <- make_long(wide3)
+#'
+#' # Using spacer = "" (no separator)
+#' wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
+#' long4 <- make_long(wide4, spacer = "")
 #'
 #' @export
 make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
@@ -93,14 +102,11 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   if (inherits(data, "panel_data")) {
     meta <- attr(data, "metadata")
     if (!is.null(meta)) {
-      # Try to obtain entity and time column names
       if (is.null(index)) {
         if (!is.null(meta$entity) && !is.null(meta$time)) {
           entity_col <- meta$entity
           time_col <- meta$time
         } else if (!is.null(meta$entity) && is.null(meta$time)) {
-          # In wide format, meta$time might not be a column name but the time variable label
-          # We'll need to create a time column name; use "time" as default
           entity_col <- meta$entity
           time_col <- "time"
         } else {
@@ -109,7 +115,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
             call. = FALSE
           )
         }
-        # Also recover spacer and invert if present (from make_wide)
         if (!is.null(meta$spacer)) {
           metadata_spacer <- meta$spacer
         }
@@ -120,7 +125,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
         panel_metadata <- meta
         panel_details <- attr(data, "details")
       } else {
-        # User provided index, override
         if (length(index) != 2 || !is.character(index)) {
           stop("'index' must be a character vector of length 2", call. = FALSE)
         }
@@ -128,7 +132,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
         time_col <- index[2]
       }
     } else {
-      # No metadata, treat as regular data frame
       if (is.null(index)) {
         stop("For regular data.frames, 'index' must be provided", call. = FALSE)
       }
@@ -139,7 +142,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
       time_col <- index[2]
     }
   } else {
-    # Regular data frame
     if (is.null(index)) {
       stop("For regular data.frames, 'index' must be provided", call. = FALSE)
     }
@@ -150,9 +152,7 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     time_col <- index[2]
   }
 
-  # Override spacer/invert with metadata values if they exist and not overridden by arguments?
-  # User arguments take precedence over metadata? Usually arguments should override.
-  # But if user did not specify spacer/invert and metadata has them, use metadata.
+  # Override spacer/invert if not specified by user but present in metadata
   if (missing(spacer) && !is.null(metadata_spacer)) {
     spacer <- metadata_spacer
   }
@@ -166,37 +166,55 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   }
 
   # --- Identify time-varying columns ---
-  # All columns except entity_col that contain spacer
   all_cols <- names(data)
   varying_candidates <- setdiff(all_cols, entity_col)
 
-  # Split into variable groups
-  # We need: for each underlying variable, a vector of column names (one per time period)
-  # Also extract unique time values.
-
-  # Parse each column name to extract base variable name and time value
+  # Parse column names to extract variable name and time value
   parsed <- list()
   time_values <- c()
+
   for (col in varying_candidates) {
-    if (!grepl(spacer, col, fixed = TRUE)) {
-      # Time-constant column, skip for now
-      next
-    }
-    parts <- strsplit(col, spacer, fixed = TRUE)[[1]]
-    if (invert) {
-      # pattern: time_spacer_variable
-      if (length(parts) < 2) {
-        next
+    if (spacer == "") {
+      # No separator: use regular expressions
+      if (invert) {
+        # Pattern: time (numeric prefix) + variable (rest)
+        match <- regexpr("^\\d+", col)
+        if (match == -1) {
+          # No leading digits -> treat as constant column
+          next
+        }
+        time_val <- regmatches(col, match)
+        var_name <- substr(col, match + attr(match, "match.length"), nchar(col))
+        if (var_name == "") var_name <- "value"
+      } else {
+        # Pattern: variable + numeric time suffix
+        match <- regexpr("\\d+$", col)
+        if (match == -1) {
+          next
+        }
+        time_val <- regmatches(col, match)
+        var_name <- substr(col, 1, match - 1)
+        if (var_name == "") var_name <- "value"
       }
-      time_val <- parts[1]
-      var_name <- paste(parts[-1], collapse = spacer)
     } else {
-      # pattern: variable_spacer_time
-      if (length(parts) < 2) {
+      # Normal separator-based splitting
+      if (!grepl(spacer, col, fixed = TRUE)) {
         next
       }
-      var_name <- paste(parts[-length(parts)], collapse = spacer)
-      time_val <- parts[length(parts)]
+      parts <- strsplit(col, spacer, fixed = TRUE)[[1]]
+      if (invert) {
+        if (length(parts) < 2) {
+          next
+        }
+        time_val <- parts[1]
+        var_name <- paste(parts[-1], collapse = spacer)
+      } else {
+        if (length(parts) < 2) {
+          next
+        }
+        var_name <- paste(parts[-length(parts)], collapse = spacer)
+        time_val <- parts[length(parts)]
+      }
     }
     parsed[[col]] <- list(var = var_name, time = time_val)
     time_values <- c(time_values, time_val)
@@ -209,9 +227,8 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     )
   }
 
-  # Unique time values, preserve original order as much as possible (e.g., numeric sort)
+  # Unique time values, try numeric sort if possible
   unique_times <- unique(time_values)
-  # Try to sort numerically if all look like numbers
   if (all(grepl("^-?[0-9.]+$", unique_times))) {
     unique_times <- as.character(sort(as.numeric(unique_times)))
   } else {
@@ -225,30 +242,18 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     var_to_cols[[var]] <- c(var_to_cols[[var]], col)
   }
 
-  # For each variable, ensure that we have exactly the same set of times
-  # (fill missing with NA if not present)
-  # Build the 'varying' argument for reshape: a list where each element is a vector
-  # of column names for one variable, ordered by time.
+  # Build varying list
   varying_list <- list()
   v.names <- c()
   for (var in names(var_to_cols)) {
     cols <- var_to_cols[[var]]
-    # Map time to column
     time_to_col <- sapply(cols, function(c) parsed[[c]]$time, USE.NAMES = FALSE)
     names(time_to_col) <- cols
-    # Order by unique_times
     ordered_cols <- sapply(unique_times, function(t) {
       match_col <- names(time_to_col)[time_to_col == t]
       if (length(match_col) == 0) NA else match_col[1]
     })
     if (any(is.na(ordered_cols))) {
-      # Some times missing for this variable; we will have NAs after reshape
-      # We can still proceed; reshape will handle NA columns? It expects all columns present.
-      # Safer to fill with a placeholder column? Or we can add NA column? Easier: let reshape fail?
-      # Instead, we can create a full matrix of columns by adding dummy NA columns.
-      # But that's messy. We'll assume that wide data is balanced (all variables observed at all times).
-      # If not, we could still use reshape by creating a list with NAs? reshape doesn't allow.
-      # So we issue a warning.
       warning(
         "Variable '",
         var,
@@ -261,10 +266,7 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     v.names <- c(v.names, var)
   }
 
-  # Convert varying_list to a list of character vectors, dropping NAs? Actually reshape requires
-  # that each element of varying list has same length. We must keep NAs as column names?
-  # If we have missing column, we can't pass NA. Best to ensure all variables have all times.
-  # To be safe, we'll keep only variables that have all times.
+  # Keep only variables that have complete time coverage
   complete_vars <- sapply(varying_list, function(x) !any(is.na(x)))
   if (any(!complete_vars)) {
     incomplete <- names(varying_list)[!complete_vars]
@@ -281,26 +283,14 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     stop("No complete time-varying variables found", call. = FALSE)
   }
 
-  # Prepare varying argument as a list of column name vectors
   varying <- lapply(varying_list, function(x) as.character(x))
-
-  # Time-constant columns: all columns not in entity_col and not appearing in any varying column
   constant_cols <- setdiff(all_cols, c(entity_col, unlist(varying)))
 
-  # --- Reshape using base R reshape() ---
-  # We need to create a temporary data frame with only the columns we need.
-  # reshape() requires that all varying columns exist.
-  # We'll pass the full data, but specify varying and v.names.
+  # --- Reshape using stats::reshape ---
   wide_subset <- data[,
     c(entity_col, constant_cols, unlist(varying)),
     drop = FALSE
   ]
-
-  # Note: reshape with direction = "long" will create a new column named "time" by default,
-  # but we can rename it. We'll use timevar = time_col.
-  # It also adds a column "id" (the row index) if we don't provide it? Actually it creates
-  # a column named after timevar and the row names become the original ids.
-  # We'll set ids to NULL to avoid extra column.
 
   long <- stats::reshape(
     wide_subset,
@@ -313,31 +303,26 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     new.row.names = NULL
   )
 
-  # Clean up: remove the automatically added row index column if present (reshape adds "row.names" as column? No)
-  # Reset row names
   rownames(long) <- NULL
 
-  # Ensure the time column has appropriate type (convert to numeric if possible)
+  # Try to convert time column to numeric if possible
   if (all(grepl("^-?[0-9.]+$", long[[time_col]]))) {
     long[[time_col]] <- as.numeric(long[[time_col]])
   }
 
-  # Reorder columns: entity, time, then the original variable columns, then constants
+  # Reorder columns
   var_cols <- v.names
   const_cols <- intersect(constant_cols, names(long))
   long <- long[, c(entity_col, time_col, var_cols, const_cols), drop = FALSE]
 
-  # --- Build metadata attribute ---
+  # --- Build metadata ---
   if (keep_panel_class) {
-    # Preserve original panel metadata and add conversion info
     new_metadata <- panel_metadata
     new_metadata$function_name <- "make_long"
     new_metadata$spacer <- spacer
     new_metadata$invert <- invert
-    # Update entity and time (the time column name)
     new_metadata$entity <- entity_col
     new_metadata$time <- time_col
-    # Keep delta if present
   } else {
     new_metadata <- list(
       function_name = "make_long",
@@ -348,14 +333,12 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     )
   }
 
-  # Build details attribute (preserve original if any)
   if (keep_panel_class && !is.null(panel_details)) {
     new_details <- panel_details
   } else {
     new_details <- list()
   }
 
-  # --- Attach attributes and class ---
   attr(long, "metadata") <- new_metadata
   attr(long, "details") <- new_details
   class(long) <- c("panel_data", class(long))

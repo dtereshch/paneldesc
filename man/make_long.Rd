@@ -7,21 +7,20 @@
 make_long(data, index = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
-\item{data}{A data.frame containing panel data in a wide format (e.g., created
-by \code{make_wide()}).}
+\item{data}{A data.frame containing panel data in a wide format.}
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
-column in the long format (second element). Not required if data has
-panel attributes (e.g., from \code{make_wide()}).}
+column in the long format (second element).}
 
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = \code{"_"}.}
+values in the wide column names. Default = "_".}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE} (default), column names are
-\code{"variable_spacer_time"}; if \code{TRUE}, they are
-\code{"time_spacer_variable"}. Must match the structure of the input data.}
+\code{"variable_spacer_time"} (or \code{"variable"} + \code{time} when \code{spacer = ""});
+if \code{TRUE}, they are \code{"time_spacer_variable"} (or \code{time} + \code{"variable"}
+when \code{spacer = ""}). Must match the structure of the input data.}
 }
 \value{
 A data frame in long format, with one row per entity-time combination.
@@ -36,10 +35,10 @@ The function performs the following steps:
 \item If \code{data} has panel attributes (e.g., from \code{make_wide()}) and \code{index} is
 not specified, the entity column, time column name, \code{spacer}, and \code{invert}
 are taken from the metadata.
-\item Columns that do not contain the \code{spacer} (e.g., entity identifier,
-time‑constant covariates) are treated as time‑constant and are replicated
+\item Columns that do not contain the \code{spacer} (or do not match the expected
+pattern when \code{spacer = ""}) are treated as time‑constant and are replicated
 for each time period.
-\item Columns that contain the \code{spacer} are split into variable names and time
+\item Columns that match the pattern are split into variable names and time
 values; the set of unique time values defines the periods.
 \item The data are reshaped to long format using \code{stats::reshape()}.
 }
@@ -55,11 +54,17 @@ otherwise an empty list.}
 }
 }
 \note{
+When \code{spacer = ""}, the function assumes that all time‑varying columns have
+a numeric suffix (if \code{invert = FALSE}) or numeric prefix (if \code{invert = TRUE})
+that represents the time period. Variable names may contain digits, but the
+last contiguous block of digits is treated as the time suffix; for prefixes,
+the first contiguous block of digits is treated as the time value. If a
+column does not contain any digit, it is considered time‑constant.
+
 The function assumes that all time-varying columns follow a consistent naming
 pattern and that every variable appears for exactly the same set of time
 periods (balanced in the wide sense). If some variable‑time combinations are
-missing, a message is printed and those variables are omitted. The entity
-column is never treated as time‑varying.
+missing, a message is printed and those variables are omitted.
 }
 \examples{
 data(production)
@@ -77,6 +82,10 @@ long2 <- make_long(wide2, spacer = ".", invert = TRUE)
 panel <- make_panel(production, index = c("firm", "year"))
 wide3 <- make_wide(panel)
 long3 <- make_long(wide3)
+
+# Using spacer = "" (no separator)
+wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
+long4 <- make_long(wide4, spacer = "")
 
 }
 \seealso{
