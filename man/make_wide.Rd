@@ -10,10 +10,10 @@ make_wide(data, index = NULL, spacer = "_", invert = FALSE)
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the
-entity and time variables. Not required if data has panel attributes.}
+entity and time variables.}
 
 \item{spacer}{A character string to insert between variable names and time
-values in the wide format column names. Default = \code{"_"}.}
+values in the wide format column names. Default = "_".}
 
 \item{invert}{A logical flag indicating whether to put time values before
 variable names in column names. If \code{FALSE} (default), column names

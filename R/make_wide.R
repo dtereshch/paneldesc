@@ -5,9 +5,9 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the
-#'        entity and time variables. Not required if data has panel attributes.
+#'        entity and time variables.
 #' @param spacer A character string to insert between variable names and time
-#'        values in the wide format column names. Default = `"_"`.
+#'        values in the wide format column names. Default = "_".
 #' @param invert A logical flag indicating whether to put time values before
 #'        variable names in column names. If `FALSE` (default), column names
 #'        are `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
