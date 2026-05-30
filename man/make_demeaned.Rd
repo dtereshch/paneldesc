@@ -16,7 +16,9 @@ is performed.}
 }
 \value{
 The input data frame with all numeric variables replaced by their
-demeaned versions.
+demeaned versions. Rows with missing values in the grouping variables
+are removed. Missing values in numeric variables are left untouched,
+and group means are computed ignoring \code{NA}s.
 }
 \description{
 This function performs within-group demeaning (centering) for all numeric
@@ -32,10 +34,21 @@ overall mean (ignoring \code{NA}s) is subtracted.
 \item If \code{group} is specified, the grouping variables are used to define the
 groups. Observations with \code{NA} in any grouping variable are removed before
 demeaning.
+\item \strong{Missing values in numeric variables are not removed automatically};
+the user should handle them prior to calling this function if desired.
 \item If \code{data} inherits from \code{panel_data} and \code{group} is not specified, the
 function automatically uses the entity and time variables stored in the
 \code{metadata} attribute as grouping variables, and the returned object retains
 the \code{panel_data} class and its attributes.
+}
+
+\strong{Demeaning algorithms:}
+\itemize{
+\item One group: \code{x - mean(x | group)} (exact, using \code{ave} with \code{na.rm = TRUE}).
+\item Two or more groups: iterative Gauss–Seidel algorithm (alternating
+projections). This matches the \code{fixest} fixed‑effect residuals exactly,
+even for unbalanced panels. The algorithm runs up to 100 iterations with
+tolerance 1e-12; a warning is issued if convergence is not reached.
 }
 
 Non‑numeric variables are excluded from demeaning; a message lists them,
@@ -64,7 +77,7 @@ head(prod_demeaned$labor)
 # Demeaning by a single group (e.g., firm)
 prod_demeaned_firm <- make_demeaned(production, group = "firm")
 
-# Demeaning by multiple groups (e.g., firm and year)
+# Demeaning by two groups (e.g., firm and year) – matches fixest
 prod_demeaned_both <- make_demeaned(production, group = c("firm", "year"))
 
 # Using a panel_data object: automatically demeans by firm and year

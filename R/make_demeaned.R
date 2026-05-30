@@ -12,7 +12,9 @@
 #'        is performed.
 #'
 #' @return The input data frame with all numeric variables replaced by their
-#'         demeaned versions.
+#'         demeaned versions. Rows with missing values in the grouping variables
+#'         are removed. Missing values in numeric variables are left untouched,
+#'         and group means are computed ignoring `NA`s.
 #'
 #' @details
 #' * If `group` is not specified and `data` is **not** a `panel_data` object,
@@ -21,10 +23,19 @@
 #' * If `group` is specified, the grouping variables are used to define the
 #'   groups. Observations with `NA` in any grouping variable are removed before
 #'   demeaning.
+#' * **Missing values in numeric variables are not removed automatically**;
+#'   the user should handle them prior to calling this function if desired.
 #' * If `data` inherits from `panel_data` and `group` is not specified, the
 #'   function automatically uses the entity and time variables stored in the
 #'   `metadata` attribute as grouping variables, and the returned object retains
 #'   the `panel_data` class and its attributes.
+#'
+#' **Demeaning algorithms:**
+#' * One group: `x - mean(x | group)` (exact, using `ave` with `na.rm = TRUE`).
+#' * Two or more groups: iterative Gauss–Seidel algorithm (alternating
+#'   projections). This matches the `fixest` fixed‑effect residuals exactly,
+#'   even for unbalanced panels. The algorithm runs up to 100 iterations with
+#'   tolerance 1e-12; a warning is issued if convergence is not reached.
 #'
 #' Non‑numeric variables are excluded from demeaning; a message lists them,
 #' and their names are stored in the `details` attribute.
@@ -55,7 +66,7 @@
 #' # Demeaning by a single group (e.g., firm)
 #' prod_demeaned_firm <- make_demeaned(production, group = "firm")
 #'
-#' # Demeaning by multiple groups (e.g., firm and year)
+#' # Demeaning by two groups (e.g., firm and year) – matches fixest
 #' prod_demeaned_both <- make_demeaned(production, group = c("firm", "year"))
 #'
 #' # Using a panel_data object: automatically demeans by firm and year
@@ -187,36 +198,57 @@ make_demeaned <- function(data, group = NULL) {
         x <- data[[var]]
         data[[var]] <- x - mean(x, na.rm = TRUE)
       }
-    } else {
-      # Within-group demeaning
-      group_factors <- lapply(group_used, function(g) {
-        gf <- data[[g]]
-        if (!is.factor(gf)) {
-          gf <- as.factor(gf)
-        }
-        gf
-      })
-      names(group_factors) <- group_used
-
+    } else if (length(group_used) == 1) {
+      # Single grouping variable – fast within transformation via ave()
+      group_fact <- as.factor(data[[group_used]])
       for (var in demean_vars) {
         x <- data[[var]]
-        args <- c(
-          list(x),
-          group_factors,
-          list(FUN = function(y) y - mean(y, na.rm = TRUE))
-        )
-        data[[var]] <- do.call(ave, args)
+        data[[var]] <- x -
+          ave(x, group_fact, FUN = function(y) mean(y, na.rm = TRUE))
+      }
+    } else {
+      # Two or more grouping variables – iterative projection (Gauss–Seidel)
+      # This matches fixest for any number of groups, including two (unbalanced).
+      for (var in demean_vars) {
+        resid <- data[[var]]
+        max_iter <- 100
+        tol <- 1e-12
+        converged <- FALSE
+        for (iter in 1:max_iter) {
+          old_resid <- resid
+          for (g in group_used) {
+            group_mean <- ave(resid, data[[g]], FUN = function(y) {
+              mean(y, na.rm = TRUE)
+            })
+            resid <- resid - group_mean
+          }
+          change <- max(abs(resid - old_resid), na.rm = TRUE)
+          if (change < tol) {
+            converged <- TRUE
+            break
+          }
+        }
+        if (!converged) {
+          warning(
+            "Iterative demeaning did not converge for variable '",
+            var,
+            "' after ",
+            max_iter,
+            " iterations. Change = ",
+            change,
+            call. = FALSE
+          )
+        }
+        data[[var]] <- resid
       }
     }
   }
 
   # --- Build metadata attribute ---
   if (keep_panel_class) {
-    # Preserve original panel metadata and add function_name + group
     new_metadata <- panel_metadata
     new_metadata$function_name <- "make_demeaned"
     new_metadata$group <- group_used
-    # Ensure delta exists (may be NULL)
     if (!"delta" %in% names(new_metadata)) new_metadata$delta <- NULL
   } else {
     new_metadata <- list(
@@ -227,7 +259,6 @@ make_demeaned <- function(data, group = NULL) {
 
   # --- Build details attribute ---
   if (keep_panel_class) {
-    # Preserve original panel details and add excluded_variables
     new_details <- panel_details
     if (is.null(new_details)) {
       new_details <- list()
@@ -245,7 +276,6 @@ make_demeaned <- function(data, group = NULL) {
   } else {
     attr(data, "metadata") <- new_metadata
     attr(data, "details") <- new_details
-    # Ensure no leftover panel_data class
     if (inherits(data, "panel_data")) {
       class(data) <- setdiff(class(data), "panel_data")
     }
