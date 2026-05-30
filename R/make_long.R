@@ -315,6 +315,10 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   const_cols <- intersect(constant_cols, names(long))
   long <- long[, c(entity_col, time_col, var_cols, const_cols), drop = FALSE]
 
+  # Sort by entity then time
+  long <- long[order(long[[entity_col]], long[[time_col]]), ]
+  rownames(long) <- NULL
+
   # --- Build metadata ---
   if (keep_panel_class) {
     new_metadata <- panel_metadata
