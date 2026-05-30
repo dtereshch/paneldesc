@@ -24,7 +24,8 @@ and group means are computed ignoring \code{NA}s.
 This function performs within-group demeaning (centering) for all numeric
 variables in a data frame. For each group defined by the \code{group} argument,
 the group mean is subtracted from each observation. If no grouping is
-provided, the overall mean is subtracted (grand mean centering).
+provided, the overall mean is subtracted (grand mean centering). Non‑numeric
+variables are not demeaned and are returned unchanged.
 }
 \details{
 \itemize{
@@ -40,6 +41,7 @@ the user should handle them prior to calling this function if desired.
 function automatically uses the entity and time variables stored in the
 \code{metadata} attribute as grouping variables, and the returned object retains
 the \code{panel_data} class and its attributes.
+\item Non‑numeric variables are not demeaned and are returned unchanged.
 }
 
 \strong{Demeaning algorithms:}
@@ -51,9 +53,6 @@ even for unbalanced panels. The algorithm runs up to 100 iterations with
 tolerance 1e-12; a warning is issued if convergence is not reached.
 }
 
-Non‑numeric variables are excluded from demeaning; a message lists them,
-and their names are stored in the \code{details} attribute.
-
 The returned object has a \code{metadata} attribute and a \code{details} attribute:
 \describe{
 \item{\code{metadata}}{List containing the function name (\code{"make_demeaned"})
@@ -61,10 +60,8 @@ and the grouping variables used (\code{group}). If the input was a
 \code{panel_data} object and \code{group} was not specified, the original
 panel metadata (\code{entity}, \code{time}, and \code{delta} if present) are also
 included.}
-\item{\code{details}}{List with the names of non‑numeric variables that were
-excluded from demeaning (\code{excluded_variables}). If the input was a
-\code{panel_data} object and \code{group} was not specified, the original
-panel details are preserved and augmented with this element.}
+\item{\code{details}}{List with any additional information. If the input was a
+\code{panel_data} object, the original panel details are preserved.}
 }
 }
 \examples{

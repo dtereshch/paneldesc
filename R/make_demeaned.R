@@ -3,7 +3,8 @@
 #' This function performs within-group demeaning (centering) for all numeric
 #' variables in a data frame. For each group defined by the `group` argument,
 #' the group mean is subtracted from each observation. If no grouping is
-#' provided, the overall mean is subtracted (grand mean centering).
+#' provided, the overall mean is subtracted (grand mean centering). Non‑numeric
+#' variables are not demeaned and are returned unchanged.
 #'
 #' @param data A data.frame containing the variables to be demeaned.
 #' @param group A character vector specifying the grouping variable(s). If not
@@ -29,6 +30,7 @@
 #'   function automatically uses the entity and time variables stored in the
 #'   `metadata` attribute as grouping variables, and the returned object retains
 #'   the `panel_data` class and its attributes.
+#' * Non‑numeric variables are not demeaned and are returned unchanged.
 #'
 #' **Demeaning algorithms:**
 #' * One group: `x - mean(x | group)` (exact, using `ave` with `na.rm = TRUE`).
@@ -37,9 +39,6 @@
 #'   even for unbalanced panels. The algorithm runs up to 100 iterations with
 #'   tolerance 1e-12; a warning is issued if convergence is not reached.
 #'
-#' Non‑numeric variables are excluded from demeaning; a message lists them,
-#' and their names are stored in the `details` attribute.
-#'
 #' The returned object has a `metadata` attribute and a `details` attribute:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name (`"make_demeaned"`)
@@ -47,10 +46,8 @@
 #'         `panel_data` object and `group` was not specified, the original
 #'         panel metadata (`entity`, `time`, and `delta` if present) are also
 #'         included.}
-#'   \item{`details`}{List with the names of non‑numeric variables that were
-#'         excluded from demeaning (`excluded_variables`). If the input was a
-#'         `panel_data` object and `group` was not specified, the original
-#'         panel details are preserved and augmented with this element.}
+#'   \item{`details`}{List with any additional information. If the input was a
+#'         `panel_data` object, the original panel details are preserved.}
 #' }
 #'
 #' @seealso
@@ -173,22 +170,22 @@ make_demeaned <- function(data, group = NULL) {
     }
   }
 
-  # --- Identify numeric and non-numeric variables ---
+  # --- Identify numeric variables (non-numeric are left unchanged) ---
   is_numeric <- vapply(data, is.numeric, logical(1))
   numeric_vars <- names(data)[is_numeric]
-  non_numeric_vars <- names(data)[!is_numeric]
-
-  if (length(non_numeric_vars) > 0) {
-    message(
-      "Excluding non-numeric variables: ",
-      paste(non_numeric_vars, collapse = ", ")
-    )
-    msg_printed <- TRUE
-  }
 
   # --- Identify variables to demean (numeric and not in group) ---
   exclude_vars <- if (!is.null(group_used)) group_used else character(0)
   demean_vars <- setdiff(numeric_vars, exclude_vars)
+
+  # --- Message about which variables will be demeaned ---
+  if (length(demean_vars) > 0) {
+    message(
+      "Demeaning numeric variables: ",
+      paste(demean_vars, collapse = ", ")
+    )
+    msg_printed <- TRUE
+  }
 
   # --- Perform demeaning ---
   if (length(demean_vars) > 0) {
@@ -257,15 +254,14 @@ make_demeaned <- function(data, group = NULL) {
     )
   }
 
-  # --- Build details attribute ---
+  # --- Build details attribute (no excluded variables) ---
   if (keep_panel_class) {
     new_details <- panel_details
     if (is.null(new_details)) {
       new_details <- list()
     }
-    new_details$excluded_variables <- non_numeric_vars
   } else {
-    new_details <- list(excluded_variables = non_numeric_vars)
+    new_details <- list()
   }
 
   # --- Attach attributes and class ---
