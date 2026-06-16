@@ -42,8 +42,7 @@
 #' *Econometrica*, 46(1), 69–85. \doi{10.2307/1913646}.
 #'
 #' @seealso
-#' See also [make_panel()], [make_demeaned()], [make_balanced()], [make_wide()],
-#' [make_long()].
+#' See also [make_demeaned()], [summarize_numeric()], [plot_heterogeneity()].
 #'
 #' @examples
 #' data(production)

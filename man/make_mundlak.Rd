@@ -68,6 +68,5 @@ head(panel_mundlak)
 # Variable names illustrate the pattern: labor_mean_firm, labor_mean_year, etc.
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_demeaned]{make_demeaned()}}, \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_wide]{make_wide()}},
-\code{\link[=make_long]{make_long()}}.
+See also \code{\link[=make_demeaned]{make_demeaned()}}, \code{\link[=summarize_numeric]{summarize_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}.
 }
