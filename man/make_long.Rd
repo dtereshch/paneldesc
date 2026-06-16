@@ -33,14 +33,28 @@ stacking time-varying columns into rows based on the pattern of column names.
 The function performs the following steps:
 \itemize{
 \item If \code{data} has panel attributes (e.g., from \code{make_wide()}) and \code{index} is
-not specified, the entity column, time column name, \code{spacer}, and \code{invert}
-are taken from the metadata.
+not specified, the entity column and the name for the new time column
+are taken from the metadata. \strong{Note:} \code{spacer} and \code{invert} are \strong{not}
+taken from the metadata; they must be supplied explicitly or use the
+function defaults.
 \item Columns that do not contain the \code{spacer} (or do not match the expected
 pattern when \code{spacer = ""}) are treated as time‑constant and are replicated
 for each time period.
 \item Columns that match the pattern are split into variable names and time
 values; the set of unique time values defines the periods.
 \item The data are reshaped to long format using \code{stats::reshape()}.
+}
+
+\strong{Consistency checks:}
+\itemize{
+\item The function verifies that all columns that appear to be time‑varying use
+the \emph{same} separator as given by \code{spacer} (if \code{spacer != ""}). If columns
+are found that use a different separator, an error is raised.
+\item The function also checks that the extracted time values are mostly numeric
+and that the variable names are mostly non‑numeric. If the opposite is true
+(i.e., time values are non‑numeric and variable names are numeric), it is
+likely that \code{invert} is mis‑specified. In that case, an explicit error is
+raised suggesting the correct \code{invert} value.
 }
 
 The returned object has class \code{"panel_data"} and two additional attributes:
@@ -56,10 +70,9 @@ otherwise an empty list.}
 \note{
 When \code{spacer = ""}, the function assumes that all time‑varying columns have
 a numeric suffix (if \code{invert = FALSE}) or numeric prefix (if \code{invert = TRUE})
-that represents the time period. Variable names may contain digits, but the
-last contiguous block of digits is treated as the time suffix; for prefixes,
-the first contiguous block of digits is treated as the time value. If a
-column does not contain any digit, it is considered time‑constant.
+that represents the time period. The consistency checks for separator
+ambiguity are skipped for \code{spacer = ""} because there is no separator to compare,
+but the \code{invert} correctness check still applies.
 
 The function assumes that all time-varying columns follow a consistent naming
 pattern and that every variable appears for exactly the same set of time
@@ -78,10 +91,10 @@ head(long)
 wide2 <- make_wide(production, index = c("firm", "year"), spacer = ".", invert = TRUE)
 long2 <- make_long(wide2, spacer = ".", invert = TRUE)
 
-# Using panel attributes (no need to specify index/spacer/invert)
+# Using panel attributes (no need to specify index)
 panel <- make_panel(production, index = c("firm", "year"))
 wide3 <- make_wide(panel)
-long3 <- make_long(wide3)
+long3 <- make_long(wide3)   # spacer and invert must match the wide format
 
 # Using spacer = "" (no separator)
 wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")

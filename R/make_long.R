@@ -20,14 +20,26 @@
 #' @details
 #' The function performs the following steps:
 #' * If `data` has panel attributes (e.g., from `make_wide()`) and `index` is
-#'   not specified, the entity column, time column name, `spacer`, and `invert`
-#'   are taken from the metadata.
+#'   not specified, the entity column and the name for the new time column
+#'   are taken from the metadata. **Note:** `spacer` and `invert` are **not**
+#'   taken from the metadata; they must be supplied explicitly or use the
+#'   function defaults.
 #' * Columns that do not contain the `spacer` (or do not match the expected
 #'   pattern when `spacer = ""`) are treated as time‑constant and are replicated
 #'   for each time period.
 #' * Columns that match the pattern are split into variable names and time
 #'   values; the set of unique time values defines the periods.
 #' * The data are reshaped to long format using `stats::reshape()`.
+#'
+#' **Consistency checks:**
+#' * The function verifies that all columns that appear to be time‑varying use
+#'   the *same* separator as given by `spacer` (if `spacer != ""`). If columns
+#'   are found that use a different separator, an error is raised.
+#' * The function also checks that the extracted time values are mostly numeric
+#'   and that the variable names are mostly non‑numeric. If the opposite is true
+#'   (i.e., time values are non‑numeric and variable names are numeric), it is
+#'   likely that `invert` is mis‑specified. In that case, an explicit error is
+#'   raised suggesting the correct `invert` value.
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
@@ -42,10 +54,9 @@
 #' @note
 #' When `spacer = ""`, the function assumes that all time‑varying columns have
 #' a numeric suffix (if `invert = FALSE`) or numeric prefix (if `invert = TRUE`)
-#' that represents the time period. Variable names may contain digits, but the
-#' last contiguous block of digits is treated as the time suffix; for prefixes,
-#' the first contiguous block of digits is treated as the time value. If a
-#' column does not contain any digit, it is considered time‑constant.
+#' that represents the time period. The consistency checks for separator
+#' ambiguity are skipped for `spacer = ""` because there is no separator to compare,
+#' but the `invert` correctness check still applies.
 #'
 #' The function assumes that all time-varying columns follow a consistent naming
 #' pattern and that every variable appears for exactly the same set of time
@@ -67,10 +78,10 @@
 #' wide2 <- make_wide(production, index = c("firm", "year"), spacer = ".", invert = TRUE)
 #' long2 <- make_long(wide2, spacer = ".", invert = TRUE)
 #'
-#' # Using panel attributes (no need to specify index/spacer/invert)
+#' # Using panel attributes (no need to specify index)
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' wide3 <- make_wide(panel)
-#' long3 <- make_long(wide3)
+#' long3 <- make_long(wide3)   # spacer and invert must match the wide format
 #'
 #' # Using spacer = "" (no separator)
 #' wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
@@ -95,8 +106,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   keep_panel_class <- FALSE
   panel_metadata <- NULL
   panel_details <- NULL
-  metadata_spacer <- NULL
-  metadata_invert <- NULL
 
   # --- Extract metadata if data has panel attributes ---
   if (inherits(data, "panel_data")) {
@@ -114,12 +123,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
             "Panel metadata missing required 'entity' information",
             call. = FALSE
           )
-        }
-        if (!is.null(meta$spacer)) {
-          metadata_spacer <- meta$spacer
-        }
-        if (!is.null(meta$invert)) {
-          metadata_invert <- meta$invert
         }
         keep_panel_class <- TRUE
         panel_metadata <- meta
@@ -150,14 +153,6 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     }
     entity_col <- index[1]
     time_col <- index[2]
-  }
-
-  # Override spacer/invert if not specified by user but present in metadata
-  if (missing(spacer) && !is.null(metadata_spacer)) {
-    spacer <- metadata_spacer
-  }
-  if (missing(invert) && !is.null(metadata_invert)) {
-    invert <- metadata_invert
   }
 
   # --- Validate entity column ---
@@ -223,6 +218,109 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   if (length(parsed) == 0) {
     stop(
       "No time-varying columns found. Check 'spacer' and 'invert' settings.",
+      call. = FALSE
+    )
+  }
+
+  # --- Ambiguous separator check (skip if spacer == "") ---
+  if (spacer != "") {
+    unique_times <- unique(time_values)
+    # Convert to character for matching; preserve numeric-like times
+    time_set <- as.character(unique_times)
+    ambiguous_cols <- c()
+
+    # Determine which columns were treated as constant
+    parsed_cols <- names(parsed)
+    constant_cols_temp <- setdiff(all_cols, c(entity_col, parsed_cols))
+
+    for (col in constant_cols_temp) {
+      if (invert) {
+        # Check for leading digits followed by a non-digit (i.e., a separator)
+        # We want to detect if the column starts with digits and then a separator that is not the spacer
+        # Example: "1.capital" when spacer = "_"
+        if (grepl("^\\d+[^0-9]", col)) {
+          # Extract the leading digits
+          match <- regexpr("^\\d+", col)
+          prefix_digits <- regmatches(col, match)
+          if (prefix_digits %in% time_set) {
+            # This column looks like a time-varying column with a different separator
+            ambiguous_cols <- c(ambiguous_cols, col)
+          }
+        }
+      } else {
+        # Check for trailing digits preceded by a non-digit (separator)
+        if (grepl("[^0-9]\\d+$", col)) {
+          # Extract trailing digits
+          match <- regexpr("\\d+$", col)
+          suffix_digits <- regmatches(col, match)
+          if (suffix_digits %in% time_set) {
+            ambiguous_cols <- c(ambiguous_cols, col)
+          }
+        }
+      }
+    }
+
+    if (length(ambiguous_cols) > 0) {
+      # Get the separators used in those columns (the character before/after digits)
+      sep_examples <- c()
+      for (col in ambiguous_cols) {
+        if (invert) {
+          # The separator is the character after the leading digits
+          sep_char <- substr(
+            col,
+            nchar(regmatches(col, regexpr("^\\d+", col))) + 1,
+            nchar(regmatches(col, regexpr("^\\d+", col))) + 1
+          )
+        } else {
+          # The separator is the character before the trailing digits
+          pos <- regexpr("\\d+$", col)
+          sep_char <- substr(col, pos - 1, pos - 1)
+        }
+        sep_examples <- c(
+          sep_examples,
+          paste0("'", col, "' (uses '", sep_char, "')")
+        )
+      }
+      stop(
+        "Ambiguous separators detected. The following columns appear to be time-varying ",
+        "but use a different separator than the specified spacer '",
+        spacer,
+        "':\n",
+        paste(sep_examples, collapse = ", "),
+        "\n",
+        "Please ensure all time-varying columns use the same spacer.",
+        call. = FALSE
+      )
+    }
+  }
+
+  # --- Check for correct invert specification ---
+  # Extract variable names and time values from parsed
+  var_names <- sapply(parsed, function(x) x$var, USE.NAMES = FALSE)
+  time_vals <- sapply(parsed, function(x) x$time, USE.NAMES = FALSE)
+
+  # Coerce to numeric and count successes
+  time_numeric <- suppressWarnings(as.numeric(time_vals))
+  var_numeric <- suppressWarnings(as.numeric(var_names))
+
+  prop_time_numeric <- sum(!is.na(time_numeric)) / length(time_vals)
+  prop_var_numeric <- sum(!is.na(var_numeric)) / length(var_names)
+
+  # If most time values are non-numeric and most variable names are numeric,
+  # it's very likely that invert is mis-specified.
+  if (prop_time_numeric < 0.5 && prop_var_numeric > 0.5) {
+    suggested_invert <- ifelse(invert, "FALSE", "TRUE")
+    stop(
+      "It appears that 'invert' may be incorrectly specified.\n",
+      "Most extracted time values are non-numeric (",
+      round((1 - prop_time_numeric) * 100),
+      "%) while most variable names are numeric (",
+      round(prop_var_numeric * 100),
+      "%).\n",
+      "This often happens when the order of variable and time components is swapped.\n",
+      "Consider setting 'invert = ",
+      suggested_invert,
+      "'.",
       call. = FALSE
     )
   }
