@@ -1,26 +1,22 @@
 #' Convert Panel Data from Long to Wide Format
 #'
 #' This function reshapes panel data from long format to wide format,
-#' creating separate columns for each time period.  Time‑invariant variables
-#' can be specified via the `static` argument; they will appear as single
-#' columns rather than being expanded over time.
+#' creating separate columns for each time period.
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the
 #'        entity and time variables.
 #' @param static A character vector of variable names that are time‑invariant.
-#'        Default is `NULL`, meaning no variables are treated as static.
-#'        If provided, the function verifies that each variable is indeed
-#'        constant over time for each entity (ignoring `NA` values) and raises
-#'        an error if any are not. Variables listed here are not reshaped.
+#'        Default is `NULL`. If provided, the function verifies invariance and
+#'        excludes these variables from reshaping – they appear as single columns
+#'        in the wide output.
 #' @param spacer A character string to insert between variable names and time
-#'        values in the wide format column names. Default = `"_"`.
+#'        values in the wide format column names. Default = "_".
 #' @param invert A logical flag indicating whether to put time values before
 #'        variable names in column names. If `FALSE` (default), column names
 #'        are `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
 #'
-#' @return A data frame in wide format, with one row per entity.  The returned
-#'         object has class `"panel_data"` and appropriate attributes.
+#' @return A data frame in wide format, with one row per entity.
 #'
 #' @details
 #' The function performs the following steps:
@@ -31,17 +27,15 @@
 #'   originate from panel attributes).
 #' * The data are reshaped to wide format using `stats::reshape()`.
 #'
-#' If `static` is specified:
-#' * Variables in `static` are checked for time‑invariance.  `NA` values are
-#'   ignored when checking uniqueness.
-#' * These variables are excluded from the reshaping and are later merged back
-#'   as single columns (one per entity).
-#' * If any other variable is also time‑invariant, a message is printed.
-#'
-#' If `static` is `NULL`:
-#' * All variables (except entity and time) are checked for time‑invariance.
-#' * Any detected invariant variables trigger a message suggesting the use of
-#'   the `static` argument.
+#' The returned object has class `"panel_data"` and two additional attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name, the entity and time
+#'         variables, the `spacer`, and the `invert` setting. If the input was a
+#'         `panel_data` object, the original metadata elements (`delta`, etc.)
+#'         are preserved.}
+#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
+#'         otherwise an empty list.}
+#' }
 #'
 #' @note
 #' The function works for standard atomic types (logical, integer, double,
@@ -59,11 +53,6 @@
 #' # Basic conversion
 #' wide <- make_wide(production, index = c("firm", "year"))
 #' head(wide)
-#'
-#' # Treat 'region' as time-invariant
-#' wide_static <- make_wide(production, index = c("firm", "year"),
-#'                          static = "region")
-#' names(wide_static)  # 'region' appears without a time suffix
 #'
 #' # With panel_data object
 #' panel <- make_panel(production, index = c("firm", "year"))
@@ -339,15 +328,8 @@ make_wide <- function(
     names(wide) <- new_names
     rownames(wide) <- NULL
 
-    # If static variables are given, merge them back
-    if (!is.null(static)) {
-      static_data <- data[
-        !duplicated(data[[entity_var]]),
-        c(entity_var, static),
-        drop = FALSE
-      ]
-      wide <- merge(wide, static_data, by = entity_var, all.x = TRUE)
-    }
+    # Static variables are already present as single columns (since they were
+    # excluded from `v.names`), so no merging is required.
   }
 
   # --- Build metadata attribute ---
