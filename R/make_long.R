@@ -2,9 +2,10 @@
 #'
 #' This function reshapes panel data from wide format to long format,
 #' stacking time-varying columns into rows based on the pattern of column names.
-#' Columns that are time‑invariant (i.e., not split by time) are replicated
-#' for each time period. You can explicitly declare such columns using the
-#' `static` argument.
+#' Columns that are time‑invariant (not split by time) are replicated for each
+#' time period, **unless** a particular entity‑time combination has no
+#' time‑varying data at all—in which case the invariant columns are set to `NA`
+#' to reflect a truly missing observation.
 #'
 #' @param data A data.frame containing panel data in a wide format.
 #' @param index A character vector of length 2 specifying the name of the
@@ -24,7 +25,10 @@
 #'        if `TRUE`, they are `"time_spacer_variable"` (or `time` + `"variable"`
 #'        when `spacer = ""`). Must match the structure of the input data.
 #'
-#' @return A data frame in long format, with one row per entity-time combination.
+#' @return A data frame in long format, with one row per entity‑time combination
+#'         that appears in the data. For unbalanced panels, if an entity has
+#'         no time‑varying data for a given period, the invariant columns are
+#'         set to `NA` for that row.
 #'
 #' @details
 #' The function performs the following steps:
@@ -48,6 +52,13 @@
 #'
 #' If `static` is `NULL`, the function automatically detects invariant columns
 #' and prints a message listing them, suggesting to use the `static` argument.
+#'
+#' **Unbalanced panels:**
+#' After reshaping, the function checks each entity‑time row. If **all** time‑varying
+#' columns are `NA` for that row, the invariant columns (including those in `static`)
+#' are set to `NA` as well. This ensures that a period with no observed variation
+#' is treated as completely missing, rather than erroneously carrying forward
+#' constant attributes.
 #'
 #' @note
 #' When `spacer = ""`, the function assumes that all time‑varying columns have
@@ -491,6 +502,16 @@ make_long <- function(
   # Sort by entity then time
   long <- long[order(long[[entity_col]], long[[time_col]]), ]
   rownames(long) <- NULL
+
+  # --- Handle unbalanced panels: if all time-varying cols are NA for a row,
+  #     set constant columns to NA as well.
+  if (length(var_cols) > 0) {
+    # identify rows where all time-varying columns are NA
+    all_na <- rowSums(is.na(long[, var_cols, drop = FALSE])) == length(var_cols)
+    if (any(all_na)) {
+      long[all_na, const_cols] <- NA
+    }
+  }
 
   # --- Build metadata ---
   if (keep_panel_class) {

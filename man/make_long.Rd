@@ -30,14 +30,18 @@ if \code{TRUE}, they are \code{"time_spacer_variable"} (or \code{time} + \code{"
 when \code{spacer = ""}). Must match the structure of the input data.}
 }
 \value{
-A data frame in long format, with one row per entity-time combination.
+A data frame in long format, with one row per entity‑time combination
+that appears in the data. For unbalanced panels, if an entity has
+no time‑varying data for a given period, the invariant columns are
+set to \code{NA} for that row.
 }
 \description{
 This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
-Columns that are time‑invariant (i.e., not split by time) are replicated
-for each time period. You can explicitly declare such columns using the
-\code{static} argument.
+Columns that are time‑invariant (not split by time) are replicated for each
+time period, \strong{unless} a particular entity‑time combination has no
+time‑varying data at all—in which case the invariant columns are set to \code{NA}
+to reflect a truly missing observation.
 }
 \details{
 The function performs the following steps:
@@ -63,6 +67,13 @@ and raises an error if they do. Additional invariant columns (not listed in
 
 If \code{static} is \code{NULL}, the function automatically detects invariant columns
 and prints a message listing them, suggesting to use the \code{static} argument.
+
+\strong{Unbalanced panels:}
+After reshaping, the function checks each entity‑time row. If \strong{all} time‑varying
+columns are \code{NA} for that row, the invariant columns (including those in \code{static})
+are set to \code{NA} as well. This ensures that a period with no observed variation
+is treated as completely missing, rather than erroneously carrying forward
+constant attributes.
 }
 \note{
 When \code{spacer = ""}, the function assumes that all time‑varying columns have
