@@ -2,13 +2,22 @@
 #'
 #' This function reshapes panel data from wide format to long format,
 #' stacking time-varying columns into rows based on the pattern of column names.
+#' Columns that are time‑invariant (i.e., not split by time) are replicated
+#' for each time period. You can explicitly declare such columns using the
+#' `static` argument.
 #'
 #' @param data A data.frame containing panel data in a wide format.
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
 #'        column in the long format (second element).
+#' @param static A character vector of variable names that are time‑invariant.
+#'        Default is `NULL`, meaning the function will automatically detect
+#'        columns that do not contain the time separator (or numeric suffix).
+#'        If provided, the function verifies that these columns do **not** match
+#'        the time‑varying pattern (otherwise an error is raised). Any other
+#'        columns that also appear invariant will trigger a message.
 #' @param spacer A character string used to separate variable names and time
-#'        values in the wide column names. Default = "_".
+#'        values in the wide column names. Default = `"_"`.
 #' @param invert A logical flag indicating the order of components in column
 #'        names. If `FALSE` (default), column names are
 #'        `"variable_spacer_time"` (or `"variable"` + `time` when `spacer = ""`);
@@ -31,25 +40,14 @@
 #'   values; the set of unique time values defines the periods.
 #' * The data are reshaped to long format using `stats::reshape()`.
 #'
-#' **Consistency checks:**
-#' * The function verifies that all columns that appear to be time‑varying use
-#'   the *same* separator as given by `spacer` (if `spacer != ""`). If columns
-#'   are found that use a different separator, an error is raised.
-#' * The function also checks that the extracted time values are mostly numeric
-#'   and that the variable names are mostly non‑numeric. If the opposite is true
-#'   (i.e., time values are non‑numeric and variable names are numeric), it is
-#'   likely that `invert` is mis‑specified. In that case, an explicit error is
-#'   raised suggesting the correct `invert` value.
+#' If `static` is specified, those columns are **always** treated as
+#' time‑invariant, even if they contain a separator or numeric suffix. The
+#' function checks that they do **not** conflict with the time‑varying pattern
+#' and raises an error if they do. Additional invariant columns (not listed in
+#' `static`) are still treated as invariant and trigger a message.
 #'
-#' The returned object has class `"panel_data"` and two additional attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name, the entity and time
-#'         variables, the `spacer`, and the `invert` setting. If the input was a
-#'         `panel_data` object, the original metadata elements (`delta`, etc.)
-#'         are preserved.}
-#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
-#'         otherwise an empty list.}
-#' }
+#' If `static` is `NULL`, the function automatically detects invariant columns
+#' and prints a message listing them, suggesting to use the `static` argument.
 #'
 #' @note
 #' When `spacer = ""`, the function assumes that all time‑varying columns have
@@ -87,8 +85,18 @@
 #' wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
 #' long4 <- make_long(wide4, spacer = "")
 #'
+#' # Explicitly declare 'region' as static (it appears as a single column)
+#' wide5 <- make_wide(production, index = c("firm", "year"), static = "region")
+#' long5 <- make_long(wide5, static = "region")
+#'
 #' @export
-make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
+make_long <- function(
+  data,
+  index = NULL,
+  static = NULL,
+  spacer = "_",
+  invert = FALSE
+) {
   # --- Input validation ---
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1], call. = FALSE)
@@ -98,6 +106,11 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   }
   if (!is.logical(invert) || length(invert) != 1) {
     stop("'invert' must be a single logical value", call. = FALSE)
+  }
+  if (!is.null(static)) {
+    if (!is.character(static)) {
+      stop("'static' must be a character vector", call. = FALSE)
+    }
   }
 
   msg_printed <- FALSE
@@ -160,15 +173,30 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     stop('entity column "', entity_col, '" not found in data', call. = FALSE)
   }
 
-  # --- Identify time-varying columns ---
-  all_cols <- names(data)
-  varying_candidates <- setdiff(all_cols, entity_col)
+  # --- Validate static variables ---
+  if (!is.null(static)) {
+    missing_static <- setdiff(static, names(data))
+    if (length(missing_static) > 0) {
+      stop(
+        "Static variable(s) not found in data: ",
+        paste(missing_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    if (entity_col %in% static) {
+      stop("Static variables cannot include the entity column", call. = FALSE)
+    }
+  }
 
-  # Parse column names to extract variable name and time value
+  all_cols <- names(data)
+  # Columns that can potentially be time-varying: exclude entity and static
+  candidates <- setdiff(all_cols, c(entity_col, static))
+
+  # Parse columns to identify time-varying ones (only among candidates)
   parsed <- list()
   time_values <- c()
 
-  for (col in varying_candidates) {
+  for (col in candidates) {
     if (spacer == "") {
       # No separator: use regular expressions
       if (invert) {
@@ -215,6 +243,32 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     time_values <- c(time_values, time_val)
   }
 
+  # Check if any static variable would have been parsed (conflict)
+  if (!is.null(static)) {
+    # Temporarily parse all columns to see if any static matches the pattern
+    conflict <- c()
+    for (col in static) {
+      if (spacer == "") {
+        if (invert) {
+          if (grepl("^\\d+", col)) conflict <- c(conflict, col)
+        } else {
+          if (grepl("\\d+$", col)) conflict <- c(conflict, col)
+        }
+      } else {
+        if (grepl(spacer, col, fixed = TRUE)) conflict <- c(conflict, col)
+      }
+    }
+    if (length(conflict) > 0) {
+      stop(
+        "The following static variables appear to be time-varying based on the pattern ",
+        "(they contain the separator or numeric suffix): ",
+        paste(conflict, collapse = ", "),
+        ". Please remove them from 'static' or adjust 'spacer'/'invert'.",
+        call. = FALSE
+      )
+    }
+  }
+
   if (length(parsed) == 0) {
     stop(
       "No time-varying columns found. Check 'spacer' and 'invert' settings.",
@@ -229,28 +283,23 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     time_set <- as.character(unique_times)
     ambiguous_cols <- c()
 
-    # Determine which columns were treated as constant
+    # Determine which columns were treated as constant (among candidates only)
     parsed_cols <- names(parsed)
-    constant_cols_temp <- setdiff(all_cols, c(entity_col, parsed_cols))
+    constant_candidates <- setdiff(candidates, parsed_cols)
 
-    for (col in constant_cols_temp) {
+    for (col in constant_candidates) {
       if (invert) {
         # Check for leading digits followed by a non-digit (i.e., a separator)
-        # We want to detect if the column starts with digits and then a separator that is not the spacer
-        # Example: "1.capital" when spacer = "_"
         if (grepl("^\\d+[^0-9]", col)) {
-          # Extract the leading digits
           match <- regexpr("^\\d+", col)
           prefix_digits <- regmatches(col, match)
           if (prefix_digits %in% time_set) {
-            # This column looks like a time-varying column with a different separator
             ambiguous_cols <- c(ambiguous_cols, col)
           }
         }
       } else {
         # Check for trailing digits preceded by a non-digit (separator)
         if (grepl("[^0-9]\\d+$", col)) {
-          # Extract trailing digits
           match <- regexpr("\\d+$", col)
           suffix_digits <- regmatches(col, match)
           if (suffix_digits %in% time_set) {
@@ -265,14 +314,12 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
       sep_examples <- c()
       for (col in ambiguous_cols) {
         if (invert) {
-          # The separator is the character after the leading digits
           sep_char <- substr(
             col,
             nchar(regmatches(col, regexpr("^\\d+", col))) + 1,
             nchar(regmatches(col, regexpr("^\\d+", col))) + 1
           )
         } else {
-          # The separator is the character before the trailing digits
           pos <- regexpr("\\d+$", col)
           sep_char <- substr(col, pos - 1, pos - 1)
         }
@@ -295,19 +342,15 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   }
 
   # --- Check for correct invert specification ---
-  # Extract variable names and time values from parsed
   var_names <- sapply(parsed, function(x) x$var, USE.NAMES = FALSE)
   time_vals <- sapply(parsed, function(x) x$time, USE.NAMES = FALSE)
 
-  # Coerce to numeric and count successes
   time_numeric <- suppressWarnings(as.numeric(time_vals))
   var_numeric <- suppressWarnings(as.numeric(var_names))
 
   prop_time_numeric <- sum(!is.na(time_numeric)) / length(time_vals)
   prop_var_numeric <- sum(!is.na(var_numeric)) / length(var_names)
 
-  # If most time values are non-numeric and most variable names are numeric,
-  # it's very likely that invert is mis-specified.
   if (prop_time_numeric < 0.5 && prop_var_numeric > 0.5) {
     suggested_invert <- ifelse(invert, "FALSE", "TRUE")
     stop(
@@ -325,6 +368,37 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     )
   }
 
+  # --- Identify constant (static) columns ---
+  # All columns that were not parsed are constant (both candidates and static)
+  parsed_cols <- names(parsed)
+  constant_cols <- setdiff(all_cols, c(entity_col, parsed_cols))
+
+  # If static is provided, we also add the explicitly static ones (they are already in constant_cols)
+  # but we need to separate for messaging.
+  if (!is.null(static)) {
+    # Additional constant columns not in static
+    additional <- setdiff(constant_cols, static)
+    if (length(additional) > 0) {
+      message(
+        "Additional time-invariant variables detected: ",
+        paste(additional, collapse = ", "),
+        ". Consider updating 'static' argument."
+      )
+      msg_printed <- TRUE
+    }
+  } else {
+    # No static provided; if there are constant columns, message them
+    if (length(constant_cols) > 0) {
+      message(
+        "Time-invariant variables detected: ",
+        paste(constant_cols, collapse = ", "),
+        ". Consider using 'static' argument."
+      )
+      msg_printed <- TRUE
+    }
+  }
+
+  # --- Proceed with reshape ---
   # Unique time values, try numeric sort if possible
   unique_times <- unique(time_values)
   if (all(grepl("^-?[0-9.]+$", unique_times))) {
@@ -382,11 +456,12 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
   }
 
   varying <- lapply(varying_list, function(x) as.character(x))
-  constant_cols <- setdiff(all_cols, c(entity_col, unlist(varying)))
+  # All columns that are not varying and not entity are constant
+  final_constant <- setdiff(all_cols, c(entity_col, unlist(varying)))
 
   # --- Reshape using stats::reshape ---
   wide_subset <- data[,
-    c(entity_col, constant_cols, unlist(varying)),
+    c(entity_col, final_constant, unlist(varying)),
     drop = FALSE
   ]
 
@@ -410,7 +485,7 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
 
   # Reorder columns
   var_cols <- v.names
-  const_cols <- intersect(constant_cols, names(long))
+  const_cols <- intersect(final_constant, names(long))
   long <- long[, c(entity_col, time_col, var_cols, const_cols), drop = FALSE]
 
   # Sort by entity then time
@@ -425,6 +500,7 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     new_metadata$invert <- invert
     new_metadata$entity <- entity_col
     new_metadata$time <- time_col
+    if (!is.null(static)) new_metadata$static <- static
   } else {
     new_metadata <- list(
       function_name = "make_long",
@@ -433,6 +509,7 @@ make_long <- function(data, index = NULL, spacer = "_", invert = FALSE) {
       spacer = spacer,
       invert = invert
     )
+    if (!is.null(static)) new_metadata$static <- static
   }
 
   if (keep_panel_class && !is.null(panel_details)) {

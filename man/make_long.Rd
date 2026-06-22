@@ -4,7 +4,7 @@
 \alias{make_long}
 \title{Convert Panel Data from Wide to Long Format}
 \usage{
-make_long(data, index = NULL, spacer = "_", invert = FALSE)
+make_long(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a wide format.}
@@ -13,8 +13,15 @@ make_long(data, index = NULL, spacer = "_", invert = FALSE)
 entity column (first element) and the name to give to the new time
 column in the long format (second element).}
 
+\item{static}{A character vector of variable names that are time‑invariant.
+Default is \code{NULL}, meaning the function will automatically detect
+columns that do not contain the time separator (or numeric suffix).
+If provided, the function verifies that these columns do \strong{not} match
+the time‑varying pattern (otherwise an error is raised). Any other
+columns that also appear invariant will trigger a message.}
+
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = "_".}
+values in the wide column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE} (default), column names are
@@ -28,6 +35,9 @@ A data frame in long format, with one row per entity-time combination.
 \description{
 This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
+Columns that are time‑invariant (i.e., not split by time) are replicated
+for each time period. You can explicitly declare such columns using the
+\code{static} argument.
 }
 \details{
 The function performs the following steps:
@@ -45,27 +55,14 @@ values; the set of unique time values defines the periods.
 \item The data are reshaped to long format using \code{stats::reshape()}.
 }
 
-\strong{Consistency checks:}
-\itemize{
-\item The function verifies that all columns that appear to be time‑varying use
-the \emph{same} separator as given by \code{spacer} (if \code{spacer != ""}). If columns
-are found that use a different separator, an error is raised.
-\item The function also checks that the extracted time values are mostly numeric
-and that the variable names are mostly non‑numeric. If the opposite is true
-(i.e., time values are non‑numeric and variable names are numeric), it is
-likely that \code{invert} is mis‑specified. In that case, an explicit error is
-raised suggesting the correct \code{invert} value.
-}
+If \code{static} is specified, those columns are \strong{always} treated as
+time‑invariant, even if they contain a separator or numeric suffix. The
+function checks that they do \strong{not} conflict with the time‑varying pattern
+and raises an error if they do. Additional invariant columns (not listed in
+\code{static}) are still treated as invariant and trigger a message.
 
-The returned object has class \code{"panel_data"} and two additional attributes:
-\describe{
-\item{\code{metadata}}{List containing the function name, the entity and time
-variables, the \code{spacer}, and the \code{invert} setting. If the input was a
-\code{panel_data} object, the original metadata elements (\code{delta}, etc.)
-are preserved.}
-\item{\code{details}}{Preserved from the input if it was a \code{panel_data} object;
-otherwise an empty list.}
-}
+If \code{static} is \code{NULL}, the function automatically detects invariant columns
+and prints a message listing them, suggesting to use the \code{static} argument.
 }
 \note{
 When \code{spacer = ""}, the function assumes that all time‑varying columns have
@@ -99,6 +96,10 @@ long3 <- make_long(wide3)   # spacer and invert must match the wide format
 # Using spacer = "" (no separator)
 wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
 long4 <- make_long(wide4, spacer = "")
+
+# Explicitly declare 'region' as static (it appears as a single column)
+wide5 <- make_wide(production, index = c("firm", "year"), static = "region")
+long5 <- make_long(wide5, static = "region")
 
 }
 \seealso{

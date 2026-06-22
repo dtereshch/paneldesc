@@ -4,7 +4,7 @@
 \alias{make_wide}
 \title{Convert Panel Data from Long to Wide Format}
 \usage{
-make_wide(data, index = NULL, spacer = "_", invert = FALSE)
+make_wide(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
@@ -12,19 +12,28 @@ make_wide(data, index = NULL, spacer = "_", invert = FALSE)
 \item{index}{A character vector of length 2 specifying the names of the
 entity and time variables.}
 
+\item{static}{A character vector of variable names that are time‑invariant.
+Default is \code{NULL}, meaning no variables are treated as static.
+If provided, the function verifies that each variable is indeed
+constant over time for each entity (ignoring \code{NA} values) and raises
+an error if any are not. Variables listed here are not reshaped.}
+
 \item{spacer}{A character string to insert between variable names and time
-values in the wide format column names. Default = "_".}
+values in the wide format column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating whether to put time values before
 variable names in column names. If \code{FALSE} (default), column names
 are \code{"variable_spacer_time"}; if \code{TRUE}, they are \code{"time_spacer_variable"}.}
 }
 \value{
-A data frame in wide format, with one row per entity.
+A data frame in wide format, with one row per entity.  The returned
+object has class \code{"panel_data"} and appropriate attributes.
 }
 \description{
 This function reshapes panel data from long format to wide format,
-creating separate columns for each time period.
+creating separate columns for each time period.  Time‑invariant variables
+can be specified via the \code{static} argument; they will appear as single
+columns rather than being expanded over time.
 }
 \details{
 The function performs the following steps:
@@ -37,14 +46,20 @@ originate from panel attributes).
 \item The data are reshaped to wide format using \code{stats::reshape()}.
 }
 
-The returned object has class \code{"panel_data"} and two additional attributes:
-\describe{
-\item{\code{metadata}}{List containing the function name, the entity and time
-variables, the \code{spacer}, and the \code{invert} setting. If the input was a
-\code{panel_data} object, the original metadata elements (\code{delta}, etc.)
-are preserved.}
-\item{\code{details}}{Preserved from the input if it was a \code{panel_data} object;
-otherwise an empty list.}
+If \code{static} is specified:
+\itemize{
+\item Variables in \code{static} are checked for time‑invariance.  \code{NA} values are
+ignored when checking uniqueness.
+\item These variables are excluded from the reshaping and are later merged back
+as single columns (one per entity).
+\item If any other variable is also time‑invariant, a message is printed.
+}
+
+If \code{static} is \code{NULL}:
+\itemize{
+\item All variables (except entity and time) are checked for time‑invariance.
+\item Any detected invariant variables trigger a message suggesting the use of
+the \code{static} argument.
 }
 }
 \note{
@@ -60,6 +75,11 @@ data(production)
 # Basic conversion
 wide <- make_wide(production, index = c("firm", "year"))
 head(wide)
+
+# Treat 'region' as time-invariant
+wide_static <- make_wide(production, index = c("firm", "year"),
+                         static = "region")
+names(wide_static)  # 'region' appears without a time suffix
 
 # With panel_data object
 panel <- make_panel(production, index = c("firm", "year"))

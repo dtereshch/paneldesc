@@ -1,18 +1,26 @@
 #' Convert Panel Data from Long to Wide Format
 #'
 #' This function reshapes panel data from long format to wide format,
-#' creating separate columns for each time period.
+#' creating separate columns for each time period.  Time‑invariant variables
+#' can be specified via the `static` argument; they will appear as single
+#' columns rather than being expanded over time.
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the
 #'        entity and time variables.
+#' @param static A character vector of variable names that are time‑invariant.
+#'        Default is `NULL`, meaning no variables are treated as static.
+#'        If provided, the function verifies that each variable is indeed
+#'        constant over time for each entity (ignoring `NA` values) and raises
+#'        an error if any are not. Variables listed here are not reshaped.
 #' @param spacer A character string to insert between variable names and time
-#'        values in the wide format column names. Default = "_".
+#'        values in the wide format column names. Default = `"_"`.
 #' @param invert A logical flag indicating whether to put time values before
 #'        variable names in column names. If `FALSE` (default), column names
 #'        are `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
 #'
-#' @return A data frame in wide format, with one row per entity.
+#' @return A data frame in wide format, with one row per entity.  The returned
+#'         object has class `"panel_data"` and appropriate attributes.
 #'
 #' @details
 #' The function performs the following steps:
@@ -23,15 +31,17 @@
 #'   originate from panel attributes).
 #' * The data are reshaped to wide format using `stats::reshape()`.
 #'
-#' The returned object has class `"panel_data"` and two additional attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name, the entity and time
-#'         variables, the `spacer`, and the `invert` setting. If the input was a
-#'         `panel_data` object, the original metadata elements (`delta`, etc.)
-#'         are preserved.}
-#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
-#'         otherwise an empty list.}
-#' }
+#' If `static` is specified:
+#' * Variables in `static` are checked for time‑invariance.  `NA` values are
+#'   ignored when checking uniqueness.
+#' * These variables are excluded from the reshaping and are later merged back
+#'   as single columns (one per entity).
+#' * If any other variable is also time‑invariant, a message is printed.
+#'
+#' If `static` is `NULL`:
+#' * All variables (except entity and time) are checked for time‑invariance.
+#' * Any detected invariant variables trigger a message suggesting the use of
+#'   the `static` argument.
 #'
 #' @note
 #' The function works for standard atomic types (logical, integer, double,
@@ -50,6 +60,11 @@
 #' wide <- make_wide(production, index = c("firm", "year"))
 #' head(wide)
 #'
+#' # Treat 'region' as time-invariant
+#' wide_static <- make_wide(production, index = c("firm", "year"),
+#'                          static = "region")
+#' names(wide_static)  # 'region' appears without a time suffix
+#'
 #' # With panel_data object
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' wide2 <- make_wide(panel)
@@ -60,7 +75,13 @@
 #' names(wide3)
 #'
 #' @export
-make_wide <- function(data, index = NULL, spacer = "_", invert = FALSE) {
+make_wide <- function(
+  data,
+  index = NULL,
+  static = NULL,
+  spacer = "_",
+  invert = FALSE
+) {
   # --- Input validation ---
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1], call. = FALSE)
@@ -183,47 +204,151 @@ make_wide <- function(data, index = NULL, spacer = "_", invert = FALSE) {
         example_str
       )
       msg_printed <- TRUE
-      # Note: reshape will error if duplicates exist; we let it handle.
+    }
+  }
+
+  # --- Helper function to check time-invariance (ignoring NAs) ---
+  check_invariant <- function(var, data, entity_var) {
+    vals <- data[[var]]
+    entities <- data[[entity_var]]
+    # For each entity, get unique non-NA values; if any entity has >1 unique, not invariant
+    uniq_per_entity <- tapply(vals, entities, function(x) unique(x[!is.na(x)]))
+    any_multiple <- any(sapply(uniq_per_entity, length) > 1)
+    return(!any_multiple)
+  }
+
+  # --- Validate and process 'static' ---
+  if (!is.null(static)) {
+    if (!is.character(static)) {
+      stop("'static' must be a character vector", call. = FALSE)
+    }
+    if (any(static %in% c(entity_var, time_var))) {
+      stop("Static variables cannot be entity or time variables", call. = FALSE)
+    }
+    missing_static <- setdiff(static, names(data))
+    if (length(missing_static) > 0) {
+      stop(
+        "Static variable(s) not found in data: ",
+        paste(missing_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Check invariance for each static variable
+    invariant_check <- sapply(static, function(v) {
+      check_invariant(v, data, entity_var)
+    })
+    if (!all(invariant_check)) {
+      non_invariant <- static[!invariant_check]
+      stop(
+        "The following static variables are not time-invariant: ",
+        paste(non_invariant, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
+  # --- Detect and report time-invariant variables ---
+  all_vars <- setdiff(names(data), c(entity_var, time_var))
+
+  if (is.null(static)) {
+    # Check all variables
+    invars <- all_vars[sapply(
+      all_vars,
+      check_invariant,
+      data = data,
+      entity_var = entity_var
+    )]
+    if (length(invars) > 0) {
+      message(
+        "Time-invariant variables detected: ",
+        paste(invars, collapse = ", "),
+        ". Consider using 'static' argument."
+      )
+      msg_printed <- TRUE
+    }
+  } else {
+    # Check variables not in static
+    other_vars <- setdiff(all_vars, static)
+    additional <- other_vars[sapply(
+      other_vars,
+      check_invariant,
+      data = data,
+      entity_var = entity_var
+    )]
+    if (length(additional) > 0) {
+      message(
+        "Additional time-invariant variables detected: ",
+        paste(additional, collapse = ", "),
+        ". Consider updating 'static' argument."
+      )
+      msg_printed <- TRUE
     }
   }
 
   # --- Prepare for reshaping ---
-  varying_vars <- setdiff(names(data), c(entity_var, time_var))
-
-  if (length(varying_vars) == 0) {
-    stop("No variables to reshape (only entity and time found)", call. = FALSE)
+  if (is.null(static)) {
+    varying_vars <- all_vars
+  } else {
+    varying_vars <- setdiff(all_vars, static)
   }
 
-  # --- Perform reshape using base R reshape() ---
-  # Use a temporary separator that is very unlikely to appear in column names.
-  # stats::reshape with direction = "wide" creates names like "var.time".
-  # We'll rename afterward.
-  wide <- stats::reshape(
-    data,
-    direction = "wide",
-    idvar = entity_var,
-    timevar = time_var,
-    v.names = varying_vars,
-    sep = "__TEMP__"
-  )
-
-  # --- Rename columns: replace __TEMP__ with spacer, optionally invert ---
-  new_names <- names(wide)
-  for (i in seq_along(new_names)) {
-    nm <- new_names[i]
-    if (grepl("__TEMP__", nm)) {
-      parts <- strsplit(nm, "__TEMP__")[[1]]
-      var_part <- parts[1]
-      time_part <- parts[2]
-      if (invert) {
-        new_names[i] <- paste0(time_part, spacer, var_part)
-      } else {
-        new_names[i] <- paste0(var_part, spacer, time_part)
+  # --- Perform reshape ---
+  if (length(varying_vars) == 0) {
+    # No time-varying variables; build wide directly from entity and static columns
+    if (is.null(static)) {
+      # No static either -> only entity and time; error as original
+      stop(
+        "No variables to reshape (only entity and time found)",
+        call. = FALSE
+      )
+    } else {
+      # Take one row per entity with entity and static columns
+      wide <- data[
+        !duplicated(data[[entity_var]]),
+        c(entity_var, static),
+        drop = FALSE
+      ]
+      rownames(wide) <- NULL
+      # No renaming needed
+    }
+  } else {
+    # Standard reshape
+    wide <- stats::reshape(
+      data,
+      direction = "wide",
+      idvar = entity_var,
+      timevar = time_var,
+      v.names = varying_vars,
+      sep = "__TEMP__"
+    )
+    # Rename columns: replace __TEMP__ with spacer, optionally invert
+    new_names <- names(wide)
+    for (i in seq_along(new_names)) {
+      nm <- new_names[i]
+      if (grepl("__TEMP__", nm)) {
+        parts <- strsplit(nm, "__TEMP__")[[1]]
+        var_part <- parts[1]
+        time_part <- parts[2]
+        if (invert) {
+          new_names[i] <- paste0(time_part, spacer, var_part)
+        } else {
+          new_names[i] <- paste0(var_part, spacer, time_part)
+        }
       }
     }
+    names(wide) <- new_names
+    rownames(wide) <- NULL
+
+    # If static variables are given, merge them back
+    if (!is.null(static)) {
+      static_data <- data[
+        !duplicated(data[[entity_var]]),
+        c(entity_var, static),
+        drop = FALSE
+      ]
+      wide <- merge(wide, static_data, by = entity_var, all.x = TRUE)
+    }
   }
-  names(wide) <- new_names
-  rownames(wide) <- NULL
 
   # --- Build metadata attribute ---
   if (keep_panel_class) {
@@ -231,6 +356,7 @@ make_wide <- function(data, index = NULL, spacer = "_", invert = FALSE) {
     new_metadata$function_name <- "make_wide"
     new_metadata$spacer <- spacer
     new_metadata$invert <- invert
+    if (!is.null(static)) new_metadata$static <- static
   } else {
     new_metadata <- list(
       function_name = "make_wide",
@@ -239,6 +365,7 @@ make_wide <- function(data, index = NULL, spacer = "_", invert = FALSE) {
       spacer = spacer,
       invert = invert
     )
+    if (!is.null(static)) new_metadata$static <- static
   }
 
   # --- Build details attribute (preserve original if any) ---
