@@ -5,7 +5,7 @@
 \alias{production}
 \title{Simulated Unbalanced Panel Data for Cobb-Douglas Production Function Analysis}
 \format{
-A data frame with 180 rows (30 firms × 6 years) and 7 variables:
+A data frame with 180 rows (30 firms × 6 years) and 8 variables:
 \describe{
 \item{firm}{integer; firm identifier (1 to 30)}
 \item{year}{integer; year identifier (1 to 6)}
@@ -24,6 +24,8 @@ industry over time.}
 \item{ownership}{factor; ownership type with three levels:
 "private", "public", "mixed". The variable is stable over
 time but changes with a probability of 5\% per year.}
+\item{region}{factor; region affiliation with four levels:
+"west", "east", "north", "south". Time-invariant for each firm.}
 }
 }
 \source{

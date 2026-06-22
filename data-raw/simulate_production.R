@@ -97,6 +97,20 @@ for (firm_id in firms_that_change) {
   }
 }
 
+# Assign region to each firm (time-invariant, factor with 4 levels)
+region_levels <- c("west", "east", "north", "south")
+region_probs <- c(0.25, 0.25, 0.25, 0.25) # Equal probabilities
+firm_regions <- sample(
+  region_levels,
+  n_firms,
+  replace = TRUE,
+  prob = region_probs
+)
+panel_data$region <- factor(
+  rep(firm_regions, each = n_years),
+  levels = region_levels
+)
+
 # True Cobb-Douglas parameters (can vary by industry)
 alpha_values <- c(0.25, 0.35, 0.3) # Different capital elasticities by industry
 beta_values <- c(0.65, 0.55, 0.6) # Different labor elasticities by industry
@@ -147,6 +161,7 @@ panel_data$sales[!panel_data$active] <- NA
 panel_data$capital[!panel_data$active] <- NA
 panel_data$labor[!panel_data$active] <- NA
 panel_data$industry[!panel_data$active] <- NA
+panel_data$region[!panel_data$active] <- NA
 
 # Add random missing values (approximately 2% of remaining non-NA values)
 non_na_indices <- which(panel_data$active)
@@ -172,9 +187,7 @@ labor_na_indices <- sample(
 )
 panel_data$labor[labor_na_indices] <- NA
 
-# ------------------------------------------------------------
 # Generate ownership variable (stable but with occasional changes)
-# ------------------------------------------------------------
 ownership_levels <- c("private", "public", "mixed")
 # Initial ownership probabilities (can be adjusted)
 ownership_probs <- c(0.5, 0.3, 0.2)
@@ -205,10 +218,7 @@ for (f in 1:n_firms) {
 # Set ownership to NA for inactive periods
 panel_data$ownership[!panel_data$active] <- NA
 
-# Also set ownership to NA for the random missing positions?
-# We didn't explicitly add random NAs for ownership, but it's okay as is.
-
-# Remove the 'active' column and reorder
+# Remove the 'active' column and reorder, now including 'region'
 production <- panel_data[, c(
   "firm",
   "year",
@@ -216,7 +226,8 @@ production <- panel_data[, c(
   "capital",
   "labor",
   "industry",
-  "ownership"
+  "ownership",
+  "region"
 )]
 
 # Sort by firm and year
