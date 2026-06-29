@@ -49,8 +49,9 @@ the \code{panel_data} class and its attributes.
 \item One group: \code{x - mean(x | group)} (exact, using \code{ave} with \code{na.rm = TRUE}).
 \item Two or more groups: iterative Gauss–Seidel algorithm (alternating
 projections). This matches the \code{fixest} fixed‑effect residuals exactly,
-even for unbalanced panels. The algorithm runs up to 100 iterations with
-tolerance 1e-12; a warning is issued if convergence is not reached.
+even for unbalanced panels. The algorithm runs up to \strong{2000 iterations} with
+tolerance \strong{1e‑6} (matching the defaults of \code{fixest::demean()}); a warning
+is issued if convergence is not reached.
 }
 
 The returned object has a \code{metadata} attribute and a \code{details} attribute:

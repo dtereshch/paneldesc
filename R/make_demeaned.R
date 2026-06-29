@@ -36,8 +36,9 @@
 #' * One group: `x - mean(x | group)` (exact, using `ave` with `na.rm = TRUE`).
 #' * Two or more groups: iterative Gauss–Seidel algorithm (alternating
 #'   projections). This matches the `fixest` fixed‑effect residuals exactly,
-#'   even for unbalanced panels. The algorithm runs up to 100 iterations with
-#'   tolerance 1e-12; a warning is issued if convergence is not reached.
+#'   even for unbalanced panels. The algorithm runs up to **2000 iterations** with
+#'   tolerance **1e‑6** (matching the defaults of `fixest::demean()`); a warning
+#'   is issued if convergence is not reached.
 #'
 #' The returned object has a `metadata` attribute and a `details` attribute:
 #' \describe{
@@ -208,8 +209,8 @@ make_demeaned <- function(data, group = NULL) {
       # This matches fixest for any number of groups, including two (unbalanced).
       for (var in demean_vars) {
         resid <- data[[var]]
-        max_iter <- 100
-        tol <- 1e-12
+        max_iter <- 2000
+        tol <- 1e-6
         converged <- FALSE
         for (iter in 1:max_iter) {
           old_resid <- resid
