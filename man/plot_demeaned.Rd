@@ -24,24 +24,16 @@ fills the points and the second colour is used for the point borders.
 Default = \code{c("darkblue", "white")}.}
 }
 \value{
-Invisibly returns a list with the following components:
-\describe{
-\item{\code{metadata}}{List containing the function name, the selected
-variable(s), the grouping variable(s) used, and the colours.}
-\item{\code{details}}{List containing the demeaned data. For a single
-variable, this is a numeric vector of demeaned values. For two
-variables, it is a data frame with columns \code{x} and \code{y}
-containing the demeaned values.}
-}
+A list with metadata and details components (invisibly).
 }
 \description{
 This function demeaens the selected numeric variable(s) using the same
-within-group demeaning procedure as \code{\link{make_demeaned}} and creates
+within-group demeaning procedure as \code{\link[=make_demeaned]{make_demeaned()}} and creates
 a visualization. For a single variable, a histogram of the demeaned values
 is drawn. For two variables, a scatterplot of the demeaned values is drawn.
 }
 \details{
-The demeaning is performed by calling \code{\link{make_demeaned}} internally.
+The demeaning is performed by calling \code{\link[=make_demeaned]{make_demeaned()}} internally.
 Therefore all features of that function are available: handling of
 \code{panel_data} objects, iterative projection for multiple groups,
 and removal of rows with missing values in the grouping variables.
@@ -52,6 +44,16 @@ If no valid observations remain after removal, an error is thrown.
 Only the selected variable(s) and the grouping variables are passed to
 \code{make_demeaned}, so no other numeric variables in the original data
 are demeaned or cause message output.
+
+The returned list contains:
+\describe{
+\item{\code{metadata}}{List containing the function name, the selected
+variable(s), the grouping variable(s) used, and the colours.}
+\item{\code{details}}{List containing the demeaned data. For a single
+variable, this is a numeric vector of demeaned values. For two
+variables, it is a data frame with columns \code{x} and \code{y}
+containing the demeaned values.}
+}
 }
 \examples{
 data(production)

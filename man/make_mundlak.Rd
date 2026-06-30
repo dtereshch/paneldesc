@@ -15,12 +15,7 @@ entity and time variables are extracted from the metadata and used as
 grouping variables. Otherwise, an error is thrown.}
 }
 \value{
-The input data frame with new columns for each combination of numeric
-variable (excluding the grouping variables) and each grouping variable.
-The new columns are named \verb{<var>_mean_<group>}. Rows with missing
-values in the grouping variables are removed. If the input was a
-\code{panel_data} object and \code{group} was not specified, the returned
-object retains the \code{panel_data} class and its attributes.
+The input data frame with additional columns for group means.
 }
 \description{
 This function adds group means of numeric variables to a data frame, which can

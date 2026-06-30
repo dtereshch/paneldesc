@@ -6,15 +6,17 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the
 #'        entity and time variables.
-#' @param static A character vector of variable names that are time‑invariant.
-#'        Default is `NULL`. If provided, the function verifies invariance and
-#'        excludes these variables from reshaping – they appear as single columns
-#'        in the wide output.
+#' @param static A character vector of variable names that are time-invariant.
+#'        If not specified, the function will automatically detect time-invariant
+#'        variables and include them as single columns in the wide output.
+#'        If provided, the function verifies invariance and excludes these
+#'        variables from reshaping – they appear as single columns.
 #' @param spacer A character string to insert between variable names and time
 #'        values in the wide format column names. Default = "_".
 #' @param invert A logical flag indicating whether to put time values before
-#'        variable names in column names. If `FALSE` (default), column names
-#'        are `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
+#'        variable names in column names. If `FALSE`, column names are
+#'        `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
+#'        Default = FALSE.
 #'
 #' @return A data frame in wide format, with one row per entity.
 #'
@@ -23,7 +25,7 @@
 #' * If `data` has panel attributes and `index` is not specified, the entity
 #'   and time variables are taken from the metadata.
 #' * Rows with missing values in entity or time variables are removed.
-#' * Duplicate entity‑time combinations are detected and reported (unless they
+#' * Duplicate entity-time combinations are detected and reported (unless they
 #'   originate from panel attributes).
 #' * The data are reshaped to wide format using `stats::reshape()`.
 #'
@@ -39,7 +41,7 @@
 #'
 #' @note
 #' The function works for standard atomic types (logical, integer, double,
-#' complex, character, raw) and for factors. However, non‑standard column types
+#' complex, character, raw) and for factors. However, non-standard column types
 #' such as `Date`, `POSIXct`, or custom S3/S4 classes may lose their special
 #' attributes during reshaping. Duplicate entity-time combinations must be
 #' resolved beforehand; the function will issue a message but does not aggregate.

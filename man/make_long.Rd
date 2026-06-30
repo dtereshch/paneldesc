@@ -13,34 +13,31 @@ make_long(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 entity column (first element) and the name to give to the new time
 column in the long format (second element).}
 
-\item{static}{A character vector of variable names that are time‑invariant.
-Default is \code{NULL}, meaning the function will automatically detect
-columns that do not contain the time separator (or numeric suffix).
-If provided, the function verifies that these columns do \strong{not} match
-the time‑varying pattern (otherwise an error is raised). Any other
+\item{static}{A character vector of variable names that are time-invariant.
+If not specified, the function will automatically detect columns that
+do not contain the time separator (or numeric suffix). If provided,
+the function verifies that these columns do \strong{not} match the
+time-varying pattern (otherwise an error is raised). Any other
 columns that also appear invariant will trigger a message.}
 
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = \code{"_"}.}
+values in the wide column names. Default = "_".}
 
 \item{invert}{A logical flag indicating the order of components in column
-names. If \code{FALSE} (default), column names are
-\code{"variable_spacer_time"} (or \code{"variable"} + \code{time} when \code{spacer = ""});
-if \code{TRUE}, they are \code{"time_spacer_variable"} (or \code{time} + \code{"variable"}
-when \code{spacer = ""}). Must match the structure of the input data.}
+names. If \code{FALSE}, column names are \code{"variable_spacer_time"} (or
+\code{"variable"} + \code{time} when \code{spacer = ""}); if \code{TRUE}, they are
+\code{"time_spacer_variable"} (or \code{time} + \code{"variable"} when \code{spacer = ""}).
+Must match the structure of the input data. Default = FALSE.}
 }
 \value{
-A data frame in long format, with one row per entity‑time combination
-that appears in the data. For unbalanced panels, if an entity has
-no time‑varying data for a given period, the invariant columns are
-set to \code{NA} for that row.
+A data frame in long format.
 }
 \description{
 This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
-Columns that are time‑invariant (not split by time) are replicated for each
-time period, \strong{unless} a particular entity‑time combination has no
-time‑varying data at all—in which case the invariant columns are set to \code{NA}
+Columns that are time-invariant (not split by time) are replicated for each
+time period, \strong{unless} a particular entity-time combination has no
+time-varying data at all—in which case the invariant columns are set to \code{NA}
 to reflect a truly missing observation.
 }
 \details{
@@ -52,7 +49,7 @@ are taken from the metadata. \strong{Note:} \code{spacer} and \code{invert} are 
 taken from the metadata; they must be supplied explicitly or use the
 function defaults.
 \item Columns that do not contain the \code{spacer} (or do not match the expected
-pattern when \code{spacer = ""}) are treated as time‑constant and are replicated
+pattern when \code{spacer = ""}) are treated as time-constant and are replicated
 for each time period.
 \item Columns that match the pattern are split into variable names and time
 values; the set of unique time values defines the periods.
@@ -60,8 +57,8 @@ values; the set of unique time values defines the periods.
 }
 
 If \code{static} is specified, those columns are \strong{always} treated as
-time‑invariant, even if they contain a separator or numeric suffix. The
-function checks that they do \strong{not} conflict with the time‑varying pattern
+time-invariant, even if they contain a separator or numeric suffix. The
+function checks that they do \strong{not} conflict with the time-varying pattern
 and raises an error if they do. Additional invariant columns (not listed in
 \code{static}) are still treated as invariant and trigger a message.
 
@@ -69,14 +66,14 @@ If \code{static} is \code{NULL}, the function automatically detects invariant co
 and prints a message listing them, suggesting to use the \code{static} argument.
 
 \strong{Unbalanced panels:}
-After reshaping, the function checks each entity‑time row. If \strong{all} time‑varying
+After reshaping, the function checks each entity-time row. If \strong{all} time-varying
 columns are \code{NA} for that row, the invariant columns (including those in \code{static})
 are set to \code{NA} as well. This ensures that a period with no observed variation
 is treated as completely missing, rather than erroneously carrying forward
 constant attributes.
 }
 \note{
-When \code{spacer = ""}, the function assumes that all time‑varying columns have
+When \code{spacer = ""}, the function assumes that all time-varying columns have
 a numeric suffix (if \code{invert = FALSE}) or numeric prefix (if \code{invert = TRUE})
 that represents the time period. The consistency checks for separator
 ambiguity are skipped for \code{spacer = ""} because there is no separator to compare,
@@ -84,7 +81,7 @@ but the \code{invert} correctness check still applies.
 
 The function assumes that all time-varying columns follow a consistent naming
 pattern and that every variable appears for exactly the same set of time
-periods (balanced in the wide sense). If some variable‑time combinations are
+periods (balanced in the wide sense). If some variable-time combinations are
 missing, a message is printed and those variables are omitted.
 }
 \examples{

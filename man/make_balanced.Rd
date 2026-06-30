@@ -32,7 +32,7 @@ similar to \code{\link[=make_panel]{make_panel()}}.
 
 \strong{Balancing methods:}
 \describe{
-\item{\code{balance = "rows"}}{Create a row for every entity‑time combination.
+\item{\code{balance = "rows"}}{Create a row for every entity-time combination.
 If \code{delta} is supplied, the full time sequence (including missing periods)
 is used. Missing combinations get \code{NA} in all other columns.}
 \item{\code{balance = "entities"}}{Keep only entities present in \strong{all} time periods.}
@@ -72,5 +72,6 @@ balanced_rows_delta <- make_balanced(production, index = c("firm", "year"), delt
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=describe_dimensions]{describe_dimensions()}}, \code{\link[=describe_balance]{describe_balance()}}.
+See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=describe_dimensions]{describe_dimensions()}},
+\code{\link[=describe_balance]{describe_balance()}}.
 }

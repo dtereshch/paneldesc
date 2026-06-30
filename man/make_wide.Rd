@@ -12,17 +12,19 @@ make_wide(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 \item{index}{A character vector of length 2 specifying the names of the
 entity and time variables.}
 
-\item{static}{A character vector of variable names that are time‑invariant.
-Default is \code{NULL}. If provided, the function verifies invariance and
-excludes these variables from reshaping – they appear as single columns
-in the wide output.}
+\item{static}{A character vector of variable names that are time-invariant.
+If not specified, the function will automatically detect time-invariant
+variables and include them as single columns in the wide output.
+If provided, the function verifies invariance and excludes these
+variables from reshaping – they appear as single columns.}
 
 \item{spacer}{A character string to insert between variable names and time
 values in the wide format column names. Default = "_".}
 
 \item{invert}{A logical flag indicating whether to put time values before
-variable names in column names. If \code{FALSE} (default), column names
-are \code{"variable_spacer_time"}; if \code{TRUE}, they are \code{"time_spacer_variable"}.}
+variable names in column names. If \code{FALSE}, column names are
+\code{"variable_spacer_time"}; if \code{TRUE}, they are \code{"time_spacer_variable"}.
+Default = FALSE.}
 }
 \value{
 A data frame in wide format, with one row per entity.
@@ -37,7 +39,7 @@ The function performs the following steps:
 \item If \code{data} has panel attributes and \code{index} is not specified, the entity
 and time variables are taken from the metadata.
 \item Rows with missing values in entity or time variables are removed.
-\item Duplicate entity‑time combinations are detected and reported (unless they
+\item Duplicate entity-time combinations are detected and reported (unless they
 originate from panel attributes).
 \item The data are reshaped to wide format using \code{stats::reshape()}.
 }
@@ -54,7 +56,7 @@ otherwise an empty list.}
 }
 \note{
 The function works for standard atomic types (logical, integer, double,
-complex, character, raw) and for factors. However, non‑standard column types
+complex, character, raw) and for factors. However, non-standard column types
 such as \code{Date}, \code{POSIXct}, or custom S3/S4 classes may lose their special
 attributes during reshaping. Duplicate entity-time combinations must be
 resolved beforehand; the function will issue a message but does not aggregate.

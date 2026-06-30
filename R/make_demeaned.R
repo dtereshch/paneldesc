@@ -3,7 +3,7 @@
 #' This function performs within-group demeaning (centering) for all numeric
 #' variables in a data frame. For each group defined by the `group` argument,
 #' the group mean is subtracted from each observation. If no grouping is
-#' provided, the overall mean is subtracted (grand mean centering). Non‑numeric
+#' provided, the overall mean is subtracted (grand mean centering). Non-numeric
 #' variables are not demeaned and are returned unchanged.
 #'
 #' @param data A data.frame containing the variables to be demeaned.
@@ -13,9 +13,7 @@
 #'        is performed.
 #'
 #' @return The input data frame with all numeric variables replaced by their
-#'         demeaned versions. Rows with missing values in the grouping variables
-#'         are removed. Missing values in numeric variables are left untouched,
-#'         and group means are computed ignoring `NA`s.
+#'         demeaned versions.
 #'
 #' @details
 #' * If `group` is not specified and `data` is **not** a `panel_data` object,
@@ -30,14 +28,14 @@
 #'   function automatically uses the entity and time variables stored in the
 #'   `metadata` attribute as grouping variables, and the returned object retains
 #'   the `panel_data` class and its attributes.
-#' * Non‑numeric variables are not demeaned and are returned unchanged.
+#' * Non-numeric variables are not demeaned and are returned unchanged.
 #'
 #' **Demeaning algorithms:**
 #' * One group: `x - mean(x | group)` (exact, using `ave` with `na.rm = TRUE`).
 #' * Two or more groups: iterative Gauss–Seidel algorithm (alternating
-#'   projections). This matches the `fixest` fixed‑effect residuals exactly,
+#'   projections). This matches the `fixest` fixed-effect residuals exactly,
 #'   even for unbalanced panels. The algorithm runs up to **2000 iterations** with
-#'   tolerance **1e‑6** (matching the defaults of `fixest::demean()`); a warning
+#'   tolerance **1e-6** (matching the defaults of `fixest::demean()`); a warning
 #'   is issued if convergence is not reached.
 #'
 #' The returned object has a `metadata` attribute and a `details` attribute:

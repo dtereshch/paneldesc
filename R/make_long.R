@@ -2,33 +2,30 @@
 #'
 #' This function reshapes panel data from wide format to long format,
 #' stacking time-varying columns into rows based on the pattern of column names.
-#' Columns that are time‑invariant (not split by time) are replicated for each
-#' time period, **unless** a particular entity‑time combination has no
-#' time‑varying data at all—in which case the invariant columns are set to `NA`
+#' Columns that are time-invariant (not split by time) are replicated for each
+#' time period, **unless** a particular entity-time combination has no
+#' time-varying data at all—in which case the invariant columns are set to `NA`
 #' to reflect a truly missing observation.
 #'
 #' @param data A data.frame containing panel data in a wide format.
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
 #'        column in the long format (second element).
-#' @param static A character vector of variable names that are time‑invariant.
-#'        Default is `NULL`, meaning the function will automatically detect
-#'        columns that do not contain the time separator (or numeric suffix).
-#'        If provided, the function verifies that these columns do **not** match
-#'        the time‑varying pattern (otherwise an error is raised). Any other
+#' @param static A character vector of variable names that are time-invariant.
+#'        If not specified, the function will automatically detect columns that
+#'        do not contain the time separator (or numeric suffix). If provided,
+#'        the function verifies that these columns do **not** match the
+#'        time-varying pattern (otherwise an error is raised). Any other
 #'        columns that also appear invariant will trigger a message.
 #' @param spacer A character string used to separate variable names and time
-#'        values in the wide column names. Default = `"_"`.
+#'        values in the wide column names. Default = "_".
 #' @param invert A logical flag indicating the order of components in column
-#'        names. If `FALSE` (default), column names are
-#'        `"variable_spacer_time"` (or `"variable"` + `time` when `spacer = ""`);
-#'        if `TRUE`, they are `"time_spacer_variable"` (or `time` + `"variable"`
-#'        when `spacer = ""`). Must match the structure of the input data.
+#'        names. If `FALSE`, column names are `"variable_spacer_time"` (or
+#'        `"variable"` + `time` when `spacer = ""`); if `TRUE`, they are
+#'        `"time_spacer_variable"` (or `time` + `"variable"` when `spacer = ""`).
+#'        Must match the structure of the input data. Default = FALSE.
 #'
-#' @return A data frame in long format, with one row per entity‑time combination
-#'         that appears in the data. For unbalanced panels, if an entity has
-#'         no time‑varying data for a given period, the invariant columns are
-#'         set to `NA` for that row.
+#' @return A data frame in long format.
 #'
 #' @details
 #' The function performs the following steps:
@@ -38,15 +35,15 @@
 #'   taken from the metadata; they must be supplied explicitly or use the
 #'   function defaults.
 #' * Columns that do not contain the `spacer` (or do not match the expected
-#'   pattern when `spacer = ""`) are treated as time‑constant and are replicated
+#'   pattern when `spacer = ""`) are treated as time-constant and are replicated
 #'   for each time period.
 #' * Columns that match the pattern are split into variable names and time
 #'   values; the set of unique time values defines the periods.
 #' * The data are reshaped to long format using `stats::reshape()`.
 #'
 #' If `static` is specified, those columns are **always** treated as
-#' time‑invariant, even if they contain a separator or numeric suffix. The
-#' function checks that they do **not** conflict with the time‑varying pattern
+#' time-invariant, even if they contain a separator or numeric suffix. The
+#' function checks that they do **not** conflict with the time-varying pattern
 #' and raises an error if they do. Additional invariant columns (not listed in
 #' `static`) are still treated as invariant and trigger a message.
 #'
@@ -54,14 +51,14 @@
 #' and prints a message listing them, suggesting to use the `static` argument.
 #'
 #' **Unbalanced panels:**
-#' After reshaping, the function checks each entity‑time row. If **all** time‑varying
+#' After reshaping, the function checks each entity-time row. If **all** time-varying
 #' columns are `NA` for that row, the invariant columns (including those in `static`)
 #' are set to `NA` as well. This ensures that a period with no observed variation
 #' is treated as completely missing, rather than erroneously carrying forward
 #' constant attributes.
 #'
 #' @note
-#' When `spacer = ""`, the function assumes that all time‑varying columns have
+#' When `spacer = ""`, the function assumes that all time-varying columns have
 #' a numeric suffix (if `invert = FALSE`) or numeric prefix (if `invert = TRUE`)
 #' that represents the time period. The consistency checks for separator
 #' ambiguity are skipped for `spacer = ""` because there is no separator to compare,
@@ -69,7 +66,7 @@
 #'
 #' The function assumes that all time-varying columns follow a consistent naming
 #' pattern and that every variable appears for exactly the same set of time
-#' periods (balanced in the wide sense). If some variable‑time combinations are
+#' periods (balanced in the wide sense). If some variable-time combinations are
 #' missing, a message is printed and those variables are omitted.
 #'
 #' @seealso

@@ -20,7 +20,7 @@
 #'
 #' **Balancing methods:**
 #' \describe{
-#'   \item{`balance = "rows"`}{Create a row for every entity‑time combination.
+#'   \item{`balance = "rows"`}{Create a row for every entity-time combination.
 #'         If `delta` is supplied, the full time sequence (including missing periods)
 #'         is used. Missing combinations get `NA` in all other columns.}
 #'   \item{`balance = "entities"`}{Keep only entities present in **all** time periods.}
@@ -38,7 +38,8 @@
 #' unless overridden by explicit `index` or `delta` arguments.
 #'
 #' @seealso
-#' See also [make_panel()], [make_wide()], [make_long()], [describe_dimensions()], [describe_balance()].
+#' See also [make_panel()], [make_wide()], [make_long()], [describe_dimensions()],
+#' [describe_balance()].
 #'
 #' @examples
 #' data(production)

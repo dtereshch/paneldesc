@@ -1,7 +1,7 @@
 #' Plot Demeaned Variable(s)
 #'
 #' This function demeaens the selected numeric variable(s) using the same
-#' within-group demeaning procedure as \code{\link{make_demeaned}} and creates
+#' within-group demeaning procedure as [make_demeaned()] and creates
 #' a visualization. For a single variable, a histogram of the demeaned values
 #' is drawn. For two variables, a scatterplot of the demeaned values is drawn.
 #'
@@ -9,37 +9,39 @@
 #' @param select A character vector of length 1 or 2 specifying the name(s) of
 #'        the numeric variable(s) to demean and plot.
 #' @param group A character vector specifying the grouping variable(s) for
-#'        demeaning. If not specified and \code{data} has panel attributes,
+#'        demeaning. If not specified and `data` has panel attributes,
 #'        the entity and time variables are used as grouping variables.
 #'        Otherwise, overall demeaning (grand mean centering) is performed.
 #' @param colors A character vector of length 2 specifying the colours for the
 #'        plot. For a histogram, the first colour fills the bars and the second
 #'        colour is used for the bar borders. For a scatterplot, the first colour
 #'        fills the points and the second colour is used for the point borders.
-#'        Default = \code{c("darkblue", "white")}.
+#'        Default = `c("darkblue", "white")`.
 #'
-#' @return Invisibly returns a list with the following components:
-#' \describe{
-#'   \item{\code{metadata}}{List containing the function name, the selected
-#'         variable(s), the grouping variable(s) used, and the colours.}
-#'   \item{\code{details}}{List containing the demeaned data. For a single
-#'         variable, this is a numeric vector of demeaned values. For two
-#'         variables, it is a data frame with columns \code{x} and \code{y}
-#'         containing the demeaned values.}
-#' }
+#' @return A list with metadata and details components (invisibly).
 #'
 #' @details
-#' The demeaning is performed by calling \code{\link{make_demeaned}} internally.
+#' The demeaning is performed by calling [make_demeaned()] internally.
 #' Therefore all features of that function are available: handling of
-#' \code{panel_data} objects, iterative projection for multiple groups,
+#' `panel_data` objects, iterative projection for multiple groups,
 #' and removal of rows with missing values in the grouping variables.
 #'
 #' Missing values in the selected variable(s) are removed before plotting.
 #' If no valid observations remain after removal, an error is thrown.
 #'
 #' Only the selected variable(s) and the grouping variables are passed to
-#' \code{make_demeaned}, so no other numeric variables in the original data
+#' `make_demeaned`, so no other numeric variables in the original data
 #' are demeaned or cause message output.
+#'
+#' The returned list contains:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name, the selected
+#'         variable(s), the grouping variable(s) used, and the colours.}
+#'   \item{`details`}{List containing the demeaned data. For a single
+#'         variable, this is a numeric vector of demeaned values. For two
+#'         variables, it is a data frame with columns `x` and `y`
+#'         containing the demeaned values.}
+#' }
 #'
 #' @seealso
 #' See also [make_demeaned()], [plot_heterogeneity()], [decompose_numeric()]
@@ -169,7 +171,7 @@ plot_demeaned <- function(
     x <- x[!is.na(x)]
     if (length(x) == 0) {
       stop(
-        "No non‑missing observations for variable '",
+        "No non-missing observations for variable '",
         select,
         "' after demeaning.",
         call. = FALSE

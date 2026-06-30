@@ -16,15 +16,13 @@ is performed.}
 }
 \value{
 The input data frame with all numeric variables replaced by their
-demeaned versions. Rows with missing values in the grouping variables
-are removed. Missing values in numeric variables are left untouched,
-and group means are computed ignoring \code{NA}s.
+demeaned versions.
 }
 \description{
 This function performs within-group demeaning (centering) for all numeric
 variables in a data frame. For each group defined by the \code{group} argument,
 the group mean is subtracted from each observation. If no grouping is
-provided, the overall mean is subtracted (grand mean centering). Non‑numeric
+provided, the overall mean is subtracted (grand mean centering). Non-numeric
 variables are not demeaned and are returned unchanged.
 }
 \details{
@@ -41,16 +39,16 @@ the user should handle them prior to calling this function if desired.
 function automatically uses the entity and time variables stored in the
 \code{metadata} attribute as grouping variables, and the returned object retains
 the \code{panel_data} class and its attributes.
-\item Non‑numeric variables are not demeaned and are returned unchanged.
+\item Non-numeric variables are not demeaned and are returned unchanged.
 }
 
 \strong{Demeaning algorithms:}
 \itemize{
 \item One group: \code{x - mean(x | group)} (exact, using \code{ave} with \code{na.rm = TRUE}).
 \item Two or more groups: iterative Gauss–Seidel algorithm (alternating
-projections). This matches the \code{fixest} fixed‑effect residuals exactly,
+projections). This matches the \code{fixest} fixed-effect residuals exactly,
 even for unbalanced panels. The algorithm runs up to \strong{2000 iterations} with
-tolerance \strong{1e‑6} (matching the defaults of \code{fixest::demean()}); a warning
+tolerance \strong{1e-6} (matching the defaults of \code{fixest::demean()}); a warning
 is issued if convergence is not reached.
 }
 
