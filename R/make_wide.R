@@ -276,36 +276,42 @@ make_wide <- function(
     }
   }
 
-  # --- Prepare for reshaping ---
-  if (is.null(static)) {
-    varying_vars <- all_vars
+  # --- Prepare data for reshaping ---
+  # If static is provided, we extract those columns (one row per entity) and
+  # drop them from the data frame that goes into reshape().
+  if (!is.null(static)) {
+    # Get unique entity-static pairs (first occurrence per entity)
+    static_data <- data[
+      !duplicated(data[[entity_var]]),
+      c(entity_var, static),
+      drop = FALSE
+    ]
+    # Remove static columns from the data passed to reshape
+    data_for_reshape <- data[, setdiff(names(data), static), drop = FALSE]
   } else {
-    varying_vars <- setdiff(all_vars, static)
+    data_for_reshape <- data
   }
+
+  # Identify varying variables in the reduced data (all except entity and time)
+  varying_vars <- setdiff(names(data_for_reshape), c(entity_var, time_var))
 
   # --- Perform reshape ---
   if (length(varying_vars) == 0) {
-    # No time-varying variables; build wide directly from entity and static columns
+    # No time-varying variables
     if (is.null(static)) {
-      # No static either -> only entity and time; error as original
       stop(
         "No variables to reshape (only entity and time found)",
         call. = FALSE
       )
     } else {
-      # Take one row per entity with entity and static columns
-      wide <- data[
-        !duplicated(data[[entity_var]]),
-        c(entity_var, static),
-        drop = FALSE
-      ]
+      # Only static columns exist; return entity + static
+      wide <- static_data
       rownames(wide) <- NULL
-      # No renaming needed
     }
   } else {
-    # Standard reshape
+    # Reshape the reduced data
     wide <- stats::reshape(
-      data,
+      data_for_reshape,
       direction = "wide",
       idvar = entity_var,
       timevar = time_var,
@@ -330,8 +336,13 @@ make_wide <- function(
     names(wide) <- new_names
     rownames(wide) <- NULL
 
-    # Static variables are already present as single columns (since they were
-    # excluded from `v.names`), so no merging is required.
+    # If static columns were provided, merge them back
+    if (!is.null(static)) {
+      wide <- merge(wide, static_data, by = entity_var, all.x = TRUE)
+      # Reorder columns: entity first, then time-varying, then static
+      time_varying_cols <- setdiff(names(wide), c(entity_var, static))
+      wide <- wide[, c(entity_var, time_varying_cols, static), drop = FALSE]
+    }
   }
 
   # --- Build metadata attribute ---
