@@ -69,7 +69,7 @@ To avoid repeatedly specifying the entity and time variables (firm and year), we
 panel <- make_panel(production, index = c("firm", "year"))
 ```
 
-Since our data now has panel attributes, the entity and time variables will be automatically used as panel identifiers or grouping variables. Alternatively, one can explicitly specify `index` or `group` argument of each function.
+Since our data now has panel attributes, the `firm` and `year` variables will be automatically used as panel identifiers or grouping variables. Alternatively, one can explicitly specify `index` or `group` argument of each function.
 
 ## Panel data structure analysis
 
