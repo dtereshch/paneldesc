@@ -82,5 +82,5 @@ panel_demeaned <- make_demeaned(panel)
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_long]{make_long()}}.
+See also \code{\link[=plot_demeaned]{plot_demeaned()}}, \code{\link[=make_mundlak]{make_mundlak()}}, \code{\link[=make_panel]{make_panel()}}.
 }

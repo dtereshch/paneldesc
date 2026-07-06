@@ -50,7 +50,7 @@
 #' }
 #'
 #' @seealso
-#' See also [make_panel()], [make_balanced()], [make_wide()], [make_long()].
+#' See also [plot_demeaned()], [make_mundlak()], [make_panel()].
 #'
 #' @examples
 #' data(production)
