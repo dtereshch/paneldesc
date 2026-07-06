@@ -1,0 +1,122 @@
+---
+title: "Panel Data Processing with paneldesc"
+author: "Dmitrii Tereshchenko"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Panel Data Processing with paneldesc}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width   = 7.5,
+  fig.height  = 5
+)
+```
+
+Although the `paneldesc` package is primarily focused on descriptive analysis and panel data exploration, it also includes a set of functions for processing panel data. It may be relevant because sometimes data transformations are necessary for full analysis.
+This vignette presents the main capabilities of the `paneldesc` package for processing panel data.
+
+## Loading the package
+
+Load the package. 
+
+```{r}
+library(paneldesc)
+```
+
+## Data import
+
+The package includes a simulated dataset called `production`. 
+
+```{r}
+data(production)
+```
+
+It contains information on 30 firms over up to 6 years, with variables such as `sales`, `capital`, `labor`, `industry`, `ownership`, and `region`. Missing values are present in some variables to mimic real‑world data.
+
+```{r}
+str(production)
+```
+
+To avoid repeatedly specifying the entity and time variables (firm and year), we create a panel_data object using `make_panel()`. This adds metadata that many subsequent functions will automatically use.
+
+```{r}
+panel <- make_panel(production, index = c("firm", "year"))
+```
+
+## Creating balanced panel data
+
+`make_balanced()` allows to balance panel data using various options:
+
+* keeping only entities present in all time periods;
+
+```{r}
+balance_entities <- make_balanced(panel, balance = "entities")
+dim(balance_entities)
+```
+
+* keeping only time periods where all entities are present;
+
+```{r}
+balance_periods <- make_balanced(panel, balance = "periods")
+dim(balance_periods)
+```
+
+* creating a row for every entity‑time combination (if `delta` is supplied, the full time sequence including missing periods is used).
+
+```{r}
+balance_rows <- make_balanced(panel, delta = 1, balance = "rows")
+dim(balance_rows)
+```
+
+In the latter case, the returned data frame is the same as the original one.
+
+## Reshaping panel data
+
+A standard type of panel data transformation is reshaping from long format to wide format and vice versa.
+
+Since the original data frame is presented in long format, we can reshape it to wide format using `make_wide()`. Note that `region` variable is time-invariant, so it is better to declare it using `static` argument. 
+
+```{r}
+panel_wide <- make_wide(panel, static = "region")
+names(panel_wide)
+```
+
+Next, as an exercise, we can convert the wide format data we just obtained back to long format.
+
+```{r}
+panel_long <- make_long(panel_wide, static = "region")
+names(panel_long)
+```
+
+In the latter case, the data frame is the same as the original one.
+
+## Within-group demeaning
+
+`make_demeaned()` performs within-group demeaning (centering) for all numeric variables in a data frame. 
+
+```{r}
+demeaned <- make_demeaned(panel)
+```
+
+The returned dataframe has the same structure as the original one, but its numeric variables are transformed. The resulting dataframe can be used for descriptive analysis of the transformed data or for regression analysis.
+
+```{r}
+summary(demeaned)
+```
+
+## Adding group means
+
+`make_mundlak()` adds group means of numeric variables to a data frame, which can be used for Mundlak-style (correlated random effects) modeling or for other purposes where within-group averages are needed. 
+
+```{r}
+mundlak <- make_mundlak(panel)
+names(mundlak)
+```
