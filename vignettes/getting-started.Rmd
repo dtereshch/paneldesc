@@ -51,7 +51,7 @@ library(paneldesc)
 
 ## Data import
 
-The package includes a simulated dataset called `production`. It contains information on 30 firms over up to 6 years, with variables such as `sales`, `capital`, `labor`, `industry`, and `ownership`. Missing values are present in some variables to mimic real‑world data.
+The package includes a simulated dataset called `production`. It contains information on 30 firms over up to 6 years, with variables such as `sales`, `capital`, `labor`, `industry`, `ownership`, and `region`. Missing values are present in some variables to mimic real‑world data.
 
 ```{r}
 data(production)
