@@ -14,8 +14,8 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width   = 6,
-  fig.height  = 4
+  fig.width   = 7.5,
+  fig.height  = 5
 )
 ```
 
@@ -152,6 +152,16 @@ plot_heterogeneity(panel, select = "sales")
 
 ```{r}
 decompose_numeric(panel)
+```
+
+`plot_demeaned()` helps visualize transformed (demeaned) variables. It can plot a histogram for one variable or a scatterplot for two variables.
+
+```{r}
+plot_demeaned(panel, select = "sales")
+```
+
+```{r}
+plot_demeaned(panel, select = c("labor", "sales"))
 ```
 
 ## Factor variables analysis
