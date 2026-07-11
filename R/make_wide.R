@@ -35,8 +35,10 @@
 #'         variables, the `spacer`, and the `invert` setting. If the input was a
 #'         `panel_data` object, the original metadata elements (`delta`, etc.)
 #'         are preserved.}
-#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
-#'         otherwise an empty list.}
+#'   \item{`details`}{A list with two elements: \code{reshaped} (character vector
+#'         of the original variable names that were reshaped from long to wide)
+#'         and \code{static_detected} (character vector of the time-invariant
+#'         variable names).}
 #' }
 #'
 #' @seealso
@@ -231,21 +233,21 @@ make_wide <- function(
     }
   }
 
-  # --- Detect and report time-invariant variables ---
+  # --- Detect all time-invariant variables (for details) ---
   all_vars <- setdiff(names(data), c(entity_var, time_var))
+  invariant_vars <- all_vars[sapply(
+    all_vars,
+    check_invariant,
+    data = data,
+    entity_var = entity_var
+  )]
 
+  # --- Detect and report time-invariant variables (user messages) ---
   if (is.null(static)) {
-    # Check all variables
-    invars <- all_vars[sapply(
-      all_vars,
-      check_invariant,
-      data = data,
-      entity_var = entity_var
-    )]
-    if (length(invars) > 0) {
+    if (length(invariant_vars) > 0) {
       message(
         "Time-invariant variables detected: ",
-        paste(invars, collapse = ", "),
+        paste(invariant_vars, collapse = ", "),
         ". Consider using 'static' argument."
       )
       msg_printed <- TRUE
@@ -356,12 +358,13 @@ make_wide <- function(
     if (!is.null(static)) new_metadata$static <- static
   }
 
-  # --- Build details attribute (preserve original if any) ---
-  if (keep_panel_class && !is.null(panel_details)) {
-    new_details <- panel_details
-  } else {
-    new_details <- list()
-  }
+  # --- Build details from scratch (do NOT preserve input details) ---
+  # reshaped = variables that were actually reshaped (time-varying)
+  # static_detected = all variables that are time-invariant (whether provided by user or auto-detected)
+  new_details <- list(
+    reshaped = varying_vars,
+    static_detected = invariant_vars
+  )
 
   # --- Attach attributes and class ---
   attr(wide, "metadata") <- new_metadata

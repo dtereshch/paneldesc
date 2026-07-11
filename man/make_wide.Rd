@@ -48,8 +48,10 @@ The returned object has class \code{"panel_data"} and two additional attributes:
 variables, the \code{spacer}, and the \code{invert} setting. If the input was a
 \code{panel_data} object, the original metadata elements (\code{delta}, etc.)
 are preserved.}
-\item{\code{details}}{Preserved from the input if it was a \code{panel_data} object;
-otherwise an empty list.}
+\item{\code{details}}{A list with two elements: \code{reshaped} (character vector
+of the original variable names that were reshaped from long to wide)
+and \code{static_detected} (character vector of the time-invariant
+variable names).}
 }
 }
 \examples{

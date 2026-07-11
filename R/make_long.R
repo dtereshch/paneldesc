@@ -39,8 +39,10 @@
 #'         variables, the `spacer`, and the `invert` setting. If the input was a
 #'         `panel_data` object, the original metadata elements (`delta`, etc.)
 #'         are preserved.}
-#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
-#'         otherwise an empty list.}
+#'   \item{`details`}{A list with two elements: \code{reshaped} (character vector
+#'         of the original variable names that were reshaped from wide to long)
+#'         and \code{static_detected} (character vector of the time-invariant
+#'         variable names).}
 #' }
 #'
 #' @note
@@ -539,11 +541,11 @@ make_long <- function(
     if (!is.null(static)) new_metadata$static <- static
   }
 
-  if (keep_panel_class && !is.null(panel_details)) {
-    new_details <- panel_details
-  } else {
-    new_details <- list()
-  }
+  # --- Build details from scratch, without preserving input details ---
+  new_details <- list(
+    reshaped = v.names,
+    static_detected = final_constant
+  )
 
   attr(long, "metadata") <- new_metadata
   attr(long, "details") <- new_details
