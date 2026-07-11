@@ -31,13 +31,23 @@
 #' time-varying data at all—in which case the invariant columns are set to `NA`
 #' to reflect a truly missing observation.
 #'
+#' #' The returned object has class `"panel_data"` and two additional attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name, the entity and time
+#'         variables, the `spacer`, and the `invert` setting. If the input was a
+#'         `panel_data` object, the original metadata elements (`delta`, etc.)
+#'         are preserved.}
+#'   \item{`details`}{Preserved from the input if it was a `panel_data` object;
+#'         otherwise an empty list.}
+#' }
+#'
 #' @note
 #' If `data` has panel attributes (e.g., from `make_wide()`) and `index` is
 #' not specified, the entity column and the name for the new time column
 #' are taken from the metadata.
 #'
 #' @seealso
-#' See also [make_panel()], [make_wide()], [make_balanced()], [make_demeaned()].
+#' See also [make_panel()], [make_wide()], [make_balanced()].
 #'
 #' @examples
 #' data(production)
@@ -352,6 +362,15 @@ make_long <- function(
     var_to_cols[[var]] <- c(var_to_cols[[var]], col)
   }
 
+  # --- Determine original order of variables (first appearance) ---
+  var_first_pos <- sapply(names(var_to_cols), function(var) {
+    # find the first column in this variable that exists in the original data
+    cols <- var_to_cols[[var]]
+    min_pos <- min(match(cols, all_cols)) # match returns positions in all_cols
+    min_pos
+  })
+  vars_in_order <- names(var_first_pos)[order(var_first_pos)]
+
   # --- Helper to generate column name from variable, time, spacer, invert ---
   generate_colname <- function(var, time, spacer, invert) {
     if (spacer == "") {
@@ -371,7 +390,7 @@ make_long <- function(
 
   # --- Add missing columns for unbalanced variables ---
   added_cols <- character(0)
-  for (var in names(var_to_cols)) {
+  for (var in vars_in_order) {
     existing_cols <- var_to_cols[[var]]
     # Get the class of the first existing column (if any)
     if (length(existing_cols) > 0) {
@@ -400,6 +419,7 @@ make_long <- function(
         }
         data[[colname]] <- new_col
         added_cols <- c(added_cols, colname)
+        var_to_cols[[var]] <- c(var_to_cols[[var]], colname)
       }
     }
   }
@@ -412,19 +432,20 @@ make_long <- function(
     msg_printed <- TRUE
   }
 
-  # --- Build varying list with complete column sets ---
+  # --- Build varying list with complete column sets, in original variable order ---
   varying_list <- list()
   v.names <- c()
-  for (var in names(var_to_cols)) {
+  varying_cols <- c() # will hold all time-varying column names in order
+
+  for (var in vars_in_order) {
+    # Generate column names for all time periods in the sorted time order
     cols_for_var <- sapply(unique_times, function(t) {
       generate_colname(var, t, spacer, invert)
     })
     varying_list[[var]] <- cols_for_var
     v.names <- c(v.names, var)
+    varying_cols <- c(varying_cols, cols_for_var)
   }
-
-  # All columns that are time-varying
-  varying_cols <- unlist(varying_list)
 
   # --- Identify constant (static) columns ---
   # All columns not entity and not in varying_cols are constant
@@ -438,7 +459,7 @@ make_long <- function(
       message(
         "Additional time-invariant variables detected: ",
         paste(additional, collapse = ", "),
-        ". Consider updating 'static' argument for greater clarity."
+        ". Consider updating 'static' argument."
       )
       msg_printed <- TRUE
     }
@@ -448,14 +469,14 @@ make_long <- function(
       message(
         "Time-invariant variables detected: ",
         paste(final_constant, collapse = ", "),
-        ". Consider using 'static' argument for greater clarity."
+        ". Consider using 'static' argument."
       )
       msg_printed <- TRUE
     }
   }
 
   # --- Proceed with reshape ---
-  # Subset data to include entity, constant, and varying columns (all exist now)
+  # Subset data in the desired column order: entity, constant (original order), varying (our order)
   wide_subset <- data[,
     c(entity_col, final_constant, varying_cols),
     drop = FALSE
@@ -464,7 +485,7 @@ make_long <- function(
   long <- stats::reshape(
     wide_subset,
     direction = "long",
-    varying = varying_list, # now all lists have complete column sets
+    varying = varying_list, # order of variables matches v.names
     v.names = v.names,
     timevar = time_col,
     idvar = entity_col,
@@ -479,10 +500,9 @@ make_long <- function(
     long[[time_col]] <- as.numeric(long[[time_col]])
   }
 
-  # Reorder columns
-  var_cols <- v.names
+  # Reorder columns: entity, time, then time-varying (v.names in order), then constants
   const_cols <- intersect(final_constant, names(long))
-  long <- long[, c(entity_col, time_col, var_cols, const_cols), drop = FALSE]
+  long <- long[, c(entity_col, time_col, v.names, const_cols), drop = FALSE]
 
   # Sort by entity then time
   long <- long[order(long[[entity_col]], long[[time_col]]), ]
@@ -490,8 +510,8 @@ make_long <- function(
 
   # --- Handle unbalanced panels: if all time-varying cols are NA for a row,
   #     set constant columns to NA as well.
-  if (length(var_cols) > 0) {
-    all_na <- rowSums(is.na(long[, var_cols, drop = FALSE])) == length(var_cols)
+  if (length(v.names) > 0) {
+    all_na <- rowSums(is.na(long[, v.names, drop = FALSE])) == length(v.names)
     if (any(all_na)) {
       long[all_na, const_cols] <- NA
     }
