@@ -51,11 +51,10 @@
 #' and prints a message listing them, suggesting to use the `static` argument.
 #'
 #' **Unbalanced panels:**
-#' After reshaping, the function checks each entity-time row. If **all** time-varying
-#' columns are `NA` for that row, the invariant columns (including those in `static`)
-#' are set to `NA` as well. This ensures that a period with no observed variation
-#' is treated as completely missing, rather than erroneously carrying forward
-#' constant attributes.
+#' If a time‑varying variable is missing columns for some time periods, the
+#' function now **adds** those columns (filled with `NA`) so that the variable
+#' is preserved in the long format. A message is printed to indicate which
+#' variables were augmented.
 #'
 #' @note
 #' When `spacer = ""`, the function assumes that all time-varying columns have
@@ -253,7 +252,6 @@ make_long <- function(
 
   # Check if any static variable would have been parsed (conflict)
   if (!is.null(static)) {
-    # Temporarily parse all columns to see if any static matches the pattern
     conflict <- c()
     for (col in static) {
       if (spacer == "") {
@@ -287,17 +285,14 @@ make_long <- function(
   # --- Ambiguous separator check (skip if spacer == "") ---
   if (spacer != "") {
     unique_times <- unique(time_values)
-    # Convert to character for matching; preserve numeric-like times
     time_set <- as.character(unique_times)
     ambiguous_cols <- c()
 
-    # Determine which columns were treated as constant (among candidates only)
     parsed_cols <- names(parsed)
     constant_candidates <- setdiff(candidates, parsed_cols)
 
     for (col in constant_candidates) {
       if (invert) {
-        # Check for leading digits followed by a non-digit (i.e., a separator)
         if (grepl("^\\d+[^0-9]", col)) {
           match <- regexpr("^\\d+", col)
           prefix_digits <- regmatches(col, match)
@@ -306,7 +301,6 @@ make_long <- function(
           }
         }
       } else {
-        # Check for trailing digits preceded by a non-digit (separator)
         if (grepl("[^0-9]\\d+$", col)) {
           match <- regexpr("\\d+$", col)
           suffix_digits <- regmatches(col, match)
@@ -318,7 +312,6 @@ make_long <- function(
     }
 
     if (length(ambiguous_cols) > 0) {
-      # Get the separators used in those columns (the character before/after digits)
       sep_examples <- c()
       for (col in ambiguous_cols) {
         if (invert) {
@@ -376,16 +369,103 @@ make_long <- function(
     )
   }
 
-  # --- Identify constant (static) columns ---
-  # All columns that were not parsed are constant (both candidates and static)
-  parsed_cols <- names(parsed)
-  constant_cols <- setdiff(all_cols, c(entity_col, parsed_cols))
+  # --- Unique time values, try numeric sort if possible ---
+  unique_times <- unique(time_values)
+  if (all(grepl("^-?[0-9.]+$", unique_times))) {
+    unique_times <- as.character(sort(as.numeric(unique_times)))
+  } else {
+    unique_times <- sort(unique_times)
+  }
 
-  # If static is provided, we also add the explicitly static ones (they are already in constant_cols)
-  # but we need to separate for messaging.
+  # --- Group columns by variable name ---
+  var_to_cols <- list()
+  for (col in names(parsed)) {
+    var <- parsed[[col]]$var
+    var_to_cols[[var]] <- c(var_to_cols[[var]], col)
+  }
+
+  # --- Helper to generate column name from variable, time, spacer, invert ---
+  generate_colname <- function(var, time, spacer, invert) {
+    if (spacer == "") {
+      if (invert) {
+        paste0(time, var)
+      } else {
+        paste0(var, time)
+      }
+    } else {
+      if (invert) {
+        paste0(time, spacer, var)
+      } else {
+        paste0(var, spacer, time)
+      }
+    }
+  }
+
+  # --- Add missing columns for unbalanced variables ---
+  added_cols <- character(0)
+  for (var in names(var_to_cols)) {
+    existing_cols <- var_to_cols[[var]]
+    # Get the class of the first existing column (if any)
+    if (length(existing_cols) > 0) {
+      first_col <- existing_cols[1]
+      col_class <- class(data[[first_col]])
+    } else {
+      col_class <- NULL
+    }
+
+    for (t in unique_times) {
+      colname <- generate_colname(var, t, spacer, invert)
+      if (!colname %in% names(data)) {
+        # Create a new column filled with NA, preserving type if possible
+        if (!is.null(col_class)) {
+          if (is.factor(data[[first_col]])) {
+            new_col <- factor(
+              rep(NA, nrow(data)),
+              levels = levels(data[[first_col]])
+            )
+          } else {
+            new_col <- rep(NA, nrow(data))
+            class(new_col) <- col_class
+          }
+        } else {
+          new_col <- rep(NA, nrow(data))
+        }
+        data[[colname]] <- new_col
+        added_cols <- c(added_cols, colname)
+      }
+    }
+  }
+
+  if (length(added_cols) > 0) {
+    message(
+      "Added the following columns (filled with NA) to complete unbalanced variables: ",
+      paste(added_cols, collapse = ", ")
+    )
+    msg_printed <- TRUE
+  }
+
+  # --- Build varying list with complete column sets ---
+  varying_list <- list()
+  v.names <- c()
+  for (var in names(var_to_cols)) {
+    cols_for_var <- sapply(unique_times, function(t) {
+      generate_colname(var, t, spacer, invert)
+    })
+    varying_list[[var]] <- cols_for_var
+    v.names <- c(v.names, var)
+  }
+
+  # All columns that are time-varying
+  varying_cols <- unlist(varying_list)
+
+  # --- Identify constant (static) columns ---
+  # All columns not entity and not in varying_cols are constant
+  final_constant <- setdiff(names(data), c(entity_col, varying_cols))
+
+  # If static is provided, we also add the explicitly static ones
   if (!is.null(static)) {
     # Additional constant columns not in static
-    additional <- setdiff(constant_cols, static)
+    additional <- setdiff(final_constant, static)
     if (length(additional) > 0) {
       message(
         "Additional time-invariant variables detected: ",
@@ -396,10 +476,10 @@ make_long <- function(
     }
   } else {
     # No static provided; if there are constant columns, message them
-    if (length(constant_cols) > 0) {
+    if (length(final_constant) > 0) {
       message(
         "Time-invariant variables detected: ",
-        paste(constant_cols, collapse = ", "),
+        paste(final_constant, collapse = ", "),
         ". Consider using 'static' argument."
       )
       msg_printed <- TRUE
@@ -407,76 +487,16 @@ make_long <- function(
   }
 
   # --- Proceed with reshape ---
-  # Unique time values, try numeric sort if possible
-  unique_times <- unique(time_values)
-  if (all(grepl("^-?[0-9.]+$", unique_times))) {
-    unique_times <- as.character(sort(as.numeric(unique_times)))
-  } else {
-    unique_times <- sort(unique_times)
-  }
-
-  # Group columns by variable name
-  var_to_cols <- list()
-  for (col in names(parsed)) {
-    var <- parsed[[col]]$var
-    var_to_cols[[var]] <- c(var_to_cols[[var]], col)
-  }
-
-  # Build varying list
-  varying_list <- list()
-  v.names <- c()
-  for (var in names(var_to_cols)) {
-    cols <- var_to_cols[[var]]
-    time_to_col <- sapply(cols, function(c) parsed[[c]]$time, USE.NAMES = FALSE)
-    names(time_to_col) <- cols
-    ordered_cols <- sapply(unique_times, function(t) {
-      match_col <- names(time_to_col)[time_to_col == t]
-      if (length(match_col) == 0) NA else match_col[1]
-    })
-    if (any(is.na(ordered_cols))) {
-      warning(
-        "Variable '",
-        var,
-        "' is missing for some time periods. ",
-        "Resulting long data will have NA for those entries.",
-        call. = FALSE
-      )
-    }
-    varying_list[[var]] <- ordered_cols
-    v.names <- c(v.names, var)
-  }
-
-  # Keep only variables that have complete time coverage
-  complete_vars <- sapply(varying_list, function(x) !any(is.na(x)))
-  if (any(!complete_vars)) {
-    incomplete <- names(varying_list)[!complete_vars]
-    message(
-      "Variables missing some time periods (will be omitted from reshape): ",
-      paste(incomplete, collapse = ", ")
-    )
-    msg_printed <- TRUE
-    varying_list <- varying_list[complete_vars]
-    v.names <- v.names[complete_vars]
-  }
-
-  if (length(varying_list) == 0) {
-    stop("No complete time-varying variables found", call. = FALSE)
-  }
-
-  varying <- lapply(varying_list, function(x) as.character(x))
-  # All columns that are not varying and not entity are constant
-  final_constant <- setdiff(all_cols, c(entity_col, unlist(varying)))
-
-  # --- Reshape using stats::reshape ---
+  # Subset data to include entity, constant, and varying columns (all exist now)
   wide_subset <- data[,
-    c(entity_col, final_constant, unlist(varying)),
+    c(entity_col, final_constant, varying_cols),
     drop = FALSE
   ]
 
   long <- stats::reshape(
     wide_subset,
     direction = "long",
-    varying = varying,
+    varying = varying_list, # now all lists have complete column sets
     v.names = v.names,
     timevar = time_col,
     idvar = entity_col,
@@ -503,7 +523,6 @@ make_long <- function(
   # --- Handle unbalanced panels: if all time-varying cols are NA for a row,
   #     set constant columns to NA as well.
   if (length(var_cols) > 0) {
-    # identify rows where all time-varying columns are NA
     all_na <- rowSums(is.na(long[, var_cols, drop = FALSE])) == length(var_cols)
     if (any(all_na)) {
       long[all_na, const_cols] <- NA

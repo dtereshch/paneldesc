@@ -66,11 +66,10 @@ If \code{static} is \code{NULL}, the function automatically detects invariant co
 and prints a message listing them, suggesting to use the \code{static} argument.
 
 \strong{Unbalanced panels:}
-After reshaping, the function checks each entity-time row. If \strong{all} time-varying
-columns are \code{NA} for that row, the invariant columns (including those in \code{static})
-are set to \code{NA} as well. This ensures that a period with no observed variation
-is treated as completely missing, rather than erroneously carrying forward
-constant attributes.
+If a time‑varying variable is missing columns for some time periods, the
+function now \strong{adds} those columns (filled with \code{NA}) so that the variable
+is preserved in the long format. A message is printed to indicate which
+variables were augmented.
 }
 \note{
 When \code{spacer = ""}, the function assumes that all time-varying columns have
