@@ -4,12 +4,16 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param delta An optional integer giving the expected interval between time periods.
+#'        If not specified and data is a `panel_data` object with defined `delta`,
+#'        the value will be extracted from the data.frame attributes.
 #' @param limits Either a single integer (show that many most frequent patterns)
 #'        or a vector of two integers (show patterns with ranks between the two values, inclusive).
 #'        If not specified, all patterns are shown.
-#' @param colors A character vector of two colors for present and missing observations.
+#' @param colors A character vector of length 2 specifying the colors for the plot.
+#'        First color is for present observations, second color is for missing observations.
 #'        Default = c("darkblue", "white").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
@@ -20,7 +24,6 @@
 #' Rows are ordered by pattern frequency: the most frequent pattern is at the **top**.
 #' Within each pattern block, entities appear in their original order.
 #'
-#' **Effect of `delta`:**
 #' If `delta` is supplied, the function checks for regular spacing and adds missing periods
 #' (with all zeros) to the plot.
 #' A message lists missing periods unless the interval was inherited from panel attributes.

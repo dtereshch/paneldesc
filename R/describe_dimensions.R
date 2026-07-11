@@ -5,7 +5,8 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #'
 #' @return A data.frame containing panel dimension counts.
 #'

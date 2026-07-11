@@ -10,9 +10,13 @@ make_balanced(data, index = NULL, delta = NULL, balance = "rows")
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and
-time variables.}
+time variables.
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
-\item{delta}{An optional integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.
+If not specified and data is a \code{panel_data} object with defined \code{delta},
+the value will be extracted from the data.frame attributes.}
 
 \item{balance}{One of "rows", "entities", or "periods". Specifies the
 balancing method (see Details). Default = "rows".}
@@ -30,24 +34,18 @@ This function balances a panel dataset according to the chosen method.
 The returned object has class \code{"panel_data"} and includes metadata attributes
 similar to \code{\link[=make_panel]{make_panel()}}.
 
-\strong{Balancing methods:}
+Depending on the value of \code{balance}, the balancing is performed using different methods:
 \describe{
 \item{\code{balance = "rows"}}{Create a row for every entity-time combination.
 If \code{delta} is supplied, the full time sequence (including missing periods)
 is used. Missing combinations get \code{NA} in all other columns.}
-\item{\code{balance = "entities"}}{Keep only entities present in \strong{all} time periods.}
-\item{\code{balance = "periods"}}{Keep only time periods where \strong{all} entities are present.}
+\item{\code{balance = "entities"}}{Keep only entities present in all time periods.}
+\item{\code{balance = "periods"}}{Keep only time periods where all entities are present.}
 }
-
-\strong{Duplicates:} If duplicate entity-time combinations exist, the function stops
-with an error, as balancing requires a unique key.
-
-\strong{Missing values:} Rows with missing entity or time values are automatically removed
-before balancing.
-
-\strong{Handling of \code{panel_data} objects:} If \code{data} is a \code{panel_data} object, the
-function will use the entity, time, and delta values stored in its attributes
-unless overridden by explicit \code{index} or \code{delta} arguments.
+}
+\note{
+An entity-time combination is considered \strong{present} if the corresponding row contains at least
+one non‑NA value in any substantive variable (all columns except the entity and time identifiers).
 }
 \examples{
 data(production)

@@ -4,8 +4,11 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param delta An optional integer giving the expected interval between time periods.
+#'        If not specified and data is a `panel_data` object with defined `delta`,
+#'        the value will be extracted from the data.frame attributes.
 #' @param limits Either a single integer (show that many most frequent patterns)
 #'        or a vector of two integers (show patterns with ranks between the two values, inclusive).
 #'        If not specified, all patterns are shown.
@@ -40,7 +43,6 @@
 #'
 #' When `format = "long"` and `detail = FALSE`, only `pattern`, time, and `presence` columns are returned.
 #'
-#' **Effect of `delta`:**
 #' If `delta` is supplied, the function checks that all observed time points are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods (unless the interval was inherited from panel attributes),
 #' and columns for those missing periods are added to the presence matrix – and therefore to the output data.frame – with all zeros.

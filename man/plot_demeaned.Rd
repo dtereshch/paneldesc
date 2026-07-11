@@ -7,43 +7,51 @@
 plot_demeaned(data, select, group = NULL, colors = c("darkblue", "white"))
 }
 \arguments{
-\item{data}{A data.frame containing the variable(s) to be demeaned.}
+\item{data}{A data.frame containing variables for analysis.}
 
 \item{select}{A character vector of length 1 or 2 specifying the name(s) of
 the numeric variable(s) to demean and plot.}
 
-\item{group}{A character vector specifying the grouping variable(s) for
-demeaning. If not specified and \code{data} has panel attributes,
-the entity and time variables are used as grouping variables.
-Otherwise, overall demeaning (grand mean centering) is performed.}
+\item{group}{A character string or vector of character strings specifying
+the grouping variable(s).
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes to define grouping variables.
+Otherwise, overall demeaning is performed.}
 
-\item{colors}{A character vector of length 2 specifying the colours for the
-plot. For a histogram, the first colour fills the bars and the second
-colour is used for the bar borders. For a scatterplot, the first colour
-fills the points and the second colour is used for the point borders.
+\item{colors}{A character vector of length 2 specifying the colors for the plot.
+First color is for fill, second color is for the border line.
 Default = \code{c("darkblue", "white")}.}
 }
 \value{
-A list with metadata and details components (invisibly).
+Invisibly returns a list with the demeaned values and metadata.
 }
 \description{
-This function demeaens the selected numeric variable(s) using the same
-within-group demeaning procedure as \code{\link[=make_demeaned]{make_demeaned()}} and creates
-a visualization. For a single variable, a histogram of the demeaned values
-is drawn. For two variables, a scatterplot of the demeaned values is drawn.
+This function performs within-group demeaning (centering) for selected numeric
+variable(s) and creates a visualization.
 }
 \details{
-The demeaning is performed by calling \code{\link[=make_demeaned]{make_demeaned()}} internally.
-Therefore all features of that function are available: handling of
-\code{panel_data} objects, iterative projection for multiple groups,
-and removal of rows with missing values in the grouping variables.
+The function creates a plot which shape depends on the \code{select} argument:
+\itemize{
+\item If one variable is specified, a histogram of the demeaned values is plotted.
+\item If two variables are specified, a scatterplot of the demeaned values is plotted.
+}
 
-Missing values in the selected variable(s) are removed before plotting.
-If no valid observations remain after removal, an error is thrown.
+The demeaning is performed by calling \code{\link[=make_demeaned]{make_demeaned()}} internally, so it
+shares all specifics of that function.
 
-Only the selected variable(s) and the grouping variables are passed to
-\code{make_demeaned}, so no other numeric variables in the original data
-are demeaned or cause message output.
+Depending on the value of \code{group} argument, the function uses different
+demeaning procedures:
+\itemize{
+\item If grouping variable is not specified and \code{data} is not a \code{panel_data} object,
+simple overall demeaning is performed: for each numeric variable, the
+overall mean (ignoring \code{NA}s) is subtracted.
+\item If one group variable is specified, the exact calculation is used:
+the group mean is subtracted from each observation.
+\item If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
+The algorithm runs up to 2000 iterations with tolerance 1e-6
+(matching the defaults of \code{fixest::demean()});
+a warning is issued if convergence is not reached.
+}
 
 The returned list contains:
 \describe{
@@ -54,6 +62,11 @@ variable, this is a numeric vector of demeaned values. For two
 variables, it is a data frame with columns \code{x} and \code{y}
 containing the demeaned values.}
 }
+}
+\note{
+#' Only the selected variable(s) and the grouping variables are passed to
+\code{make_demeaned}, so no other numeric variables in the original data
+are demeaned or cause message output.
 }
 \examples{
 data(production)

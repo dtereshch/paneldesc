@@ -7,6 +7,8 @@
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
 #'        column in the long format (second element).
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param static A character vector of variable names that are time-invariant.
 #'        If not specified, the function will automatically detect columns that
 #'        do not contain the time separator (or numeric suffix).
@@ -31,7 +33,7 @@
 #' time-varying data at all—in which case the invariant columns are set to `NA`
 #' to reflect a truly missing observation.
 #'
-#' #' The returned object has class `"panel_data"` and two additional attributes:
+#' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name, the entity and time
 #'         variables, the `spacer`, and the `invert` setting. If the input was a

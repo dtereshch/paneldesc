@@ -5,8 +5,11 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param delta An optional integer giving the expected interval between time periods.
+#'        If not specified and data is a `panel_data` object with defined `delta`,
+#'        the value will be extracted from the data.frame attributes.
 #' @param digits An integer specifying the number of decimal places for rounding the share column.
 #'        Default = 3.
 #'

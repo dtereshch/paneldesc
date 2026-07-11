@@ -1,42 +1,31 @@
 #' Within-Group Demeaning (Centering) for Panel Data
 #'
 #' This function performs within-group demeaning (centering) for all numeric
-#' variables in a data frame. For each group defined by the `group` argument,
-#' the group mean is subtracted from each observation. If no grouping is
-#' provided, the overall mean is subtracted (grand mean centering). Non-numeric
-#' variables are not demeaned and are returned unchanged.
+#' variables in a data frame.
+#' Non-numeric variables are not demeaned and are returned unchanged.
 #'
-#' @param data A data.frame containing the variables to be demeaned.
-#' @param group A character vector specifying the grouping variable(s). If not
-#'        specified and `data` has panel attributes, the entity and time
-#'        variables are used as grouping variables. Otherwise, overall demeaning
-#'        is performed.
+#' @param data A data.frame containing variables to be demeaned.
+#' @param group A character string or vector of character strings specifying
+#'        the grouping variable(s).
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes to define grouping variables.
+#'        Otherwise, overall demeaning is performed.
 #'
-#' @return The input data frame with all numeric variables replaced by their
-#'         demeaned versions.
+#' @return The input data frame containing all numeric variables replaced by their
+#'         demeaned versions and unchanged non-numeric variables.
 #'
 #' @details
-#' * If `group` is not specified and `data` is **not** a `panel_data` object,
+#' Depending on the value of `group` argument, the function uses different
+#' demeaning procedures:
+#' * If grouping variable is not specified and `data` is not a `panel_data` object,
 #'   simple overall demeaning is performed: for each numeric variable, the
 #'   overall mean (ignoring `NA`s) is subtracted.
-#' * If `group` is specified, the grouping variables are used to define the
-#'   groups. Observations with `NA` in any grouping variable are removed before
-#'   demeaning.
-#' * **Missing values in numeric variables are not removed automatically**;
-#'   the user should handle them prior to calling this function if desired.
-#' * If `data` inherits from `panel_data` and `group` is not specified, the
-#'   function automatically uses the entity and time variables stored in the
-#'   `metadata` attribute as grouping variables, and the returned object retains
-#'   the `panel_data` class and its attributes.
-#' * Non-numeric variables are not demeaned and are returned unchanged.
-#'
-#' **Demeaning algorithms:**
-#' * One group: `x - mean(x | group)` (exact, using `ave` with `na.rm = TRUE`).
-#' * Two or more groups: iterative Gauss–Seidel algorithm (alternating
-#'   projections). This matches the `fixest` fixed-effect residuals exactly,
-#'   even for unbalanced panels. The algorithm runs up to **2000 iterations** with
-#'   tolerance **1e-6** (matching the defaults of `fixest::demean()`); a warning
-#'   is issued if convergence is not reached.
+#' * If one group variable is specified, the exact calculation is used:
+#'   the group mean is subtracted from each observation.
+#' * If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
+#'   The algorithm runs up to **2000 iterations** with tolerance **1e-6**
+#'   (matching the defaults of `fixest::demean()`);
+#'   a warning is issued if convergence is not reached.
 #'
 #' The returned object has a `metadata` attribute and a `details` attribute:
 #' \describe{
@@ -204,7 +193,6 @@ make_demeaned <- function(data, group = NULL) {
       }
     } else {
       # Two or more grouping variables – iterative projection (Gauss–Seidel)
-      # This matches fixest for any number of groups, including two (unbalanced).
       for (var in demean_vars) {
         resid <- data[[var]]
         max_iter <- 2000

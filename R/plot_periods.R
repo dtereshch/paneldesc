@@ -5,9 +5,11 @@
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
-#' @param colors A character vector of length 2 specifying the fill color and line color for the histogram.
-#'        First color is for fill, second color is for the border line. Default = c("darkblue", "white").
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
+#' @param colors A character vector of length 2 specifying the colors for the plot.
+#'        First color is for fill, second color is for the border line.
+#'        Default = `c("darkblue", "white")`.
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
 #'

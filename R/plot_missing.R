@@ -7,10 +7,12 @@
 #' @param select A character vector specifying which variables to include.
 #'        If not specified, all substantive variables (except entity and time) are used.
 #' @param index A character vector of length 2 giving the names of the entity and time variables.
-#'        Not required if data has panel attributes.
-#' @param colors A character vector of two colors defining the gradient for the heatmap.
-#'        The first color represents the **largest** number of missing values,
-#'        the second color the **smallest** number. Default = c("darkblue", "gray").
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
+#' @param colors A character vector of length 2 defining the gradient for the heatmap.
+#'        The first color represents the largest number of missing values,
+#'        the second color the smallest number.
+#'        Default = c("darkblue", "gray").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.
 #'

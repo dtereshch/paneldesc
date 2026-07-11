@@ -18,9 +18,12 @@ describe_patterns(
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
-\item{delta}{An optional integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.
+If not specified and data is a \code{panel_data} object with defined \code{delta},
+the value will be extracted from the data.frame attributes.}
 
 \item{limits}{Either a single integer (show that many most frequent patterns)
 or a vector of two integers (show patterns with ranks between the two values, inclusive).
@@ -63,7 +66,6 @@ When \code{format = "long"} and \code{detail = TRUE}:
 
 When \code{format = "long"} and \code{detail = FALSE}, only \code{pattern}, time, and \code{presence} columns are returned.
 
-\strong{Effect of \code{delta}:}
 If \code{delta} is supplied, the function checks that all observed time points are separated by multiples of \code{delta}.
 If gaps are detected, a message lists the missing periods (unless the interval was inherited from panel attributes),
 and columns for those missing periods are added to the presence matrix – and therefore to the output data.frame – with all zeros.

@@ -9,7 +9,8 @@
 #' @param index A character vector of length 1 or 2 specifying the names of the
 #'        entity and (optionally) time variables. The first element is the entity
 #'        variable; if a second element is provided, it is used as the time variable.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param format A character string specifying the output format: "wide" or "long". Default = "wide".
 #' @param digits An integer indicating the number of decimal places to round shares.
 #'        Default = 3.

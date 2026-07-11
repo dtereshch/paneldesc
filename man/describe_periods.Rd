@@ -10,9 +10,12 @@ describe_periods(data, index = NULL, delta = NULL, digits = 3)
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
-\item{delta}{An optional integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.
+If not specified and data is a \code{panel_data} object with defined \code{delta},
+the value will be extracted from the data.frame attributes.}
 
 \item{digits}{An integer specifying the number of decimal places for rounding the share column.
 Default = 3.}

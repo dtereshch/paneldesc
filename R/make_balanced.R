@@ -7,7 +7,11 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and
 #'        time variables.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param delta An optional integer giving the expected interval between time periods.
+#'        If not specified and data is a `panel_data` object with defined `delta`,
+#'        the value will be extracted from the data.frame attributes.
 #' @param balance One of "rows", "entities", or "periods". Specifies the
 #'        balancing method (see Details). Default = "rows".
 #'
@@ -18,24 +22,18 @@
 #' The returned object has class `"panel_data"` and includes metadata attributes
 #' similar to [make_panel()].
 #'
-#' **Balancing methods:**
+#' Depending on the value of `balance`, the balancing is performed using different methods:
 #' \describe{
 #'   \item{`balance = "rows"`}{Create a row for every entity-time combination.
 #'         If `delta` is supplied, the full time sequence (including missing periods)
 #'         is used. Missing combinations get `NA` in all other columns.}
-#'   \item{`balance = "entities"`}{Keep only entities present in **all** time periods.}
-#'   \item{`balance = "periods"`}{Keep only time periods where **all** entities are present.}
+#'   \item{`balance = "entities"`}{Keep only entities present in all time periods.}
+#'   \item{`balance = "periods"`}{Keep only time periods where all entities are present.}
 #' }
 #'
-#' **Duplicates:** If duplicate entity-time combinations exist, the function stops
-#' with an error, as balancing requires a unique key.
-#'
-#' **Missing values:** Rows with missing entity or time values are automatically removed
-#' before balancing.
-#'
-#' **Handling of `panel_data` objects:** If `data` is a `panel_data` object, the
-#' function will use the entity, time, and delta values stored in its attributes
-#' unless overridden by explicit `index` or `delta` arguments.
+#' @note
+#' An entity-time combination is considered **present** if the corresponding row contains at least
+#' one non‑NA value in any substantive variable (all columns except the entity and time identifiers).
 #'
 #' @seealso
 #' See also [make_panel()], [make_wide()], [make_long()], [describe_dimensions()],

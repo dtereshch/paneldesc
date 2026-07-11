@@ -6,7 +6,8 @@
 #' @param data A data.frame containing panel data in a long format.
 #' @param select A character string specifying the factor variable to analyze transitions for.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param format A character string specifying the output format: `"wide"` (default) or `"long"`.
 #' @param digits An integer indicating the number of decimal places to round transition shares.
 #'        Default = 3.

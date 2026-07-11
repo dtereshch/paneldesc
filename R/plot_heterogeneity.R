@@ -5,9 +5,10 @@
 #' @param data A data.frame containing variables for analysis.
 #' @param select A character string specifying the numeric variable of interest.
 #' @param group A character string or vector of character strings specifying the grouping variable(s).
-#'        If data has panel attributes and group is not specified,
-#'        both the entity and time variables will be used as grouping variables.
-#' @param colors A character vector of two colors: first for mean line and points, second for individual points.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes to define grouping variables.
+#' @param colors A character vector of length 2 specifying the colors for the plot.
+#'        First color is for mean line and points, second color is for individual points.
 #'        Default = c("darkblue", "gray").
 #'
 #' @return Invisibly returns a list with summary statistics and metadata.

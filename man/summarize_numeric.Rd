@@ -64,6 +64,10 @@ The object has class \code{"panel_summary"} and two additional attributes:
 \item{\code{details}}{List with counts of variables, groups, and total observations.}
 }
 }
+\note{
+Unlike other functions in this package, this function does not access the values
+​​of panel attributes from a \code{panel_data} object.
+}
 \examples{
 data(production)
 
@@ -90,5 +94,5 @@ attr(out_sum_num, "details")
 
 }
 \seealso{
-See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}.
+See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}, \code{\link[=make_mundlak]{make_mundlak()}}.
 }

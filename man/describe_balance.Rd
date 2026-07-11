@@ -10,7 +10,8 @@ describe_balance(data, index = NULL, detail = FALSE, digits = 3)
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{detail}{A logical flag indicating whether to return additional statistics
 (5th, 25th, 50th, 75th, and 95th percentiles). Default = FALSE.}

@@ -10,13 +10,14 @@ make_wide(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the
-entity and time variables.}
+entity and time variables.
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{static}{A character vector of variable names that are time-invariant.
-If not specified, the function will automatically detect time-invariant
-variables and include them as single columns in the wide output.
-If provided, the function verifies invariance and excludes these
-variables from reshaping – they appear as single columns.}
+If specified, the function verifies invariance and excludes these
+variables from reshaping; they appear as single columns in the wide
+output.}
 
 \item{spacer}{A character string to insert between variable names and time
 values in the wide format column names. Default = "_".}
@@ -27,22 +28,19 @@ variable names in column names. If \code{FALSE}, column names are
 Default = FALSE.}
 }
 \value{
-A data frame in wide format, with one row per entity.
+A data.frame containing panel data in a wide format.
 }
 \description{
 This function reshapes panel data from long format to wide format,
 creating separate columns for each time period.
 }
 \details{
-The function performs the following steps:
-\itemize{
-\item If \code{data} has panel attributes and \code{index} is not specified, the entity
-and time variables are taken from the metadata.
-\item Rows with missing values in entity or time variables are removed.
-\item Duplicate entity-time combinations are detected and reported (unless they
-originate from panel attributes).
-\item The data are reshaped to wide format using \code{stats::reshape()}.
-}
+The data are reshaped to long format using \code{stats::reshape()}.
+
+The function works for standard atomic types (logical, integer, double,
+complex, character, raw) and for factors. However, non-standard column types
+such as \code{Date}, \code{POSIXct}, or custom S3/S4 classes may lose their special
+attributes during reshaping.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
@@ -53,13 +51,6 @@ are preserved.}
 \item{\code{details}}{Preserved from the input if it was a \code{panel_data} object;
 otherwise an empty list.}
 }
-}
-\note{
-The function works for standard atomic types (logical, integer, double,
-complex, character, raw) and for factors. However, non-standard column types
-such as \code{Date}, \code{POSIXct}, or custom S3/S4 classes may lose their special
-attributes during reshaping. Duplicate entity-time combinations must be
-resolved beforehand; the function will issue a message but does not aggregate.
 }
 \examples{
 data(production)
@@ -79,5 +70,5 @@ names(wide3)
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_demeaned]{make_demeaned()}}.
+See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=make_balanced]{make_balanced()}}.
 }

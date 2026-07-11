@@ -16,15 +16,19 @@ plot_patterns(
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
-\item{delta}{An optional integer giving the expected interval between time periods.}
+\item{delta}{An optional integer giving the expected interval between time periods.
+If not specified and data is a \code{panel_data} object with defined \code{delta},
+the value will be extracted from the data.frame attributes.}
 
 \item{limits}{Either a single integer (show that many most frequent patterns)
 or a vector of two integers (show patterns with ranks between the two values, inclusive).
 If not specified, all patterns are shown.}
 
-\item{colors}{A character vector of two colors for present and missing observations.
+\item{colors}{A character vector of length 2 specifying the colors for the plot.
+First color is for present observations, second color is for missing observations.
 Default = c("darkblue", "white").}
 }
 \value{
@@ -39,7 +43,6 @@ Present cells are colored with the first color, missing cells with the second.
 Rows are ordered by pattern frequency: the most frequent pattern is at the \strong{top}.
 Within each pattern block, entities appear in their original order.
 
-\strong{Effect of \code{delta}:}
 If \code{delta} is supplied, the function checks for regular spacing and adds missing periods
 (with all zeros) to the plot.
 A message lists missing periods unless the interval was inherited from panel attributes.

@@ -11,77 +11,55 @@ make_long(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
-column in the long format (second element).}
+column in the long format (second element).
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{static}{A character vector of variable names that are time-invariant.
 If not specified, the function will automatically detect columns that
-do not contain the time separator (or numeric suffix). If provided,
-the function verifies that these columns do \strong{not} match the
-time-varying pattern (otherwise an error is raised). Any other
-columns that also appear invariant will trigger a message.}
+do not contain the time separator (or numeric suffix).}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = "_".}
 
 \item{invert}{A logical flag indicating the order of components in column
-names. If \code{FALSE}, column names are \code{"variable_spacer_time"} (or
-\code{"variable"} + \code{time} when \code{spacer = ""}); if \code{TRUE}, they are
-\code{"time_spacer_variable"} (or \code{time} + \code{"variable"} when \code{spacer = ""}).
-Must match the structure of the input data. Default = FALSE.}
+names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE}, they are
+\code{"time_spacer_variable"}. Default = FALSE.}
 }
 \value{
-A data frame in long format.
+A data.frame containing panel data in a long format.
 }
 \description{
 This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
-Columns that are time-invariant (not split by time) are replicated for each
-time period, \strong{unless} a particular entity-time combination has no
-time-varying data at all—in which case the invariant columns are set to \code{NA}
-to reflect a truly missing observation.
 }
 \details{
-The function performs the following steps:
-\itemize{
-\item If \code{data} has panel attributes (e.g., from \code{make_wide()}) and \code{index} is
-not specified, the entity column and the name for the new time column
-are taken from the metadata. \strong{Note:} \code{spacer} and \code{invert} are \strong{not}
-taken from the metadata; they must be supplied explicitly or use the
-function defaults.
-\item Columns that do not contain the \code{spacer} (or do not match the expected
-pattern when \code{spacer = ""}) are treated as time-constant and are replicated
-for each time period.
-\item Columns that match the pattern are split into variable names and time
-values; the set of unique time values defines the periods.
-\item The data are reshaped to long format using \code{stats::reshape()}.
-}
-
-If \code{static} is specified, those columns are \strong{always} treated as
-time-invariant, even if they contain a separator or numeric suffix. The
-function checks that they do \strong{not} conflict with the time-varying pattern
-and raises an error if they do. Additional invariant columns (not listed in
-\code{static}) are still treated as invariant and trigger a message.
-
-If \code{static} is \code{NULL}, the function automatically detects invariant columns
-and prints a message listing them, suggesting to use the \code{static} argument.
-
-\strong{Unbalanced panels:}
-If a time‑varying variable is missing columns for some time periods, the
-function now \strong{adds} those columns (filled with \code{NA}) so that the variable
-is preserved in the long format. A message is printed to indicate which
-variables were augmented.
-}
-\note{
-When \code{spacer = ""}, the function assumes that all time-varying columns have
-a numeric suffix (if \code{invert = FALSE}) or numeric prefix (if \code{invert = TRUE})
-that represents the time period. The consistency checks for separator
-ambiguity are skipped for \code{spacer = ""} because there is no separator to compare,
-but the \code{invert} correctness check still applies.
+The data are reshaped to long format using \code{stats::reshape()}.
 
 The function assumes that all time-varying columns follow a consistent naming
-pattern and that every variable appears for exactly the same set of time
-periods (balanced in the wide sense). If some variable-time combinations are
-missing, a message is printed and those variables are omitted.
+pattern. If some variable‑time combinations are missing (i.e., a column for a
+variable and a particular time period is absent), the function will add that
+column filled with \code{NA} so that the variable is preserved in the long format.
+
+Columns that are time-invariant (not split by time) are replicated for each
+time period, unless a particular entity-time combination has no
+time-varying data at all—in which case the invariant columns are set to \code{NA}
+to reflect a truly missing observation.
+
+The returned object has class \code{"panel_data"} and two additional attributes:
+\describe{
+\item{\code{metadata}}{List containing the function name, the entity and time
+variables, the \code{spacer}, and the \code{invert} setting. If the input was a
+\code{panel_data} object, the original metadata elements (\code{delta}, etc.)
+are preserved.}
+\item{\code{details}}{Preserved from the input if it was a \code{panel_data} object;
+otherwise an empty list.}
+}
+}
+\note{
+If \code{data} has panel attributes (e.g., from \code{make_wide()}) and \code{index} is
+not specified, the entity column and the name for the new time column
+are taken from the metadata.
 }
 \examples{
 data(production)
@@ -110,5 +88,5 @@ long5 <- make_long(wide5, static = "region")
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_balanced]{make_balanced()}}, \code{\link[=make_demeaned]{make_demeaned()}}.
+See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_balanced]{make_balanced()}}.
 }

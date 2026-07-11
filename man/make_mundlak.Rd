@@ -9,10 +9,9 @@ make_mundlak(data, group = NULL)
 \arguments{
 \item{data}{A data.frame containing the variables.}
 
-\item{group}{A character vector specifying the grouping variable(s). If not
-specified and \code{data} has panel attributes (class \code{panel_data}), the
-entity and time variables are extracted from the metadata and used as
-grouping variables. Otherwise, an error is thrown.}
+\item{group}{A character vector specifying the grouping variable(s).
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes to define grouping variables.}
 }
 \value{
 The input data frame with additional columns for group means.
@@ -23,30 +22,13 @@ be used for Mundlak-style (correlated random effects) modeling or for other
 purposes where within-group averages are needed.
 }
 \details{
-\itemize{
-\item For each numeric variable (excluding the grouping variables) and for each
+For each numeric variable (excluding the grouping variables) and for each
 grouping variable, the group mean is computed (ignoring \code{NA}s) and added
 as a new column.
-\item If \code{group} is not specified and \code{data} is \strong{not} a \code{panel_data} object,
-an error is raised because the grouping variables cannot be determined.
-\item Observations with \code{NA} in any grouping variable are removed before
-computing means; a message reports the number of removed rows.
-\item Missing values in the numeric variables are allowed; group means are
-computed with \code{na.rm = TRUE}.
-\item If the input is a \code{panel_data} object and \code{group} is not specified, the
-function uses the entity and time variables stored in the \code{metadata}
-attribute as grouping variables, and the returned object retains the
-\code{panel_data} class and its metadata.
-}
 
-\strong{Naming convention:}
 For a numeric variable \code{x} and a grouping variable \code{g}, the new column is
 named \code{x_mean_g}. For example, with grouping variables \code{"firm"} and \code{"year"},
 variable \code{"labor"} yields columns \code{labor_mean_firm} and \code{labor_mean_year}.
-
-\strong{References:}
-Mundlak, Y. (1978). On the Pooling of Time Series and Cross Section Data.
-\emph{Econometrica}, 46(1), 69–85. \doi{10.2307/1913646}.
 }
 \examples{
 data(production)

@@ -12,6 +12,7 @@
 #'
 #' @details
 #' This function adds attributes to a data.frame to mark it as panel data.
+#'
 #' The returned object has class `"panel_data"` and includes the following attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used
@@ -25,7 +26,6 @@
 #'         }}
 #' }
 #'
-#' **Effect of `delta`:**
 #' If `delta` is supplied, the function checks that all observed time points are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods and the full sequence is stored in `details$periods_restored`.
 #'

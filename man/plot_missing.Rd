@@ -13,11 +13,13 @@ plot_missing(data, select = NULL, index = NULL, colors = c("darkblue", "gray"))
 If not specified, all substantive variables (except entity and time) are used.}
 
 \item{index}{A character vector of length 2 giving the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
-\item{colors}{A character vector of two colors defining the gradient for the heatmap.
-The first color represents the \strong{largest} number of missing values,
-the second color the \strong{smallest} number. Default = c("darkblue", "gray").}
+\item{colors}{A character vector of length 2 defining the gradient for the heatmap.
+The first color represents the largest number of missing values,
+the second color the smallest number.
+Default = c("darkblue", "gray").}
 }
 \value{
 Invisibly returns a list with summary statistics and metadata.

@@ -7,49 +7,36 @@
 make_demeaned(data, group = NULL)
 }
 \arguments{
-\item{data}{A data.frame containing the variables to be demeaned.}
+\item{data}{A data.frame containing variables to be demeaned.}
 
-\item{group}{A character vector specifying the grouping variable(s). If not
-specified and \code{data} has panel attributes, the entity and time
-variables are used as grouping variables. Otherwise, overall demeaning
-is performed.}
+\item{group}{A character string or vector of character strings specifying
+the grouping variable(s).
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes to define grouping variables.
+Otherwise, overall demeaning is performed.}
 }
 \value{
-The input data frame with all numeric variables replaced by their
-demeaned versions.
+The input data frame containing all numeric variables replaced by their
+demeaned versions and unchanged non-numeric variables.
 }
 \description{
 This function performs within-group demeaning (centering) for all numeric
-variables in a data frame. For each group defined by the \code{group} argument,
-the group mean is subtracted from each observation. If no grouping is
-provided, the overall mean is subtracted (grand mean centering). Non-numeric
-variables are not demeaned and are returned unchanged.
+variables in a data frame.
+Non-numeric variables are not demeaned and are returned unchanged.
 }
 \details{
+Depending on the value of \code{group} argument, the function uses different
+demeaning procedures:
 \itemize{
-\item If \code{group} is not specified and \code{data} is \strong{not} a \code{panel_data} object,
+\item If grouping variable is not specified and \code{data} is not a \code{panel_data} object,
 simple overall demeaning is performed: for each numeric variable, the
 overall mean (ignoring \code{NA}s) is subtracted.
-\item If \code{group} is specified, the grouping variables are used to define the
-groups. Observations with \code{NA} in any grouping variable are removed before
-demeaning.
-\item \strong{Missing values in numeric variables are not removed automatically};
-the user should handle them prior to calling this function if desired.
-\item If \code{data} inherits from \code{panel_data} and \code{group} is not specified, the
-function automatically uses the entity and time variables stored in the
-\code{metadata} attribute as grouping variables, and the returned object retains
-the \code{panel_data} class and its attributes.
-\item Non-numeric variables are not demeaned and are returned unchanged.
-}
-
-\strong{Demeaning algorithms:}
-\itemize{
-\item One group: \code{x - mean(x | group)} (exact, using \code{ave} with \code{na.rm = TRUE}).
-\item Two or more groups: iterative Gauss–Seidel algorithm (alternating
-projections). This matches the \code{fixest} fixed-effect residuals exactly,
-even for unbalanced panels. The algorithm runs up to \strong{2000 iterations} with
-tolerance \strong{1e-6} (matching the defaults of \code{fixest::demean()}); a warning
-is issued if convergence is not reached.
+\item If one group variable is specified, the exact calculation is used:
+the group mean is subtracted from each observation.
+\item If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
+The algorithm runs up to \strong{2000 iterations} with tolerance \strong{1e-6}
+(matching the defaults of \code{fixest::demean()});
+a warning is issued if convergence is not reached.
 }
 
 The returned object has a \code{metadata} attribute and a \code{details} attribute:

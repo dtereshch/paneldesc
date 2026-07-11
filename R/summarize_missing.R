@@ -7,7 +7,8 @@
 #' @param select A character vector specifying which variables to analyze for missing values.
 #'        If not specified, all variables (except entity and time) will be used.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
-#'        Not required if data has panel attributes.
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes.
 #' @param detail A logical flag indicating whether to return detailed period-specific NA counts.
 #'        Default = FALSE.
 #' @param digits An integer indicating the number of decimal places to round the share column.

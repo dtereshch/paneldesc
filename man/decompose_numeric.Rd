@@ -22,7 +22,8 @@ If not specified, all numeric variables in the data.frame will be used.}
 \item{index}{A character vector of length 1 or 2 specifying the names of the
 entity and (optionally) time variables. The first element is the entity
 variable; if a second element is provided, it is used as the time variable.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{detail}{A logical flag indicating whether to return detailed Stata-like output.
 Default = TRUE.}

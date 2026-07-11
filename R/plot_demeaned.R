@@ -1,37 +1,41 @@
 #' Plot Demeaned Variable(s)
 #'
-#' This function demeaens the selected numeric variable(s) using the same
-#' within-group demeaning procedure as [make_demeaned()] and creates
-#' a visualization. For a single variable, a histogram of the demeaned values
-#' is drawn. For two variables, a scatterplot of the demeaned values is drawn.
+#' This function performs within-group demeaning (centering) for selected numeric
+#' variable(s) and creates a visualization.
 #'
-#' @param data A data.frame containing the variable(s) to be demeaned.
+#' @param data A data.frame containing variables for analysis.
 #' @param select A character vector of length 1 or 2 specifying the name(s) of
 #'        the numeric variable(s) to demean and plot.
-#' @param group A character vector specifying the grouping variable(s) for
-#'        demeaning. If not specified and `data` has panel attributes,
-#'        the entity and time variables are used as grouping variables.
-#'        Otherwise, overall demeaning (grand mean centering) is performed.
-#' @param colors A character vector of length 2 specifying the colours for the
-#'        plot. For a histogram, the first colour fills the bars and the second
-#'        colour is used for the bar borders. For a scatterplot, the first colour
-#'        fills the points and the second colour is used for the point borders.
+#' @param group A character string or vector of character strings specifying
+#'        the grouping variable(s).
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes to define grouping variables.
+#'        Otherwise, overall demeaning is performed.
+#' @param colors A character vector of length 2 specifying the colors for the plot.
+#'        First color is for fill, second color is for the border line.
 #'        Default = `c("darkblue", "white")`.
 #'
-#' @return A list with metadata and details components (invisibly).
+#' @return Invisibly returns a list with the demeaned values and metadata.
 #'
 #' @details
-#' The demeaning is performed by calling [make_demeaned()] internally.
-#' Therefore all features of that function are available: handling of
-#' `panel_data` objects, iterative projection for multiple groups,
-#' and removal of rows with missing values in the grouping variables.
+#' The function creates a plot which shape depends on the `select` argument:
+#' * If one variable is specified, a histogram of the demeaned values is plotted.
+#' * If two variables are specified, a scatterplot of the demeaned values is plotted.
 #'
-#' Missing values in the selected variable(s) are removed before plotting.
-#' If no valid observations remain after removal, an error is thrown.
+#' The demeaning is performed by calling [make_demeaned()] internally, so it
+#' shares all specifics of that function.
 #'
-#' Only the selected variable(s) and the grouping variables are passed to
-#' `make_demeaned`, so no other numeric variables in the original data
-#' are demeaned or cause message output.
+#' Depending on the value of `group` argument, the function uses different
+#' demeaning procedures:
+#' * If grouping variable is not specified and `data` is not a `panel_data` object,
+#'   simple overall demeaning is performed: for each numeric variable, the
+#'   overall mean (ignoring `NA`s) is subtracted.
+#' * If one group variable is specified, the exact calculation is used:
+#'   the group mean is subtracted from each observation.
+#' * If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
+#'   The algorithm runs up to 2000 iterations with tolerance 1e-6
+#'   (matching the defaults of `fixest::demean()`);
+#'   a warning is issued if convergence is not reached.
 #'
 #' The returned list contains:
 #' \describe{
@@ -42,6 +46,11 @@
 #'         variables, it is a data frame with columns `x` and `y`
 #'         containing the demeaned values.}
 #' }
+#'
+#' @note
+#' #' Only the selected variable(s) and the grouping variables are passed to
+#' `make_demeaned`, so no other numeric variables in the original data
+#' are demeaned or cause message output.
 #'
 #' @seealso
 #' See also [make_demeaned()], [plot_heterogeneity()], [decompose_numeric()]

@@ -5,36 +5,20 @@
 #' purposes where within-group averages are needed.
 #'
 #' @param data A data.frame containing the variables.
-#' @param group A character vector specifying the grouping variable(s). If not
-#'        specified and `data` has panel attributes (class `panel_data`), the
-#'        entity and time variables are extracted from the metadata and used as
-#'        grouping variables. Otherwise, an error is thrown.
+#' @param group A character vector specifying the grouping variable(s).
+#'        If not specified and data is a `panel_data` object, the entity and time values
+#'        will be extracted from the data.frame attributes to define grouping variables.
 #'
 #' @return The input data frame with additional columns for group means.
 #'
 #' @details
-#' * For each numeric variable (excluding the grouping variables) and for each
-#'   grouping variable, the group mean is computed (ignoring `NA`s) and added
-#'   as a new column.
-#' * If `group` is not specified and `data` is **not** a `panel_data` object,
-#'   an error is raised because the grouping variables cannot be determined.
-#' * Observations with `NA` in any grouping variable are removed before
-#'   computing means; a message reports the number of removed rows.
-#' * Missing values in the numeric variables are allowed; group means are
-#'   computed with `na.rm = TRUE`.
-#' * If the input is a `panel_data` object and `group` is not specified, the
-#'   function uses the entity and time variables stored in the `metadata`
-#'   attribute as grouping variables, and the returned object retains the
-#'   `panel_data` class and its metadata.
+#' For each numeric variable (excluding the grouping variables) and for each
+#' grouping variable, the group mean is computed (ignoring `NA`s) and added
+#' as a new column.
 #'
-#' **Naming convention:**
 #' For a numeric variable `x` and a grouping variable `g`, the new column is
 #' named `x_mean_g`. For example, with grouping variables `"firm"` and `"year"`,
 #' variable `"labor"` yields columns `labor_mean_firm` and `labor_mean_year`.
-#'
-#' **References:**
-#' Mundlak, Y. (1978). On the Pooling of Time Series and Cross Section Data.
-#' *Econometrica*, 46(1), 69–85. \doi{10.2307/1913646}.
 #'
 #' @seealso
 #' See also [make_demeaned()], [summarize_numeric()], [plot_heterogeneity()].

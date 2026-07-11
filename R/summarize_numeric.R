@@ -45,8 +45,12 @@
 #'   \item{`details`}{List with counts of variables, groups, and total observations.}
 #' }
 #'
+#' @note
+#' Unlike other functions in this package, this function does not access the values
+#' ​​of panel attributes from a `panel_data` object.
+#'
 #' @seealso
-#' See also [decompose_numeric()], [plot_heterogeneity()].
+#' See also [decompose_numeric()], [plot_heterogeneity()], [make_mundlak()].
 #'
 #' @examples
 #' data(production)

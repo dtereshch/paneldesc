@@ -19,7 +19,8 @@ summarize_missing(
 If not specified, all variables (except entity and time) will be used.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{detail}{A logical flag indicating whether to return detailed period-specific NA counts.
 Default = FALSE.}

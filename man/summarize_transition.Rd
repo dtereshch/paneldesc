@@ -12,7 +12,8 @@ summarize_transition(data, select, index = NULL, format = "wide", digits = 3)
 \item{select}{A character string specifying the factor variable to analyze transitions for.}
 
 \item{index}{A character vector of length 2 specifying the names of the entity and time variables.
-Not required if data has panel attributes.}
+If not specified and data is a \code{panel_data} object, the entity and time values
+will be extracted from the data.frame attributes.}
 
 \item{format}{A character string specifying the output format: \code{"wide"} (default) or \code{"long"}.}
 
