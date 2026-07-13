@@ -83,7 +83,7 @@ plot_demeaned(production, select = c("labor", "capital"),
 panel <- make_panel(production, index = c("firm", "year"))
 plot_demeaned(panel, select = c("labor", "capital"))
 
-# Custom colours
+# Custom colors
 plot_demeaned(production, select = "labor", group = "firm",
               colors = c("gray", "black"))
 

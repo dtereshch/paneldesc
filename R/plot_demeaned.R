@@ -70,7 +70,7 @@
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' plot_demeaned(panel, select = c("labor", "capital"))
 #'
-#' # Custom colours
+#' # Custom colors
 #' plot_demeaned(production, select = "labor", group = "firm",
 #'               colors = c("gray", "black"))
 #'
@@ -249,7 +249,7 @@ plot_demeaned <- function(
       axes = FALSE,
       frame.plot = FALSE
     )
-    # Add points with custom colours
+    # Add points with custom colors
     graphics::points(
       x,
       y,

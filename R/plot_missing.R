@@ -263,7 +263,7 @@ plot_missing <- function(
   xlim_heat <- c(0.5 - pad, nc + 0.5 + pad)
   ylim_heat <- c(0.5 - pad, nr + 0.5 + pad)
 
-  # Colour mapping
+  # Color mapping
   if (min_val == max_val) {
     cell_colors <- matrix(colors[1], nrow = nr, ncol = nc)
     ramp_seq_colors <- rep(colors[1], 100)
@@ -281,7 +281,7 @@ plot_missing <- function(
     )
     cell_colors <- matrix(cell_colors_vec, nrow = nr, ncol = nc)
 
-    # Colours for the gradient legend (100 steps)
+    # Colors for the gradient legend (100 steps)
     ramp_seq <- seq(0, 1, length.out = 100)
     rgb_legend <- ramp(ramp_seq)
     ramp_seq_colors <- rgb(
@@ -300,7 +300,7 @@ plot_missing <- function(
     layout(1)
   })
 
-  # ---- 1. Colour bar (legend) ----
+  # ---- 1. Color bar (legend) ----
   # Margins: bottom 0, left = left_margin, top 2, right 1
   par(mar = c(0, left_margin, 2, 1))
   plot.new()
