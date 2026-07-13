@@ -27,15 +27,16 @@
 #'   (matching the defaults of `fixest::demean()`);
 #'   a warning is issued if convergence is not reached.
 #'
-#' The returned object has a `metadata` attribute and a `details` attribute:
+#' The returned object has class `"panel_data"` if the input was a `panel_data` object;
+#' otherwise it is a `data.frame` with additional attributes.
+#' In both cases, the object has the following attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name (`"make_demeaned"`)
-#'         and the grouping variables used (`group`). If the input was a
-#'         `panel_data` object and `group` was not specified, the original
-#'         panel metadata (`entity`, `time`, and `delta` if present) are also
-#'         included.}
-#'   \item{`details`}{List with any additional information. If the input was a
-#'         `panel_data` object, the original panel details are preserved.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.
+#'         If the input was a `panel_data` object, the original metadata elements
+#'         (entity, time, and delta) are preserved.}
+#'   \item{`details`}{A list containing data.frames with the computed group means.
+#'         If overall demeaning was performed (no grouping), it contains a named vector
+#'         of the overall means.}
 #' }
 #'
 #' @seealso
@@ -68,26 +69,43 @@ make_demeaned <- function(data, group = NULL) {
   msg_printed <- FALSE
   keep_panel_class <- FALSE
   panel_metadata <- NULL
-  panel_details <- NULL
   panel_class <- NULL
   group_used <- group
   entity_time_from_metadata <- FALSE
 
   # --- Determine grouping and whether to keep panel class ---
-  if (inherits(data, "panel_data") && is.null(group)) {
-    meta <- attr(data, "metadata")
-    if (is.null(meta) || is.null(meta$entity) || is.null(meta$time)) {
-      stop(
-        "'panel_data' object missing required metadata (entity and time)",
-        call. = FALSE
-      )
-    }
-    group_used <- c(meta$entity, meta$time)
+  if (inherits(data, "panel_data")) {
     keep_panel_class <- TRUE
-    panel_metadata <- meta
-    panel_details <- attr(data, "details")
+    panel_metadata <- attr(data, "metadata")
     panel_class <- class(data)
-    entity_time_from_metadata <- TRUE
+
+    if (is.null(group)) {
+      # Use entity and time from metadata
+      if (
+        is.null(panel_metadata) ||
+          is.null(panel_metadata$entity) ||
+          is.null(panel_metadata$time)
+      ) {
+        stop(
+          "'panel_data' object missing required metadata (entity and time)",
+          call. = FALSE
+        )
+      }
+      group_used <- c(panel_metadata$entity, panel_metadata$time)
+      entity_time_from_metadata <- TRUE
+    } else {
+      # User supplied grouping, but we still keep panel_data class
+      group_used <- group
+      entity_time_from_metadata <- FALSE
+    }
+  } else {
+    # Not a panel_data object
+    if (!is.null(group)) {
+      group_used <- group
+    } else {
+      group_used <- NULL
+    }
+    entity_time_from_metadata <- FALSE
   }
 
   # --- Validate group_used ---
@@ -228,6 +246,34 @@ make_demeaned <- function(data, group = NULL) {
     }
   }
 
+  # --- Compute details ---
+  details <- list()
+  if (length(demean_vars) > 0) {
+    if (!is.null(group_used)) {
+      # Grouped demeaning: store group means as data frames per group
+      for (g in group_used) {
+        group_means <- aggregate(
+          data[, demean_vars, drop = FALSE],
+          by = list(group = data[[g]]),
+          FUN = mean,
+          na.rm = TRUE
+        )
+        colnames(group_means)[1] <- g
+        details[[paste0("means_", g)]] <- group_means
+      }
+    } else {
+      # Overall demeaning: store overall means as named vector
+      overall_means <- vapply(
+        demean_vars,
+        function(var) mean(data[[var]], na.rm = TRUE),
+        numeric(1)
+      )
+      names(overall_means) <- demean_vars
+      details$means <- overall_means
+    }
+  }
+  # else details remains empty list (no numeric variables to demean)
+
   # --- Build metadata attribute ---
   if (keep_panel_class) {
     new_metadata <- panel_metadata
@@ -241,24 +287,14 @@ make_demeaned <- function(data, group = NULL) {
     )
   }
 
-  # --- Build details attribute (no excluded variables) ---
-  if (keep_panel_class) {
-    new_details <- panel_details
-    if (is.null(new_details)) {
-      new_details <- list()
-    }
-  } else {
-    new_details <- list()
-  }
-
   # --- Attach attributes and class ---
   if (keep_panel_class) {
     attr(data, "metadata") <- new_metadata
-    attr(data, "details") <- new_details
+    attr(data, "details") <- details
     class(data) <- panel_class
   } else {
     attr(data, "metadata") <- new_metadata
-    attr(data, "details") <- new_details
+    attr(data, "details") <- details
     if (inherits(data, "panel_data")) {
       class(data) <- setdiff(class(data), "panel_data")
     }

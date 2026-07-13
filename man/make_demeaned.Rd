@@ -39,15 +39,16 @@ The algorithm runs up to \strong{2000 iterations} with tolerance \strong{1e-6}
 a warning is issued if convergence is not reached.
 }
 
-The returned object has a \code{metadata} attribute and a \code{details} attribute:
+The returned object has class \code{"panel_data"} if the input was a \code{panel_data} object;
+otherwise it is a \code{data.frame} with additional attributes.
+In both cases, the object has the following attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name (\code{"make_demeaned"})
-and the grouping variables used (\code{group}). If the input was a
-\code{panel_data} object and \code{group} was not specified, the original
-panel metadata (\code{entity}, \code{time}, and \code{delta} if present) are also
-included.}
-\item{\code{details}}{List with any additional information. If the input was a
-\code{panel_data} object, the original panel details are preserved.}
+\item{\code{metadata}}{List containing the function name and the arguments used.
+If the input was a \code{panel_data} object, the original metadata elements
+(entity, time, and delta) are preserved.}
+\item{\code{details}}{A list containing data.frames with the computed group means.
+If overall demeaning was performed (no grouping), it contains a named vector
+of the overall means.}
 }
 }
 \examples{
