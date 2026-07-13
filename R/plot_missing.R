@@ -24,7 +24,7 @@
 #'
 #' The returned list contains:
 #' \describe{
-#'     \item{`metadata`}{List containing the function call, `select`, entity/time variables, and `colors`.}
+#'     \item{`metadata`}{List containing the function name and the arguments used.}
 #'     \item{`details`}{List with the missing count matrix (variables × periods).}
 #'   }
 #'

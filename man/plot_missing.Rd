@@ -36,7 +36,7 @@ Rows are ordered as the variables appear (first at the top). Columns are ordered
 
 The returned list contains:
 \describe{
-\item{\code{metadata}}{List containing the function call, \code{select}, entity/time variables, and \code{colors}.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with the missing count matrix (variables × periods).}
 }
 }

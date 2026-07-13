@@ -32,7 +32,7 @@ showing the heterogeneity among groups. Each plot displays individual observatio
 
 The returned list contains the following components:
 \describe{
-\item{\code{metadata}}{List containing the function name, selection, group, and colors.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing group-level statistics for each grouping variable,
 each containing means, standard deviations, and counts per group.}
 }

@@ -55,12 +55,10 @@ a warning is issued if convergence is not reached.
 
 The returned list contains:
 \describe{
-\item{\code{metadata}}{List containing the function name, the selected
-variable(s), the grouping variable(s) used, and the colours.}
-\item{\code{details}}{List containing the demeaned data. For a single
-variable, this is a numeric vector of demeaned values. For two
-variables, it is a data frame with columns \code{x} and \code{y}
-containing the demeaned values.}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing the demeaned data. For a single variable,
+this is a numeric vector of demeaned values. For two variables, it is
+a data frame with columns \code{x} and \code{y} containing the demeaned values.}
 }
 }
 \note{

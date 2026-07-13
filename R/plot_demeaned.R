@@ -39,12 +39,10 @@
 #'
 #' The returned list contains:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name, the selected
-#'         variable(s), the grouping variable(s) used, and the colours.}
-#'   \item{`details`}{List containing the demeaned data. For a single
-#'         variable, this is a numeric vector of demeaned values. For two
-#'         variables, it is a data frame with columns `x` and `y`
-#'         containing the demeaned values.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing the demeaned data. For a single variable,
+#'         this is a numeric vector of demeaned values. For two variables, it is
+#'         a data frame with columns `x` and `y` containing the demeaned values.}
 #' }
 #'
 #' @note

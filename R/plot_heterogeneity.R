@@ -20,7 +20,7 @@
 #'
 #' The returned list contains the following components:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name, selection, group, and colors.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing group-level statistics for each grouping variable,
 #'         each containing means, standard deviations, and counts per group.}
 #' }
