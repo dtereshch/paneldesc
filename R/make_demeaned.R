@@ -49,10 +49,13 @@
 #' prod_demeaned <- make_demeaned(production)
 #'
 #' # Demeaning by a single group
-#' prod_demeaned_firm <- make_demeaned(production, group = "firm")
+#' prod_demeaned_1 <- make_demeaned(production, group = "firm")
 #'
 #' # Demeaning by two groups
-#' prod_demeaned_both <- make_demeaned(production, group = c("firm", "year"))
+#' prod_demeaned_2 <- make_demeaned(production, group = c("firm", "year"))
+#'
+#' #' # Demeaning by multiple groups
+#' prod_demeaned_3 <- make_demeaned(production, group = c("industry", "region", "year"))
 #'
 #' # With panel_data object (automatically demeans by entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))

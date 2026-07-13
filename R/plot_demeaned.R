@@ -63,8 +63,11 @@
 #' plot_demeaned(production, select = c("labor", "capital"),
 #'               group = "firm")
 #'
-#' # Demeaning two variables with two grouping variables
+#' # Demeaning with two grouping variables
 #' plot_demeaned(production, select = c("labor", "capital"), group = c("firm", "year"))
+#'
+#' # Demeaning with multiple grouping variables
+#' plot_demeaned(production, select = c("labor", "capital"), group = c("industry", "region", "year"))
 #'
 #' # With panel_data object (automatically demeans by entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
