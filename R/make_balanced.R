@@ -31,6 +31,12 @@
 #'   \item{`balance = "periods"`}{Keep only time periods where all entities are present.}
 #' }
 #'
+#' The returned object has class `"panel_data"` and two additional attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing the unique entities and periods in the balanced data, and if `delta` is supplied, the restored full period sequence and any missing periods.}
+#' }
+#'
 #' @note
 #' An entity-time combination is considered **present** if the corresponding row contains at least
 #' one non‑NA value in any substantive variable (all columns except the entity and time identifiers).

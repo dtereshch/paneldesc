@@ -24,7 +24,6 @@
 #'   \item{\code{share}}{Proportion of entities observed in that period (0 to 1), rounded to `digits`.}
 #' }
 #'
-#' **Effect of `delta`:**
 #' If `delta` is supplied, the function checks that all observed time points
 #' are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods
@@ -32,7 +31,7 @@
 #' For each missing period, a row is added to the output with `count = 0` and `share = 0`,
 #' ensuring that the output covers the full regular time sequence.
 #'
-#' The object has class `"panel_description"` and two additional attributes:
+#' The returned object has class `"panel_description"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List with a named list `entities` giving, for each period, the vector of entities observed.}

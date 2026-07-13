@@ -19,7 +19,7 @@
 #'   \item{\code{variables}}{ Number of substantive variables (all columns except entity and time).}
 #' }
 #'
-#' The object has class `"panel_description"` and two additional attributes:
+#' The returned object has class `"panel_description"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List with the actual vectors of entities, periods, and substantive variables.}

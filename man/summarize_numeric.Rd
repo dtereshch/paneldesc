@@ -58,7 +58,7 @@ When a grouping variable is specified, statistics are calculated for each group,
 and the data.frame includes a column named after the grouping variable,
 followed by the same statistics columns as above.
 
-The object has class \code{"panel_summary"} and two additional attributes:
+The returned object has class \code{"panel_summary"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with counts of variables, groups, and total observations.}

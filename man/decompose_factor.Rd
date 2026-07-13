@@ -59,7 +59,7 @@ When \code{format = "long"}, returns a data.frame with columns:
 \item{\code{share}}{Share proportion (0 to 1)}
 }
 
-The object has class \code{"panel_summary"} and two additional attributes:
+The returned object has class \code{"panel_summary"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_entities}.}

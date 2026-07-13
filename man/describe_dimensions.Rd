@@ -29,7 +29,7 @@ The returned data.frame has the following structure:
 \item{\code{variables}}{ Number of substantive variables (all columns except entity and time).}
 }
 
-The object has class \code{"panel_description"} and two additional attributes:
+The returned object has class \code{"panel_description"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with the actual vectors of entities, periods, and substantive variables.}

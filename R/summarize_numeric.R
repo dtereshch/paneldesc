@@ -39,7 +39,7 @@
 #' and the data.frame includes a column named after the grouping variable,
 #' followed by the same statistics columns as above.
 #'
-#' The object has class `"panel_summary"` and two additional attributes:
+#' The returned object has class `"panel_summary"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List with counts of variables, groups, and total observations.}

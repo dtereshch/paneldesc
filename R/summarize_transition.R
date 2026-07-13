@@ -32,7 +32,7 @@
 #'   \item{\code{share}}{Proportion of transitions from `from` that go to `to` (rounded).}
 #' }
 #'
-#' The object has class `"panel_summary"` and two additional attributes:
+#' The returned object has class `"panel_summary"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List with the vector of all category levels.}

@@ -45,7 +45,7 @@ When \code{format = "long"}, a data.frame with columns:
 \item{\code{share}}{Proportion of transitions from \code{from} that go to \code{to} (rounded).}
 }
 
-The object has class \code{"panel_summary"} and two additional attributes:
+The returned object has class \code{"panel_summary"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with the vector of all category levels.}

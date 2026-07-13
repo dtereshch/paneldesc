@@ -69,7 +69,7 @@
 #'   \item{\code{std_within}}{Within-entity standard deviation}
 #' }
 #'
-#' The object has class `"panel_summary"` and two additional attributes:
+#' The returned object has class `"panel_summary"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing additional information: `count_entities`.}

@@ -28,7 +28,7 @@
 #' 1. Number of variables with NAs (descending)
 #' 2. Total number of NAs (descending)
 #'
-#' The object has class `"panel_description"` and two additional attributes:
+#' The returned object has class `"panel_description"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing total entity counts and the IDs of incomplete entities.}

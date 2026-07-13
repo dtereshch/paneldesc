@@ -13,21 +13,14 @@
 #' @details
 #' This function adds attributes to a data.frame to mark it as panel data.
 #'
-#' The returned object has class `"panel_data"` and includes the following attributes:
-#' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used
-#'         (`entity`, `time`, and `delta` if provided).}
-#'   \item{`details`}{List with diagnostic vectors:
-#'         \describe{
-#'           \item{`entities`}{Unique values of the entity variable.}
-#'           \item{`periods`}{Sorted unique values of the time variable.}
-#'           \item{`periods_restored`, `periods_missing`}{If `delta` is supplied and gaps are detected,
-#'                 the full sequence and missing periods.}
-#'         }}
-#' }
-#'
 #' If `delta` is supplied, the function checks that all observed time points are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods and the full sequence is stored in `details$periods_restored`.
+#'
+#' The returned object has class `"panel_data"` and two additional attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List containing the unique entities and periods, and if `delta` is supplied, the restored full period sequence and missing periods.}
+#' }
 #'
 #' @seealso
 #' See also [make_balanced()], [make_balanced()], [make_wide()], [make_long()], [make_demeaned()],

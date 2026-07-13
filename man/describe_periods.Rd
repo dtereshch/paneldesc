@@ -36,7 +36,6 @@ i.e., entities with at least one row containing a non‑NA value in substantive 
 \item{\code{share}}{Proportion of entities observed in that period (0 to 1), rounded to \code{digits}.}
 }
 
-\strong{Effect of \code{delta}:}
 If \code{delta} is supplied, the function checks that all observed time points
 are separated by multiples of \code{delta}.
 If gaps are detected, a message lists the missing periods
@@ -44,7 +43,7 @@ If gaps are detected, a message lists the missing periods
 For each missing period, a row is added to the output with \code{count = 0} and \code{share = 0},
 ensuring that the output covers the full regular time sequence.
 
-The object has class \code{"panel_description"} and two additional attributes:
+The returned object has class \code{"panel_description"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with a named list \code{entities} giving, for each period, the vector of entities observed.}

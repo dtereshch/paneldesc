@@ -42,6 +42,12 @@ is used. Missing combinations get \code{NA} in all other columns.}
 \item{\code{balance = "entities"}}{Keep only entities present in all time periods.}
 \item{\code{balance = "periods"}}{Keep only time periods where all entities are present.}
 }
+
+The returned object has class \code{"panel_data"} and two additional attributes:
+\describe{
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing the unique entities and periods in the balanced data, and if \code{delta} is supplied, the restored full period sequence and any missing periods.}
+}
 }
 \note{
 An entity-time combination is considered \strong{present} if the corresponding row contains at least

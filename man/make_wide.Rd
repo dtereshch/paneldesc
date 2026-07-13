@@ -53,6 +53,14 @@ of the original variable names that were reshaped from long to wide)
 and \code{static_detected} (character vector of the time-invariant
 variable names).}
 }
+
+The returned object has class \code{"panel_data"} and two additional attributes:
+\describe{
+\item{\code{metadata}}{List containing the function name and the arguments used.
+If the input was a \code{panel_data} object, the original metadata elements
+(entity, time, and delta) are preserved.}
+\item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
+}
 }
 \examples{
 data(production)

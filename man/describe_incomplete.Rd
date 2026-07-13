@@ -41,7 +41,7 @@ The data.frame is sorted by:
 \item Total number of NAs (descending)
 }
 
-The object has class \code{"panel_description"} and two additional attributes:
+The returned object has class \code{"panel_description"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing total entity counts and the IDs of incomplete entities.}

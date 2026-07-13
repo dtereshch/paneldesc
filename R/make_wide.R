@@ -41,6 +41,14 @@
 #'         variable names).}
 #' }
 #'
+#' The returned object has class `"panel_data"` and two additional attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name and the arguments used.
+#'         If the input was a `panel_data` object, the original metadata elements
+#'         (entity, time, and delta) are preserved.}
+#'   \item{`details`}{List containing the names of reshaped variables and detected static variables.}
+#' }
+#'
 #' @seealso
 #' See also [make_panel()], [make_long()], [make_balanced()].
 #'

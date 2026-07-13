@@ -39,7 +39,7 @@
 #' }
 #' All statistics are rounded to the number of decimal places specified by \code{digits}.
 #'
-#' The object has class \code{"panel_description"} and two additional attributes:
+#' The returned object has class \code{"panel_description"} and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List containing the full presence matrix.}

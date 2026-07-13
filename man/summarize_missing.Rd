@@ -48,7 +48,7 @@ When \code{detail = FALSE}, returns columns:
 When \code{detail = TRUE}, additional columns for each time period contain the number of missing values
 in that variable for that period.
 
-The object has class \code{"panel_summary"} and two additional attributes:
+The returned object has class \code{"panel_summary"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List with counts of variables with/without NAs, and their names.}

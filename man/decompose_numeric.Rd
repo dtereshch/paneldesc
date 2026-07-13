@@ -90,7 +90,7 @@ When \code{format = "wide"} and \code{detail = FALSE}, returns a data.frame with
 \item{\code{std_within}}{Within-entity standard deviation}
 }
 
-The object has class \code{"panel_summary"} and two additional attributes:
+The returned object has class \code{"panel_summary"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.}
 \item{\code{details}}{List containing additional information: \code{count_entities}.}

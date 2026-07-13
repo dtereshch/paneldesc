@@ -48,14 +48,10 @@ to reflect a truly missing observation.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name, the entity and time
-variables, the \code{spacer}, and the \code{invert} setting. If the input was a
-\code{panel_data} object, the original metadata elements (\code{delta}, etc.)
-are preserved.}
-\item{\code{details}}{A list with two elements: \code{reshaped} (character vector
-of the original variable names that were reshaped from wide to long)
-and \code{static_detected} (character vector of the time-invariant
-variable names).}
+\item{\code{metadata}}{List containing the function name and the arguments used.
+If the input was a \code{panel_data} object, the original metadata elements
+(entity, time, and delta) are preserved.}
+\item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
 }
 }
 \note{

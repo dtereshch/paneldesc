@@ -48,7 +48,7 @@
 #' and columns for those missing periods are added to the presence matrix – and therefore to the output data.frame – with all zeros.
 #' This ensures that the patterns reflect the full regular sequence of time periods.
 #'
-#' The object has class `"panel_description"` and two additional attributes:
+#' The returned object has class `"panel_description"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.}
 #'   \item{`details`}{List with the full presence matrix, pattern‑entity mapping, and the pattern matrix.}

@@ -25,21 +25,14 @@ and optionally checks the expected interval between time periods.
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
 
-The returned object has class \code{"panel_data"} and includes the following attributes:
-\describe{
-\item{\code{metadata}}{List containing the function name and the arguments used
-(\code{entity}, \code{time}, and \code{delta} if provided).}
-\item{\code{details}}{List with diagnostic vectors:
-\describe{
-\item{\code{entities}}{Unique values of the entity variable.}
-\item{\code{periods}}{Sorted unique values of the time variable.}
-\item{\code{periods_restored}, \code{periods_missing}}{If \code{delta} is supplied and gaps are detected,
-the full sequence and missing periods.}
-}}
-}
-
 If \code{delta} is supplied, the function checks that all observed time points are separated by multiples of \code{delta}.
 If gaps are detected, a message lists the missing periods and the full sequence is stored in \code{details$periods_restored}.
+
+The returned object has class \code{"panel_data"} and two additional attributes:
+\describe{
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List containing the unique entities and periods, and if \code{delta} is supplied, the restored full period sequence and missing periods.}
+}
 }
 \examples{
 data(production)
