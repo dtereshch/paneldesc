@@ -20,13 +20,14 @@
 #' named `x_mean_g`. For example, with grouping variables `"firm"` and `"year"`,
 #' variable `"labor"` yields columns `labor_mean_firm` and `labor_mean_year`.
 #'
-#' The returned object has class `"panel_data"` if the input was a `panel_data` object
-#' and `group` was not specified; otherwise it is a `data.frame` with additional attributes.
+#' The returned object has class `"panel_data"` if the input was a `panel_data` object;
+#' otherwise it is a `data.frame` with additional attributes.
 #' In both cases, the object has the following attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
-#'   \item{`details`}{A list containing computed group means. If the input was a `panel_data` object,
-#'         it also includes any additional panel details that were present before.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.
+#'         If the input was a `panel_data` object, the original metadata elements
+#'         (entity, time, and delta) are preserved.}
+#'   \item{`details`}{A list containing data.frames with the computed group means.}
 #' }
 #'
 #' @seealso
@@ -55,35 +56,48 @@ make_mundlak <- function(data, group = NULL) {
   msg_printed <- FALSE
   keep_panel_class <- FALSE
   panel_metadata <- NULL
-  panel_details <- NULL
   panel_class <- NULL
   group_used <- group
   entity_time_from_metadata <- FALSE
 
   # --- Determine grouping and whether to keep panel class ---
-  if (inherits(data, "panel_data") && is.null(group)) {
-    meta <- attr(data, "metadata")
-    if (is.null(meta) || is.null(meta$entity) || is.null(meta$time)) {
+  if (inherits(data, "panel_data")) {
+    keep_panel_class <- TRUE
+    panel_metadata <- attr(data, "metadata")
+    panel_class <- class(data)
+
+    if (is.null(group)) {
+      # Use entity and time from metadata
+      if (
+        is.null(panel_metadata) ||
+          is.null(panel_metadata$entity) ||
+          is.null(panel_metadata$time)
+      ) {
+        stop(
+          "'panel_data' object missing required metadata (entity and time)",
+          call. = FALSE
+        )
+      }
+      group_used <- c(panel_metadata$entity, panel_metadata$time)
+      entity_time_from_metadata <- TRUE
+    } else {
+      # User supplied grouping, but we still keep panel_data class
+      group_used <- group
+      entity_time_from_metadata <- FALSE
+    }
+  } else {
+    # Not a panel_data object
+    if (is.null(group)) {
       stop(
-        "'panel_data' object missing required metadata (entity and time)",
+        "'group' must be specified or data must be a 'panel_data' object with metadata.",
         call. = FALSE
       )
     }
-    group_used <- c(meta$entity, meta$time)
-    keep_panel_class <- TRUE
-    panel_metadata <- meta
-    panel_details <- attr(data, "details")
-    panel_class <- class(data)
-    entity_time_from_metadata <- TRUE
+    group_used <- group
+    entity_time_from_metadata <- FALSE
   }
 
   # --- Validate group_used ---
-  if (is.null(group_used)) {
-    stop(
-      "'group' must be specified or data must be a 'panel_data' object with metadata.",
-      call. = FALSE
-    )
-  }
   if (!is.character(group_used)) {
     stop(
       "'group' must be a character vector, not ",
@@ -180,14 +194,20 @@ make_mundlak <- function(data, group = NULL) {
     }
   }
 
-  # --- Compute group means summaries for storage in details ---
-  group_means_summary <- list()
+  # --- Compute group means summaries for storage in details (data frames per group) ---
+  details <- list()
   if (length(mean_vars) > 0) {
-    for (var in mean_vars) {
-      for (g in group_used) {
-        means <- tapply(data[[var]], data[[g]], mean, na.rm = TRUE)
-        group_means_summary[[paste0(var, "_mean_", g)]] <- means
-      }
+    for (g in group_used) {
+      # Compute means for all numeric variables (except grouping) by this group
+      group_means <- aggregate(
+        data[, mean_vars, drop = FALSE],
+        by = list(group = data[[g]]),
+        FUN = mean,
+        na.rm = TRUE
+      )
+      # Rename the first column to the actual group name
+      colnames(group_means)[1] <- g
+      details[[paste0("means_", g)]] <- group_means
     }
   }
 
@@ -204,25 +224,14 @@ make_mundlak <- function(data, group = NULL) {
     )
   }
 
-  # --- Build details attribute (including group means) ---
-  if (keep_panel_class) {
-    new_details <- panel_details
-    if (is.null(new_details)) {
-      new_details <- list()
-    }
-  } else {
-    new_details <- list()
-  }
-  new_details$group_means <- group_means_summary
-
   # --- Attach attributes and class ---
   if (keep_panel_class) {
     attr(data, "metadata") <- new_metadata
-    attr(data, "details") <- new_details
+    attr(data, "details") <- details
     class(data) <- panel_class
   } else {
     attr(data, "metadata") <- new_metadata
-    attr(data, "details") <- new_details
+    attr(data, "details") <- details
     if (inherits(data, "panel_data")) {
       class(data) <- setdiff(class(data), "panel_data")
     }
