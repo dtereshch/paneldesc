@@ -259,11 +259,30 @@ describe_incomplete <- function(
   incomplete <- out[out$variables > 0, ]
   incomplete_ids <- out[[entity_var]][out$variables > 0]
 
+  # --- Return an empty data.frame with correct structure if none are incomplete ---
   if (nrow(incomplete) == 0) {
+    message("There are no incomplete entities in the data.")
+    # Create an empty data.frame with the same columns as the non‑empty case
+    empty_out <- out[0, , drop = FALSE] # zero rows, same columns
+    # Build metadata and details
+    metadata <- list(
+      function_name = as.character(match.call()[[1]]),
+      entity = entity_var,
+      time = time_var,
+      detail = detail
+    )
+    details <- list(
+      count_entities_total = length(unique_entities),
+      count_entities_incomplete = 0,
+      entities_incomplete = character(0) # empty vector of IDs
+    )
+    attr(empty_out, "metadata") <- metadata
+    attr(empty_out, "details") <- details
+    class(empty_out) <- c("panel_description", "data.frame")
     if (msg_printed) {
       cat("\n")
     }
-    return("There are no incomplete entities in the data.")
+    return(empty_out)
   }
 
   # Sort by variables (desc) then na_count (desc)
