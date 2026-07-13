@@ -45,19 +45,22 @@
 #' @examples
 #' data(production)
 #'
-#' # Simple overall demeaning
+#' # Basic usage (overall demeaning)
 #' prod_demeaned <- make_demeaned(production)
-#' head(prod_demeaned$labor)
 #'
-#' # Demeaning by a single group (e.g., firm)
+#' # Demeaning by a single group
 #' prod_demeaned_firm <- make_demeaned(production, group = "firm")
 #'
-#' # Demeaning by two groups (e.g., firm and year) – matches fixest
+#' # Demeaning by two groups
 #' prod_demeaned_both <- make_demeaned(production, group = c("firm", "year"))
 #'
-#' # Using a panel_data object: automatically demeans by firm and year
+#' # With panel_data object (automatically demeans by entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' panel_demeaned <- make_demeaned(panel)
+#'
+#' # Accessing attributes
+#' attr(panel_demeaned, "metadata")
+#' attr(panel_demeaned, "details")
 #'
 #' @export
 make_demeaned <- function(data, group = NULL) {

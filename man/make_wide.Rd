@@ -65,9 +65,8 @@ If the input was a \code{panel_data} object, the original metadata elements
 \examples{
 data(production)
 
-# Basic conversion
+# Basic usage
 wide <- make_wide(production, index = c("firm", "year"))
-head(wide)
 
 # With panel_data object
 panel <- make_panel(production, index = c("firm", "year"))
@@ -76,7 +75,10 @@ wide2 <- make_wide(panel)
 # Custom spacer and inverted order
 wide3 <- make_wide(production, index = c("firm", "year"),
                    spacer = ".", invert = TRUE)
-names(wide3)
+
+# Accessing attributes
+attr(wide3, "metadata")
+attr(wide3, "details")
 
 }
 \seealso{

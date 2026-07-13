@@ -56,23 +56,25 @@ one non‑NA value in any substantive variable (all columns except the entity an
 \examples{
 data(production)
 
-# Create a panel object first
-panel <- make_panel(production, index = c("firm", "year"))
-
 # Expand to full grid (default method)
-balanced_rows <- make_balanced(panel)
+balanced_rows <- make_balanced(production, index = c("firm", "year"), balance = "rows")
 
 # Keep only entities present in all periods
-balanced_entities <- make_balanced(panel, balance = "entities")
+balanced_entities <- make_balanced(production, index = c("firm", "year"), balance = "entities")
 
 # Keep only periods where all entities are present
-balanced_periods <- make_balanced(panel, balance = "periods")
+balanced_periods <- make_balanced(production, index = c("firm", "year"), balance = "periods")
 
-# Using a regular data frame (index must be provided)
-balanced_rows2 <- make_balanced(production, index = c("firm", "year"))
+# With panel_data object
+panel <- make_panel(production, index = c("firm", "year"))
+balanced_panel <- make_balanced(panel)
 
-# Specifying time interval for yearly data
+# Specifying time interval
 balanced_rows_delta <- make_balanced(production, index = c("firm", "year"), delta = 1)
+
+# Accessing attributes
+attr(balanced_panel, "metadata")
+attr(balanced_panel, "details")
 
 }
 \seealso{

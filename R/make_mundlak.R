@@ -36,16 +36,20 @@
 #' @examples
 #' data(production)
 #'
-#' # Basic usage with explicit grouping
-#' prod_mundlak <- make_mundlak(production, group = c("firm", "year"))
-#' head(prod_mundlak)
+#' # Basic usage with a single group
+#' prod_mundlak_1 <- make_mundlak(production, group = "firm")
 #'
-#' # Using a panel_data object: automatically uses entity and time
+#' # Using multiple grouping variables
+#' prod_mundlak_2 <- make_mundlak(production, group = c("firm", "year"))
+#'
+#' # With panel_data object (automatically uses entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' panel_mundlak <- make_mundlak(panel)
-#' head(panel_mundlak)
 #'
-#' # Variable names illustrate the pattern: labor_mean_firm, labor_mean_year, etc.
+#' # Accessing attributes
+#' attr(panel_mundlak, "metadata")
+#' attr(panel_mundlak, "details")
+#'
 #' @export
 make_mundlak <- function(data, group = NULL) {
   # --- Input validation ---

@@ -69,22 +69,22 @@ are demeaned or cause message output.
 \examples{
 data(production)
 
-# Basic usage (overall demeaning)
+# Histogram of a single variable (overall demeaning)
 plot_demeaned(production, select = "labor")
 
-# Demeaning within groups
-plot_demeaned(production, select = "labor", group = "firm")
-
-# Demeaning two variables with multiple grouping variables
+# Scatterplot of two variables demeaned by a single group
 plot_demeaned(production, select = c("labor", "capital"),
-              group = c("firm", "year"))
+              group = "firm")
+
+# Demeaning two variables with two grouping variables
+plot_demeaned(production, select = c("labor", "capital"), group = c("firm", "year"))
 
 # With panel_data object (automatically demeans by entity and time)
 panel <- make_panel(production, index = c("firm", "year"))
 plot_demeaned(panel, select = c("labor", "capital"))
 
 # Custom colors
-plot_demeaned(production, select = "labor", group = "firm",
+plot_demeaned(production, select = c("labor", "capital"), group = c("firm", "year"),
               colors = c("gray", "black"))
 
 # Accessing the returned list components

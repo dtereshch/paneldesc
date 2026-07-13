@@ -62,27 +62,33 @@ are taken from the metadata.
 \examples{
 data(production)
 
-# First convert to wide, then back to long
+# First create a wide data frame
 wide <- make_wide(production, index = c("firm", "year"))
-long <- make_long(wide)
-head(long)
 
-# With custom spacer and invert
-wide2 <- make_wide(production, index = c("firm", "year"), spacer = ".", invert = TRUE)
+# Basic usage
+long <- make_long(wide, index = c("firm", "year"))
+
+# With panel_data object (uses metadata)
+panel <- make_panel(production, index = c("firm", "year"))
+wide_panel <- make_wide(panel)
+long_panel <- make_long(wide_panel)
+
+# Custom spacer and inverted order
+wide2 <- make_wide(production, index = c("firm", "year"),
+                   spacer = ".", invert = TRUE)
 long2 <- make_long(wide2, spacer = ".", invert = TRUE)
 
-# Using panel attributes (no need to specify index)
-panel <- make_panel(production, index = c("firm", "year"))
-wide3 <- make_wide(panel)
-long3 <- make_long(wide3)   # spacer and invert must match the wide format
-
 # Using spacer = "" (no separator)
-wide4 <- make_wide(production, index = c("firm", "year"), spacer = "")
-long4 <- make_long(wide4, spacer = "")
+wide3 <- make_wide(production, index = c("firm", "year"), spacer = "")
+long3 <- make_long(wide3, spacer = "")
 
-# Explicitly declare 'region' as static (it appears as a single column)
-wide5 <- make_wide(production, index = c("firm", "year"), static = "region")
-long5 <- make_long(wide5, static = "region")
+# Explicitly declaring static variables
+wide4 <- make_wide(production, index = c("firm", "year"), static = "region")
+long4 <- make_long(wide4, static = "region")
+
+# Accessing attributes
+attr(long4, "metadata")
+attr(long4, "details")
 
 }
 \seealso{
