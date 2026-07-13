@@ -187,13 +187,13 @@ plot_missing <- function(
     }
   }
 
-  # --- Determine variables to analyse ---
+  # --- Determine variables to analyze ---
   if (is.null(select)) {
     analyze_vars <- setdiff(names(data), c(entity_var, time_var))
     if (length(analyze_vars) == 0) {
-      stop("no variables found to analyse (besides entity and time)")
+      stop("no variables found to analyze (besides entity and time)")
     }
-    message("Analysing all variables: ", paste(analyze_vars, collapse = ", "))
+    message("Analyzing all variables: ", paste(analyze_vars, collapse = ", "))
     msg_printed <- TRUE
   } else {
     missing_vars <- select[!select %in% names(data)]
@@ -202,7 +202,7 @@ plot_missing <- function(
     }
     analyze_vars <- setdiff(select, c(entity_var, time_var))
     if (length(analyze_vars) == 0) {
-      stop("no variables to analyse (excluding entity and time)")
+      stop("no variables to analyze (excluding entity and time)")
     }
     # Check that entity and time are not in select (already removed, but double-check)
     if (entity_var %in% select) {
