@@ -43,7 +43,7 @@ When \code{format = "wide"} (default), returns a data.frame with columns:
 \describe{
 \item{\code{variable}}{The name of the analyzed variable}
 \item{\code{category}}{The category level of the variable}
-\item{\code{count_overall}}{Overall frequency (person-time observations)}
+\item{\code{count_overall}}{Overall frequency (entity-time observations)}
 \item{\code{share_overall}}{Overall share (count_overall / total_obs)}
 \item{\code{count_between}}{Between-entity frequency (number of entities ever having this category)}
 \item{\code{share_between}}{Between-entity share (count_between / total_entities)}
