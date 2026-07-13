@@ -29,6 +29,15 @@ as a new column.
 For a numeric variable \code{x} and a grouping variable \code{g}, the new column is
 named \code{x_mean_g}. For example, with grouping variables \code{"firm"} and \code{"year"},
 variable \code{"labor"} yields columns \code{labor_mean_firm} and \code{labor_mean_year}.
+
+The returned object has class \code{"panel_data"} if the input was a \code{panel_data} object
+and \code{group} was not specified; otherwise it is a \code{data.frame} with additional attributes.
+In both cases, the object has the following attributes:
+\describe{
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{A list containing computed group means. If the input was a \code{panel_data} object,
+it also includes any additional panel details that were present before.}
+}
 }
 \examples{
 data(production)

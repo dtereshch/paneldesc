@@ -20,6 +20,15 @@
 #' named `x_mean_g`. For example, with grouping variables `"firm"` and `"year"`,
 #' variable `"labor"` yields columns `labor_mean_firm` and `labor_mean_year`.
 #'
+#' The returned object has class `"panel_data"` if the input was a `panel_data` object
+#' and `group` was not specified; otherwise it is a `data.frame` with additional attributes.
+#' In both cases, the object has the following attributes:
+#' \describe{
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{A list containing computed group means. If the input was a `panel_data` object,
+#'         it also includes any additional panel details that were present before.}
+#' }
+#'
 #' @seealso
 #' See also [make_demeaned()], [summarize_numeric()], [plot_heterogeneity()].
 #'
@@ -157,17 +166,27 @@ make_mundlak <- function(data, group = NULL) {
     msg_printed <- TRUE
   }
 
-  # --- Compute and add group means ---
+  # --- Compute and add group means (as columns) ---
   if (length(mean_vars) > 0) {
     for (var in mean_vars) {
       for (g in group_used) {
         new_col <- paste0(var, "_mean_", g)
-        # Compute group means using ave, ignoring NA in the variable
         data[[new_col]] <- ave(
           data[[var]],
           data[[g]],
           FUN = function(x) mean(x, na.rm = TRUE)
         )
+      }
+    }
+  }
+
+  # --- Compute group means summaries for storage in details ---
+  group_means_summary <- list()
+  if (length(mean_vars) > 0) {
+    for (var in mean_vars) {
+      for (g in group_used) {
+        means <- tapply(data[[var]], data[[g]], mean, na.rm = TRUE)
+        group_means_summary[[paste0(var, "_mean_", g)]] <- means
       }
     }
   }
@@ -185,7 +204,7 @@ make_mundlak <- function(data, group = NULL) {
     )
   }
 
-  # --- Build details attribute ---
+  # --- Build details attribute (including group means) ---
   if (keep_panel_class) {
     new_details <- panel_details
     if (is.null(new_details)) {
@@ -194,6 +213,7 @@ make_mundlak <- function(data, group = NULL) {
   } else {
     new_details <- list()
   }
+  new_details$group_means <- group_means_summary
 
   # --- Attach attributes and class ---
   if (keep_panel_class) {
