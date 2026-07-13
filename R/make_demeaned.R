@@ -17,15 +17,18 @@
 #' @details
 #' Depending on the value of `group` argument, the function uses different
 #' demeaning procedures:
-#' * If grouping variable is not specified and `data` is not a `panel_data` object,
-#'   simple overall demeaning is performed: for each numeric variable, the
-#'   overall mean (ignoring `NA`s) is subtracted.
-#' * If one group variable is specified, the exact calculation is used:
-#'   the group mean is subtracted from each observation.
-#' * If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
-#'   The algorithm runs up to **2000 iterations** with tolerance **1e-6**
-#'   (matching the defaults of `fixest::demean()`);
-#'   a warning is issued if convergence is not reached.
+#' \describe{
+#'   \item{No grouping variable (and `data` is not a `panel_data` object)}{
+#'         Simple overall demeaning is performed: for each numeric variable, the
+#'         overall mean (ignoring `NA`s) is subtracted.}
+#'   \item{One group variable specified}{
+#'         The exact calculation is used: the group mean is subtracted from each observation.}
+#'   \item{Two or more groups specified}{
+#'         Iterative Gauss–Seidel algorithm is used.
+#'         The algorithm runs up to `2000` iterations with tolerance `1e-6`
+#'         (matching the defaults of `fixest::demean()`);
+#'         a warning is issued if convergence is not reached.}
+#' }
 #'
 #' The returned object has class `"panel_data"` if the input was a `panel_data` object;
 #' otherwise it is a `data.frame` with additional attributes.
@@ -54,7 +57,7 @@
 #' # Demeaning by two groups
 #' prod_demeaned_2 <- make_demeaned(production, group = c("firm", "year"))
 #'
-#' #' # Demeaning by multiple groups
+#' # Demeaning by multiple groups
 #' prod_demeaned_3 <- make_demeaned(production, group = c("industry", "region", "year"))
 #'
 #' # With panel_data object (automatically demeans by entity and time)

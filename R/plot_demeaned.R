@@ -18,24 +18,28 @@
 #' @return Invisibly returns a list with the demeaned values and metadata.
 #'
 #' @details
-#' The function creates a plot which shape depends on the `select` argument:
-#' * If one variable is specified, a histogram of the demeaned values is plotted.
-#' * If two variables are specified, a scatterplot of the demeaned values is plotted.
+#' The function creates a plot whose shape depends on the `select` argument:
+#' \describe{
+#'   \item{One variable specified}{A histogram of the demeaned values is plotted.}
+#'   \item{Two variables specified}{A scatterplot of the demeaned values is plotted.}
+#' }
 #'
 #' The demeaning is performed by calling [make_demeaned()] internally, so it
 #' shares all specifics of that function.
 #'
-#' Depending on the value of `group` argument, the function uses different
-#' demeaning procedures:
-#' * If grouping variable is not specified and `data` is not a `panel_data` object,
-#'   simple overall demeaning is performed: for each numeric variable, the
-#'   overall mean (ignoring `NA`s) is subtracted.
-#' * If one group variable is specified, the exact calculation is used:
-#'   the group mean is subtracted from each observation.
-#' * If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
-#'   The algorithm runs up to 2000 iterations with tolerance 1e-6
-#'   (matching the defaults of `fixest::demean()`);
-#'   a warning is issued if convergence is not reached.
+#' Depending on the value of `group`, the function uses different demeaning procedures:
+#' \describe{
+#'   \item{No grouping variable (and `data` is not a `panel_data` object)}{
+#'         Simple overall demeaning is performed: for each numeric variable, the
+#'         overall mean (ignoring `NA`s) is subtracted.}
+#'   \item{One group variable specified}{
+#'         The exact calculation is used: the group mean is subtracted from each observation.}
+#'   \item{Two or more groups specified}{
+#'         Iterative Gauss–Seidel algorithm is used.
+#'         The algorithm runs up to `2000` iterations with tolerance `1e-6`
+#'         (matching the defaults of `fixest::demean()`);
+#'         a warning is issued if convergence is not reached.}
+#' }
 #'
 #' The returned list contains:
 #' \describe{
@@ -46,8 +50,8 @@
 #' }
 #'
 #' @note
-#' #' Only the selected variable(s) and the grouping variables are passed to
-#' `make_demeaned`, so no other numeric variables in the original data
+#' Only the selected variable(s) and the grouping variables are passed to
+#' [make_demeaned()], so no other numeric variables in the original data
 #' are demeaned or cause message output.
 #'
 #' @seealso

@@ -30,27 +30,27 @@ This function performs within-group demeaning (centering) for selected numeric
 variable(s) and creates a visualization.
 }
 \details{
-The function creates a plot which shape depends on the \code{select} argument:
-\itemize{
-\item If one variable is specified, a histogram of the demeaned values is plotted.
-\item If two variables are specified, a scatterplot of the demeaned values is plotted.
+The function creates a plot whose shape depends on the \code{select} argument:
+\describe{
+\item{One variable specified}{A histogram of the demeaned values is plotted.}
+\item{Two variables specified}{A scatterplot of the demeaned values is plotted.}
 }
 
 The demeaning is performed by calling \code{\link[=make_demeaned]{make_demeaned()}} internally, so it
 shares all specifics of that function.
 
-Depending on the value of \code{group} argument, the function uses different
-demeaning procedures:
-\itemize{
-\item If grouping variable is not specified and \code{data} is not a \code{panel_data} object,
-simple overall demeaning is performed: for each numeric variable, the
-overall mean (ignoring \code{NA}s) is subtracted.
-\item If one group variable is specified, the exact calculation is used:
-the group mean is subtracted from each observation.
-\item If two or more groups are specidied, iterative Gauss–Seidel algorithm is used.
-The algorithm runs up to 2000 iterations with tolerance 1e-6
+Depending on the value of \code{group}, the function uses different demeaning procedures:
+\describe{
+\item{No grouping variable (and \code{data} is not a \code{panel_data} object)}{
+Simple overall demeaning is performed: for each numeric variable, the
+overall mean (ignoring \code{NA}s) is subtracted.}
+\item{One group variable specified}{
+The exact calculation is used: the group mean is subtracted from each observation.}
+\item{Two or more groups specified}{
+Iterative Gauss–Seidel algorithm is used.
+The algorithm runs up to \code{2000} iterations with tolerance \code{1e-6}
 (matching the defaults of \code{fixest::demean()});
-a warning is issued if convergence is not reached.
+a warning is issued if convergence is not reached.}
 }
 
 The returned list contains:
@@ -62,8 +62,8 @@ a data frame with columns \code{x} and \code{y} containing the demeaned values.}
 }
 }
 \note{
-#' Only the selected variable(s) and the grouping variables are passed to
-\code{make_demeaned}, so no other numeric variables in the original data
+Only the selected variable(s) and the grouping variables are passed to
+\code{\link[=make_demeaned]{make_demeaned()}}, so no other numeric variables in the original data
 are demeaned or cause message output.
 }
 \examples{

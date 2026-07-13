@@ -24,11 +24,11 @@
 #'
 #' Depending on the value of `balance`, the balancing is performed using different methods:
 #' \describe{
-#'   \item{`balance = "rows"`}{Create a row for every entity-time combination.
+#'   \item{\code{balance = "rows"}}{Create a row for every entity-time combination.
 #'         If `delta` is supplied, the full time sequence (including missing periods)
 #'         is used. Missing combinations get `NA` in all other columns.}
-#'   \item{`balance = "entities"`}{Keep only entities present in all time periods.}
-#'   \item{`balance = "periods"`}{Keep only time periods where all entities are present.}
+#'   \item{\code{balance = "entities"}}{Keep only entities present in all time periods.}
+#'   \item{\code{balance = "periods"}}{Keep only time periods where all entities are present.}
 #' }
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:

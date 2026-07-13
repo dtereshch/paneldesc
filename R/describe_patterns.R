@@ -45,7 +45,7 @@
 #'
 #' If `delta` is supplied, the function checks that all observed time points are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods (unless the interval was inherited from panel attributes),
-#' and columns for those missing periods are added to the presence matrix – and therefore to the output data.frame – with all zeros.
+#' and columns for those missing periods are added to the presence matrix and to the output data.frame with all zeros.
 #' This ensures that the patterns reflect the full regular sequence of time periods.
 #'
 #' The returned object has class `"panel_description"` and two additional attributes:

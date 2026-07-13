@@ -42,7 +42,7 @@
 #' }
 #'
 #' @note
-#' If `data` has panel attributes (e.g., from `make_wide()`) and `index` is
+#' If `data` has panel attributes (e.g., from [make_wide()]) and `index` is
 #' not specified, the entity column and the name for the new time column
 #' are taken from the metadata.
 #'

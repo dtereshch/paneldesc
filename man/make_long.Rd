@@ -55,7 +55,7 @@ If the input was a \code{panel_data} object, the original metadata elements
 }
 }
 \note{
-If \code{data} has panel attributes (e.g., from \code{make_wide()}) and \code{index} is
+If \code{data} has panel attributes (e.g., from \code{\link[=make_wide]{make_wide()}}) and \code{index} is
 not specified, the entity column and the name for the new time column
 are taken from the metadata.
 }

@@ -21,7 +21,7 @@
 #' @details
 #' The function creates a heatmap where rows are entities and columns are time periods.
 #' Present cells are colored with the first color, missing cells with the second.
-#' Rows are ordered by pattern frequency: the most frequent pattern is at the **top**.
+#' Rows are ordered by pattern frequency: the most frequent pattern is at the top.
 #' Within each pattern block, entities appear in their original order.
 #'
 #' If `delta` is supplied, the function checks for regular spacing and adds missing periods
