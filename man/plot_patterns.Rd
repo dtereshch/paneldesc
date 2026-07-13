@@ -82,7 +82,7 @@ plot_patterns(production, index = c("firm", "year"), limits = c(4, 6))
 # Custom colors
 plot_patterns(production, index = c("firm", "year"), colors = c("black", "white"))
 
-# Accessing list components
+# Accessing the returned list components
 out_plo_pat <- plot_patterns(production, index = c("firm", "year"))
 out_plo_pat$metadata
 out_plo_pat$details

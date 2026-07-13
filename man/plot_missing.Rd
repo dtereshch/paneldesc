@@ -64,7 +64,7 @@ plot_missing(production, select = c("labor", "capital"), index = c("firm", "year
 # Custom colors
 plot_missing(production, index = c("firm", "year"), colors = c("black", "white"))
 
-# Access the returned list
+# Accessing the returned list components
 out_plo_mis <- plot_missing(production, index = c("firm", "year"))
 out_plo_mis$metadata
 out_plo_mis$details

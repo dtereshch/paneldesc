@@ -54,7 +54,7 @@ plot_heterogeneity(panel, select = "labor")
 plot_heterogeneity(production, select = "sales", group = "year",
                    colors = c("black", "gray"))
 
-# Accessing list components
+# Accessing the returned list components
 out_plo_het <- plot_heterogeneity(panel, select = "capital", group = "year")
 out_plo_het$metadata
 out_plo_het$details

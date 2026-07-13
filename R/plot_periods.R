@@ -43,7 +43,7 @@
 #' # Custom colors
 #' plot_periods(production, index = c("firm", "year"), colors = c("gray", "black"))
 #'
-#' # Accessing list components
+#' # Accessing the returned list components
 #' out_plo_per <- plot_periods(production, index = c("firm", "year"))
 #' out_plo_per$metadata
 #' out_plo_per$details
