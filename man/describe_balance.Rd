@@ -71,7 +71,7 @@ describe_balance(production, index = c("firm", "year"))
 panel <- make_panel(production, index = c("firm", "year"))
 describe_balance(panel)
 
-# Returning detailed statisitcs
+# Returning detailed statistics
 describe_balance(production, index = c("firm", "year"), detail = TRUE)
 
 # Custom rounding
