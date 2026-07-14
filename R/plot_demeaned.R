@@ -64,8 +64,7 @@
 #' plot_demeaned(production, select = "labor")
 #'
 #' # Scatterplot of two variables demeaned by a single group
-#' plot_demeaned(production, select = c("labor", "capital"),
-#'               group = "firm")
+#' plot_demeaned(production, select = c("labor", "capital"), group = "firm")
 #'
 #' # Demeaning with two grouping variables
 #' plot_demeaned(production, select = c("labor", "capital"), group = c("firm", "year"))
