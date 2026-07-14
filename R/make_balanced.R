@@ -68,6 +68,7 @@
 #' attr(balanced_panel, "metadata")
 #' attr(balanced_panel, "details")
 #'
+#' @importFrom utils head
 #' @export
 make_balanced <- function(data, index = NULL, delta = NULL, balance = "rows") {
   # --- Validate balance argument ---

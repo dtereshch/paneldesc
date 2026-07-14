@@ -70,6 +70,7 @@
 #' attr(out_sum_mis, "metadata")
 #' attr(out_sum_mis, "details")
 #'
+#' @importFrom utils head
 #' @export
 summarize_missing <- function(
   data,

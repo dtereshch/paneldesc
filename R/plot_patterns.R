@@ -71,6 +71,7 @@
 #' out_plo_pat$metadata
 #' out_plo_pat$details
 #'
+#' @importFrom utils head
 #' @importFrom graphics par rect axis segments legend
 #' @export
 plot_patterns <- function(

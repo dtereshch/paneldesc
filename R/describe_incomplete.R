@@ -65,6 +65,7 @@
 #' attr(out_des_inc, "metadata")
 #' attr(out_des_inc, "details")
 #'
+#' @importFrom utils head
 #' @export
 describe_incomplete <- function(
   data,

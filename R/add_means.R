@@ -61,6 +61,8 @@
 #' attr(panel_means, "metadata")
 #' attr(panel_means, "details")
 #'
+#' @importFrom utils head
+#' @importFrom stats aggregate ave
 #' @export
 add_means <- function(data, group = NULL) {
   # --- Input validation ---

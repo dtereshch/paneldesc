@@ -60,6 +60,7 @@
 #' out_plo_mis$metadata
 #' out_plo_mis$details
 #'
+#' @importFrom utils head
 #' @importFrom grDevices colorRamp rgb pdf dev.off
 #' @importFrom graphics layout par plot.new plot.window rect text axis strwidth
 #' @export

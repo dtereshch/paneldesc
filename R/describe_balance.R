@@ -73,6 +73,7 @@
 #' attr(out_des_bal, "metadata")
 #' attr(out_des_bal, "details")
 #'
+#' @importFrom utils head
 #' @importFrom stats sd quantile
 #' @export
 describe_balance <- function(

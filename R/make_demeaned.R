@@ -68,6 +68,8 @@
 #' attr(panel_demeaned, "metadata")
 #' attr(panel_demeaned, "details")
 #'
+#' @importFrom utils head
+#' @importFrom stats aggregate ave sd
 #' @export
 make_demeaned <- function(data, group = NULL) {
   # --- Input validation ---

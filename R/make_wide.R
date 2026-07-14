@@ -70,6 +70,8 @@
 #' attr(wide3, "metadata")
 #' attr(wide3, "details")
 #'
+#' @importFrom utils head
+#' @importFrom stats reshape
 #' @export
 make_wide <- function(
   data,

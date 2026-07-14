@@ -80,6 +80,7 @@
 #' attr(long4, "metadata")
 #' attr(long4, "details")
 #'
+#' @importFrom stats reshape
 #' @export
 make_long <- function(
   data,

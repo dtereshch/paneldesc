@@ -39,6 +39,7 @@
 #' attr(panel, "metadata")
 #' attr(panel, "details")
 #'
+#' @importFrom utils head
 #' @export
 make_panel <- function(data, index, delta = NULL, ...) {
   # Catch deprecated 'balance' argument

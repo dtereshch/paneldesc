@@ -91,6 +91,7 @@
 #' attr(out_des_pat, "metadata")
 #' attr(out_des_pat, "details")
 #'
+#' @importFrom utils head
 #' @export
 describe_patterns <- function(
   data,

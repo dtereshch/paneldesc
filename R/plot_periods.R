@@ -48,6 +48,7 @@
 #' out_plo_per$metadata
 #' out_plo_per$details
 #'
+#' @importFrom utils head
 #' @importFrom graphics par rect axis
 #' @export
 plot_periods <- function(

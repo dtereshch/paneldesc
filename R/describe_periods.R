@@ -61,6 +61,7 @@
 #' attr(out_des_per, "metadata")
 #' attr(out_des_per, "details")
 #'
+#' @importFrom utils head
 #' @export
 describe_periods <- function(
   data,

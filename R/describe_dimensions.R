@@ -43,6 +43,7 @@
 #' attr(out_des_dim, "metadata")
 #' attr(out_des_dim, "details")
 #'
+#' @importFrom utils head
 #' @export
 describe_dimensions <- function(data, index = NULL) {
   # --- Initialisation ---

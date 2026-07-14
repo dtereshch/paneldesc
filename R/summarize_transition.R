@@ -63,6 +63,7 @@
 #' attr(out_sum_tra, "metadata")
 #' attr(out_sum_tra, "details")
 #'
+#' @importFrom utils head
 #' @export
 summarize_transition <- function(
   data,
