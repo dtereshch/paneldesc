@@ -1,13 +1,15 @@
-#' Add Group Means for Mundlak-style Modeling
+#' Add Group Means to a Data Frame
 #'
 #' This function adds group means of numeric variables to a data frame, which can
-#' be used for Mundlak-style (correlated random effects) modeling or for other
-#' purposes where within-group averages are needed.
+#' be used for Mundlak-style (correlated random effects) modeling or for other purposes where
+#' within-group averages are needed.
 #'
 #' @param data A data.frame containing the variables.
-#' @param group A character vector specifying the grouping variable(s).
+#' @param group A character string or vector of character strings specifying
+#'        the grouping variable(s).
 #'        If not specified and data is a `panel_data` object, the entity and time values
 #'        will be extracted from the data.frame attributes to define grouping variables.
+#'        Otherwise, overall means are computed and added as constant columns.
 #'
 #' @return The input data frame with additional columns for group means.
 #'
@@ -20,6 +22,10 @@
 #' named `x_mean_g`. For example, with grouping variables `"firm"` and `"year"`,
 #' variable `"labor"` yields columns `labor_mean_firm` and `labor_mean_year`.
 #'
+#' If no grouping variable is supplied and `data` is not a `panel_data` object,
+#' the overall mean of each numeric variable is added as a constant column named
+#' `x_mean`.
+#'
 #' The returned object has class `"panel_data"` if the input was a `panel_data` object;
 #' otherwise it is a `data.frame` with additional attributes.
 #' In both cases, the object has the following attributes:
@@ -27,7 +33,9 @@
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
 #'         (entity, time, and delta) are preserved.}
-#'   \item{`details`}{A list containing data.frames with the computed group means.}
+#'   \item{`details`}{A list containing data.frames with the computed group means.
+#'         If overall means were computed (no grouping), it contains a named vector
+#'         of the overall means.}
 #' }
 #'
 #' @seealso
@@ -37,21 +45,24 @@
 #' data(production)
 #'
 #' # Basic usage with a single group
-#' prod_mundlak_1 <- make_mundlak(production, group = "firm")
+#' prod_means_1 <- add_means(production, group = "firm")
 #'
 #' # Using multiple grouping variables
-#' prod_mundlak_2 <- make_mundlak(production, group = c("firm", "year"))
+#' prod_means_2 <- add_means(production, group = c("firm", "year"))
 #'
 #' # With panel_data object (automatically uses entity and time)
 #' panel <- make_panel(production, index = c("firm", "year"))
-#' panel_mundlak <- make_mundlak(panel)
+#' panel_means <- add_means(panel)
+#'
+#' # Overall means (no grouping)
+#' prod_overall <- add_means(production)
 #'
 #' # Accessing attributes
-#' attr(panel_mundlak, "metadata")
-#' attr(panel_mundlak, "details")
+#' attr(panel_means, "metadata")
+#' attr(panel_means, "details")
 #'
 #' @export
-make_mundlak <- function(data, group = NULL) {
+add_means <- function(data, group = NULL) {
   # --- Input validation ---
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1], call. = FALSE)
@@ -91,59 +102,63 @@ make_mundlak <- function(data, group = NULL) {
     }
   } else {
     # Not a panel_data object
-    if (is.null(group)) {
-      stop(
-        "'group' must be specified or data must be a 'panel_data' object with metadata.",
-        call. = FALSE
-      )
+    if (!is.null(group)) {
+      group_used <- group
+    } else {
+      group_used <- NULL # overall means will be added
     }
-    group_used <- group
     entity_time_from_metadata <- FALSE
   }
 
   # --- Validate group_used ---
-  if (!is.character(group_used)) {
-    stop(
-      "'group' must be a character vector, not ",
-      class(group_used)[1],
-      call. = FALSE
-    )
-  }
-  if (length(group_used) == 0) {
-    stop("'group' must have at least one variable.", call. = FALSE)
-  }
-  missing_vars <- group_used[!group_used %in% names(data)]
-  if (length(missing_vars) > 0) {
-    stop(
-      "grouping variable(s) not found in data: ",
-      paste(missing_vars, collapse = ", "),
-      call. = FALSE
-    )
-  }
-
-  # --- Remove rows with NA in grouping variables ---
-  na_rows <- rep(FALSE, nrow(data))
-  for (g in group_used) {
-    na_rows <- na_rows | is.na(data[[g]])
-  }
-  if (any(na_rows)) {
-    message(
-      sum(na_rows),
-      " rows with missing values in grouping variable(s) found and excluded."
-    )
-    data <- data[!na_rows, , drop = FALSE]
-    msg_printed <- TRUE
-    if (nrow(data) == 0) {
+  if (!is.null(group_used)) {
+    if (!is.character(group_used)) {
       stop(
-        "No observations left after removing rows with missing grouping values.",
+        "'group' must be a character vector or NULL, not ",
+        class(group_used)[1],
         call. = FALSE
       )
+    }
+    if (length(group_used) == 0) {
+      group_used <- NULL
+    } else {
+      missing_vars <- group_used[!group_used %in% names(data)]
+      if (length(missing_vars) > 0) {
+        stop(
+          "grouping variable(s) not found in data: ",
+          paste(missing_vars, collapse = ", "),
+          call. = FALSE
+        )
+      }
+    }
+  }
+
+  # --- Remove rows with NA in grouping variables (only if grouping) ---
+  if (!is.null(group_used)) {
+    na_rows <- rep(FALSE, nrow(data))
+    for (g in group_used) {
+      na_rows <- na_rows | is.na(data[[g]])
+    }
+    if (any(na_rows)) {
+      message(
+        sum(na_rows),
+        " rows with missing values in grouping variable(s) found and excluded."
+      )
+      data <- data[!na_rows, , drop = FALSE]
+      msg_printed <- TRUE
+      if (nrow(data) == 0) {
+        stop(
+          "No observations left after removing rows with missing grouping values.",
+          call. = FALSE
+        )
+      }
     }
   }
 
   # --- Duplicate check (only when both entity and time are used as groups) ---
   if (
-    length(group_used) == 2 &&
+    !is.null(group_used) &&
+      length(group_used) == 2 &&
       !entity_time_from_metadata
   ) {
     dup_rows <- duplicated(data[group_used]) |
@@ -168,14 +183,22 @@ make_mundlak <- function(data, group = NULL) {
   numeric_vars <- names(data)[is_numeric]
 
   # --- Identify variables for which to compute means (exclude group variables) ---
-  mean_vars <- setdiff(numeric_vars, group_used)
+  exclude_vars <- if (!is.null(group_used)) group_used else character(0)
+  mean_vars <- setdiff(numeric_vars, exclude_vars)
 
   # --- Message about which variables will get means ---
   if (length(mean_vars) > 0) {
-    message(
-      "Adding group means for numeric variables: ",
-      paste(mean_vars, collapse = ", ")
-    )
+    if (is.null(group_used)) {
+      message(
+        "Adding overall means for numeric variables: ",
+        paste(mean_vars, collapse = ", ")
+      )
+    } else {
+      message(
+        "Adding group means for numeric variables: ",
+        paste(mean_vars, collapse = ", ")
+      )
+    }
     msg_printed <- TRUE
   } else {
     message(
@@ -184,46 +207,58 @@ make_mundlak <- function(data, group = NULL) {
     msg_printed <- TRUE
   }
 
-  # --- Compute and add group means (as columns) ---
-  if (length(mean_vars) > 0) {
-    for (var in mean_vars) {
-      for (g in group_used) {
-        new_col <- paste0(var, "_mean_", g)
-        data[[new_col]] <- ave(
-          data[[var]],
-          data[[g]],
-          FUN = function(x) mean(x, na.rm = TRUE)
-        )
-      }
-    }
-  }
-
-  # --- Compute group means summaries for storage in details (data frames per group) ---
+  # --- Compute and add means (as columns) ---
   details <- list()
+
   if (length(mean_vars) > 0) {
-    for (g in group_used) {
-      # Compute means for all numeric variables (except grouping) by this group
-      group_means <- aggregate(
-        data[, mean_vars, drop = FALSE],
-        by = list(group = data[[g]]),
-        FUN = mean,
-        na.rm = TRUE
+    if (is.null(group_used)) {
+      # Overall means: add constant column for each numeric variable
+      overall_means <- vapply(
+        mean_vars,
+        function(var) mean(data[[var]], na.rm = TRUE),
+        numeric(1)
       )
-      # Rename the first column to the actual group name
-      colnames(group_means)[1] <- g
-      details[[paste0("means_", g)]] <- group_means
+      names(overall_means) <- mean_vars
+      for (var in mean_vars) {
+        new_col <- paste0(var, "_mean")
+        data[[new_col]] <- overall_means[var]
+      }
+      details$means <- overall_means
+    } else {
+      # Group means: one column per (var, group) combination
+      for (var in mean_vars) {
+        for (g in group_used) {
+          new_col <- paste0(var, "_mean_", g)
+          data[[new_col]] <- ave(
+            data[[var]],
+            data[[g]],
+            FUN = function(x) mean(x, na.rm = TRUE)
+          )
+        }
+      }
+      # Store group means summaries as data frames
+      for (g in group_used) {
+        group_means <- aggregate(
+          data[, mean_vars, drop = FALSE],
+          by = list(group = data[[g]]),
+          FUN = mean,
+          na.rm = TRUE
+        )
+        colnames(group_means)[1] <- g
+        details[[paste0("means_", g)]] <- group_means
+      }
     }
   }
 
   # --- Build metadata attribute ---
   if (keep_panel_class) {
     new_metadata <- panel_metadata
-    new_metadata$function_name <- "make_mundlak"
+    new_metadata$function_name <- "add_means"
     new_metadata$group <- group_used
     if (!"delta" %in% names(new_metadata)) new_metadata$delta <- NULL
   } else {
     new_metadata <- list(
-      function_name = "make_mundlak",
+      function_name = "add_means",
       group = group_used
     )
   }

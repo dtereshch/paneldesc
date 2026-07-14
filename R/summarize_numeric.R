@@ -50,7 +50,7 @@
 #' ​​of panel attributes from a `panel_data` object.
 #'
 #' @seealso
-#' See also [decompose_numeric()], [plot_heterogeneity()], [make_mundlak()].
+#' See also [decompose_numeric()], [plot_heterogeneity()], [add_means()].
 #'
 #' @examples
 #' data(production)

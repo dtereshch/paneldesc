@@ -77,5 +77,5 @@ attr(panel_demeaned, "details")
 
 }
 \seealso{
-See also \code{\link[=plot_demeaned]{plot_demeaned()}}, \code{\link[=make_mundlak]{make_mundlak()}}, \code{\link[=make_panel]{make_panel()}}.
+See also \code{\link[=plot_demeaned]{plot_demeaned()}}, \code{\link[=add_means]{add_means()}}, \code{\link[=make_panel]{make_panel()}}.
 }

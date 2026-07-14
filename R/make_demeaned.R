@@ -43,7 +43,7 @@
 #' }
 #'
 #' @seealso
-#' See also [plot_demeaned()], [make_mundlak()], [make_panel()].
+#' See also [plot_demeaned()], [add_means()], [make_panel()].
 #'
 #' @examples
 #' data(production)

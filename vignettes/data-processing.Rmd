@@ -114,9 +114,9 @@ summary(demeaned)
 
 ## Adding group means
 
-`make_mundlak()` adds group means of numeric variables to a data frame, which can be used for Mundlak-style (correlated random effects) modeling or for other purposes where within-group averages are needed. 
+`add_means()` adds group means of numeric variables to a data frame, which can be used for Mundlak-style (correlated random effects) modeling or for other purposes where within-group averages are needed. 
 
 ```{r}
-mundlak <- make_mundlak(panel)
-names(mundlak)
+panel_means <- add_means(panel)
+names(panel_means)
 ```

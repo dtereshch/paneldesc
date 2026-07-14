@@ -94,5 +94,5 @@ attr(out_sum_num, "details")
 
 }
 \seealso{
-See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}, \code{\link[=make_mundlak]{make_mundlak()}}.
+See also \code{\link[=decompose_numeric]{decompose_numeric()}}, \code{\link[=plot_heterogeneity]{plot_heterogeneity()}}, \code{\link[=add_means]{add_means()}}.
 }
