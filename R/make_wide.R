@@ -31,18 +31,6 @@
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name, the entity and time
-#'         variables, the `spacer`, and the `invert` setting. If the input was a
-#'         `panel_data` object, the original metadata elements (`delta`, etc.)
-#'         are preserved.}
-#'   \item{`details`}{A list with two elements: \code{reshaped} (character vector
-#'         of the original variable names that were reshaped from long to wide)
-#'         and \code{static_detected} (character vector of the time-invariant
-#'         variable names).}
-#' }
-#'
-#' The returned object has class `"panel_data"` and two additional attributes:
-#' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
 #'         (entity, time, and delta) are preserved.}
