@@ -204,6 +204,33 @@ make_demeaned <- function(data, group = NULL) {
     msg_printed <- TRUE
   }
 
+  # --- Compute group means (original) to store in details ---
+  details <- list()
+  if (length(demean_vars) > 0) {
+    if (is.null(group_used)) {
+      # Overall means (grand means) of original variables
+      overall_means <- vapply(
+        demean_vars,
+        function(var) mean(data[[var]], na.rm = TRUE),
+        numeric(1)
+      )
+      names(overall_means) <- demean_vars
+      details$means <- overall_means
+    } else {
+      # Group means for each grouping variable
+      for (g in group_used) {
+        group_means <- aggregate(
+          data[, demean_vars, drop = FALSE],
+          by = list(group = data[[g]]),
+          FUN = mean,
+          na.rm = TRUE
+        )
+        colnames(group_means)[1] <- g
+        details[[paste0("means_", g)]] <- group_means
+      }
+    }
+  }
+
   # --- Perform demeaning ---
   if (length(demean_vars) > 0) {
     if (is.null(group_used)) {
@@ -256,34 +283,6 @@ make_demeaned <- function(data, group = NULL) {
       }
     }
   }
-
-  # --- Compute details ---
-  details <- list()
-  if (length(demean_vars) > 0) {
-    if (!is.null(group_used)) {
-      # Grouped demeaning: store group means as data frames per group
-      for (g in group_used) {
-        group_means <- aggregate(
-          data[, demean_vars, drop = FALSE],
-          by = list(group = data[[g]]),
-          FUN = mean,
-          na.rm = TRUE
-        )
-        colnames(group_means)[1] <- g
-        details[[paste0("means_", g)]] <- group_means
-      }
-    } else {
-      # Overall demeaning: store overall means as named vector
-      overall_means <- vapply(
-        demean_vars,
-        function(var) mean(data[[var]], na.rm = TRUE),
-        numeric(1)
-      )
-      names(overall_means) <- demean_vars
-      details$means <- overall_means
-    }
-  }
-  # else details remains empty list (no numeric variables to demean)
 
   # --- Build metadata attribute ---
   if (keep_panel_class) {
