@@ -22,12 +22,12 @@
 #' @return A data.frame containing panel data in a wide format.
 #'
 #' @details
-#' The data are reshaped to long format using `stats::reshape()`.
+#' The data are reshaped to wide format using `stats::reshape()`.
 #'
 #' The function works for standard atomic types (logical, integer, double,
-#' complex, character, raw) and for factors. However, non-standard column types
-#' such as `Date`, `POSIXct`, or custom S3/S4 classes may lose their special
-#' attributes during reshaping.
+#' complex, character, raw) and for factors. Non‑standard column types such as
+#' `Date`, `POSIXct`, or custom S3/S4 classes are preserved during static
+#' variable extraction because the function avoids coercive operations.
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
@@ -59,7 +59,7 @@
 #' attr(wide3, "details")
 #'
 #' @importFrom utils head
-#' @importFrom stats reshape aggregate
+#' @importFrom stats reshape
 #' @export
 make_wide <- function(
   data,
@@ -99,7 +99,6 @@ make_wide <- function(
         panel_details <- attr(data, "details")
         entity_time_from_metadata <- TRUE
       } else {
-        # User provided index overrides
         if (length(index) != 2 || !is.character(index)) {
           stop("'index' must be a character vector of length 2", call. = FALSE)
         }
@@ -107,7 +106,6 @@ make_wide <- function(
         time_var <- index[2]
       }
     } else {
-      # No valid metadata, fall back to user index
       if (is.null(index)) {
         stop("For regular data.frames, 'index' must be provided", call. = FALSE)
       }
@@ -118,7 +116,6 @@ make_wide <- function(
       time_var <- index[2]
     }
   } else {
-    # Regular data frame
     if (is.null(index)) {
       stop("For regular data.frames, 'index' must be provided", call. = FALSE)
     }
@@ -166,7 +163,7 @@ make_wide <- function(
     rownames(data) <- NULL
   }
 
-  # --- Duplicate check (unless from metadata) ---
+  # --- Duplicate check ---
   if (!entity_time_from_metadata) {
     dup_rows <- duplicated(data[c(entity_var, time_var)]) |
       duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
@@ -197,7 +194,6 @@ make_wide <- function(
   check_invariant <- function(var, data, entity_var) {
     vals <- data[[var]]
     entities <- data[[entity_var]]
-    # For each entity, get unique non-NA values; if any entity has >1 unique, not invariant
     uniq_per_entity <- tapply(vals, entities, function(x) unique(x[!is.na(x)]))
     any_multiple <- any(sapply(uniq_per_entity, length) > 1)
     return(!any_multiple)
@@ -253,7 +249,6 @@ make_wide <- function(
       msg_printed <- TRUE
     }
   } else {
-    # Check variables not in static
     other_vars <- setdiff(all_vars, static)
     additional <- other_vars[sapply(
       other_vars,
@@ -272,19 +267,24 @@ make_wide <- function(
   }
 
   # --- Prepare data for reshaping ---
-  # If static is provided, we extract the first non-NA value per entity
-  # for each static variable and drop them from the data frame that goes into reshape().
+  # If static is provided, extract one value per entity for each static variable,
+  # preserving factor levels and other classes by using merge on unique pairs.
   if (!is.null(static)) {
-    # Extract first non-NA value for each static variable per entity
-    static_data <- aggregate(
-      data[, static, drop = FALSE],
-      by = list(entity = data[[entity_var]]),
-      FUN = function(x) {
-        non_na <- x[!is.na(x)]
-        if (length(non_na) == 0) NA else non_na[1]
-      }
-    )
-    names(static_data)[names(static_data) == "entity"] <- entity_var
+    # Start with all unique entities
+    entities <- unique(data[[entity_var]])
+    static_data <- data.frame(entities, stringsAsFactors = FALSE)
+    names(static_data)[1] <- entity_var
+
+    # For each static variable, get the unique (entity, value) pairs (non-NA)
+    for (v in static) {
+      # Subset to non-NA values, then unique pairs (invariance ensures at most one per entity)
+      sub <- data[!is.na(data[[v]]), c(entity_var, v), drop = FALSE]
+      sub <- unique(sub) # just in case, though not necessary
+      # Merge left join to keep all entities; missing values become NA
+      static_data <- merge(static_data, sub, by = entity_var, all.x = TRUE)
+    }
+
+    # Drop the static variables from the data that will be reshaped
     data_for_reshape <- data[, setdiff(names(data), static), drop = FALSE]
   } else {
     data_for_reshape <- data
@@ -361,9 +361,7 @@ make_wide <- function(
     if (!is.null(static)) new_metadata$static <- static
   }
 
-  # --- Build details from scratch (do NOT preserve input details) ---
-  # reshaped = variables that were actually reshaped (time-varying)
-  # static_detected = all variables that are time-invariant (whether provided by user or auto-detected)
+  # --- Build details from scratch ---
   new_details <- list(
     reshaped = varying_vars,
     static_detected = invariant_vars
