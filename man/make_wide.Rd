@@ -35,12 +35,13 @@ This function reshapes panel data from long format to wide format,
 creating separate columns for each time period.
 }
 \details{
-The data are reshaped to wide format using \code{stats::reshape()}.
-
-The function works for standard atomic types (logical, integer, double,
-complex, character, raw) and for factors. Non‑standard column types such as
-\code{Date}, \code{POSIXct}, or custom S3/S4 classes are preserved during static
-variable extraction because the function avoids coercive operations.
+The structure of the returned data.frame depends on the input. For example,
+suppose your long panel data contains an entity column \code{id}, a time column
+\code{year}, and time‑varying variables \code{y} and \code{x}. If there are two time periods
+(e.g., 2000 and 2001), the resulting wide data.frame will have a single row
+per entity, with columns \code{id}, \code{y_2000}, \code{y_2001}, \code{x_2000}, and \code{x_2001}.
+Static variables, if declared via the \code{static} argument, appear as single
+columns, replicated once per entity rather than split by time.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
@@ -49,6 +50,14 @@ If the input was a \code{panel_data} object, the original metadata elements
 (entity, time, and delta) are preserved.}
 \item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
 }
+
+#' @note
+The input long data must have exactly one row per entity–time combination;
+if duplicates are detected, the function stops with an error listing the
+offending pairs. Rows with missing values in the entity or time variables are
+automatically removed (with a message) before reshaping. The reshaping preserves
+standard atomic types and factors, but complex S3 classes like \code{POSIXlt}
+may not survive the process. Consider converting such columns to simpler types.
 }
 \examples{
 data(production)

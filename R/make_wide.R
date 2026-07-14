@@ -22,12 +22,13 @@
 #' @return A data.frame containing panel data in a wide format.
 #'
 #' @details
-#' The data are reshaped to wide format using `stats::reshape()`.
-#'
-#' The function works for standard atomic types (logical, integer, double,
-#' complex, character, raw) and for factors. Non‑standard column types such as
-#' `Date`, `POSIXct`, or custom S3/S4 classes are preserved during static
-#' variable extraction because the function avoids coercive operations.
+#' The structure of the returned data.frame depends on the input. For example,
+#' suppose your long panel data contains an entity column `id`, a time column
+#' `year`, and time‑varying variables `y` and `x`. If there are two time periods
+#' (e.g., 2000 and 2001), the resulting wide data.frame will have a single row
+#' per entity, with columns `id`, `y_2000`, `y_2001`, `x_2000`, and `x_2001`.
+#' Static variables, if declared via the `static` argument, appear as single
+#' columns, replicated once per entity rather than split by time.
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
@@ -36,6 +37,14 @@
 #'         (entity, time, and delta) are preserved.}
 #'   \item{`details`}{List containing the names of reshaped variables and detected static variables.}
 #' }
+#'
+#' #' @note
+#' The input long data must have exactly one row per entity–time combination;
+#' if duplicates are detected, the function stops with an error listing the
+#' offending pairs. Rows with missing values in the entity or time variables are
+#' automatically removed (with a message) before reshaping. The reshaping preserves
+#' standard atomic types and factors, but complex S3 classes like `POSIXlt`
+#' may not survive the process. Consider converting such columns to simpler types.
 #'
 #' @seealso
 #' See also [make_panel()], [make_long()], [make_balanced()].
@@ -163,31 +172,31 @@ make_wide <- function(
     rownames(data) <- NULL
   }
 
-  # --- Duplicate check ---
-  if (!entity_time_from_metadata) {
-    dup_rows <- duplicated(data[c(entity_var, time_var)]) |
-      duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
-    if (any(dup_rows)) {
-      dup_combinations <- unique(data[
-        dup_rows,
-        c(entity_var, time_var),
-        drop = FALSE
-      ])
-      n_dup <- nrow(dup_combinations)
-      examples <- utils::head(dup_combinations, 5)
-      example_strings <- paste0(
-        examples[[entity_var]],
-        "-",
-        examples[[time_var]]
-      )
-      example_str <- paste(example_strings, collapse = ", ")
-      message(
-        n_dup,
-        " duplicate entity-time combinations found. Examples: ",
-        example_str
-      )
-      msg_printed <- TRUE
-    }
+  # --- Duplicate check (entity-time combinations) ---
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
+    n_dup <- nrow(dup_combinations)
+    examples <- utils::head(dup_combinations, 5)
+    example_strings <- paste0(
+      examples[[entity_var]],
+      "-",
+      examples[[time_var]]
+    )
+    example_str <- paste(example_strings, collapse = ", ")
+    stop(
+      "Duplicate entity-time combinations found: ",
+      n_dup,
+      " unique combinations. Examples: ",
+      example_str,
+      ". Please resolve duplicates before reshaping.",
+      call. = FALSE
+    )
   }
 
   # --- Helper function to check time-invariance (ignoring NAs) ---
