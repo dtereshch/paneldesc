@@ -21,10 +21,14 @@
 #' @return A data.frame containing panel data in a long format.
 #'
 #' @details
-#' The data are reshaped to long format using `stats::reshape()`.
+#' The structure of the returned data.frame depends on the input. For example,
+#' suppose your wide panel data contains an entity column `id` and time‑varying
+#' columns `y_2000`, `y_2001`, `x_2000`, and `x_2001`. The resulting long
+#' data.frame will have one row per entity‑time pair, with columns `id`, `time`
+#' (containing the period labels), `y`, and `x`. Static columns are replicated
+#' across all time periods for each entity.
 #'
-#' The function assumes that all time-varying columns follow a consistent naming
-#' pattern. If some variable‑time combinations are missing (i.e., a column for a
+#' If some variable‑time combinations are missing (i.e., a column for a
 #' variable and a particular time period is absent), the function will add that
 #' column filled with `NA` so that the variable is preserved in the long format.
 #'
@@ -42,9 +46,15 @@
 #' }
 #'
 #' @note
-#' If `data` has panel attributes (e.g., from [make_wide()]) and `index` is
-#' not specified, the entity column and the name for the new time column
-#' are taken from the metadata.
+#' The input wide data must have exactly one row per entity; if duplicate entity
+#' rows are found, the function errors with examples. The reshaping relies on a
+#' consistent column‑naming pattern determined by the `spacer` and `invert`
+#' arguments (default: `"variable_spacer_time"`). Using `spacer = ""` is
+#' possible but ambiguous; the heuristic may misinterpret variable names that
+#' contain digits (e.g., `year2000` is parsed as variable `year`, time `2000`),
+#' so a non‑empty separator is strongly recommended. The function preserves atomic types
+#' and factors, but complex S3 classes (like `POSIXlt`) are not guaranteed to
+#' work reliably through the reshaping.
 #'
 #' @seealso
 #' See also [make_panel()], [make_wide()], [make_balanced()].
@@ -163,6 +173,22 @@ make_long <- function(
   # --- Validate entity column ---
   if (!entity_col %in% names(data)) {
     stop('entity column "', entity_col, '" not found in data', call. = FALSE)
+  }
+
+  # --- Duplicate check: wide data should have unique entity rows ---
+  if (any(duplicated(data[[entity_col]]))) {
+    dup_entities <- unique(data[[entity_col]][duplicated(data[[entity_col]])])
+    n_dup <- length(dup_entities)
+    examples <- utils::head(dup_entities, 5)
+    example_str <- paste(examples, collapse = ", ")
+    stop(
+      "Duplicate entity values found in wide data: ",
+      n_dup,
+      " unique entities have multiple rows. Examples: ",
+      example_str,
+      ". Wide format should have one row per entity.",
+      call. = FALSE
+    )
   }
 
   # --- Validate static variables ---

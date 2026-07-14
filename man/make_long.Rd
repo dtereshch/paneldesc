@@ -34,10 +34,14 @@ This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
 }
 \details{
-The data are reshaped to long format using \code{stats::reshape()}.
+The structure of the returned data.frame depends on the input. For example,
+suppose your wide panel data contains an entity column \code{id} and time‑varying
+columns \code{y_2000}, \code{y_2001}, \code{x_2000}, and \code{x_2001}. The resulting long
+data.frame will have one row per entity‑time pair, with columns \code{id}, \code{time}
+(containing the period labels), \code{y}, and \code{x}. Static columns are replicated
+across all time periods for each entity.
 
-The function assumes that all time-varying columns follow a consistent naming
-pattern. If some variable‑time combinations are missing (i.e., a column for a
+If some variable‑time combinations are missing (i.e., a column for a
 variable and a particular time period is absent), the function will add that
 column filled with \code{NA} so that the variable is preserved in the long format.
 
@@ -55,9 +59,15 @@ If the input was a \code{panel_data} object, the original metadata elements
 }
 }
 \note{
-If \code{data} has panel attributes (e.g., from \code{\link[=make_wide]{make_wide()}}) and \code{index} is
-not specified, the entity column and the name for the new time column
-are taken from the metadata.
+The input wide data must have exactly one row per entity; if duplicate entity
+rows are found, the function errors with examples. The reshaping relies on a
+consistent column‑naming pattern determined by the \code{spacer} and \code{invert}
+arguments (default: \code{"variable_spacer_time"}). Using \code{spacer = ""} is
+possible but ambiguous; the heuristic may misinterpret variable names that
+contain digits (e.g., \code{year2000} is parsed as variable \code{year}, time \code{2000}),
+so a non‑empty separator is strongly recommended. The function preserves atomic types
+and factors, but complex S3 classes (like \code{POSIXlt}) are not guaranteed to
+work reliably through the reshaping.
 }
 \examples{
 data(production)
