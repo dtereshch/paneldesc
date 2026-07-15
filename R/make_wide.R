@@ -272,16 +272,41 @@ make_wide <- function(
   }
 
   # --- Prepare data for reshaping ---
-  # If static is provided, we extract those columns (one row per entity) and
-  # drop them from the data frame that goes into reshape().
+  # If static is provided, we extract the first non-NA value per entity
+  # for each static variable and drop them from the data frame that goes into reshape().
   if (!is.null(static)) {
-    # Get unique entity-static pairs (first occurrence per entity)
+    # Start with one row per entity (first occurrence)
     static_data <- data[
       !duplicated(data[[entity_var]]),
       c(entity_var, static),
       drop = FALSE
     ]
-    # Remove static columns from the data passed to reshape
+
+    # For each static variable, replace values with the first non-NA per entity
+    for (v in static) {
+      # Compute first non-NA value for each entity (as a vector, possibly character)
+      ent_vals <- tapply(data[[v]], data[[entity_var]], function(x) {
+        non_na <- x[!is.na(x)]
+        if (length(non_na) == 0) NA else non_na[1]
+      })
+      # Map back to the rows in static_data
+      vals <- ent_vals[as.character(static_data[[entity_var]])]
+
+      # Preserve factor levels if the original variable was a factor
+      if (is.factor(data[[v]])) {
+        static_data[[v]] <- factor(vals, levels = levels(data[[v]]))
+        # Preserve ordered attribute if present
+        if (is.ordered(data[[v]])) {
+          static_data[[v]] <- ordered(
+            static_data[[v]],
+            levels = levels(data[[v]])
+          )
+        }
+      } else {
+        static_data[[v]] <- vals
+      }
+    }
+
     data_for_reshape <- data[, setdiff(names(data), static), drop = FALSE]
   } else {
     data_for_reshape <- data
