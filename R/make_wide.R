@@ -59,7 +59,7 @@
 #' attr(wide3, "details")
 #'
 #' @importFrom utils head
-#' @importFrom stats reshape aggregate
+#' @importFrom stats reshape
 #' @export
 make_wide <- function(
   data,
@@ -272,19 +272,16 @@ make_wide <- function(
   }
 
   # --- Prepare data for reshaping ---
-  # If static is provided, we extract the first non-NA value per entity
-  # for each static variable and drop them from the data frame that goes into reshape().
+  # If static is provided, we extract those columns (one row per entity) and
+  # drop them from the data frame that goes into reshape().
   if (!is.null(static)) {
-    # Extract first non-NA value for each static variable per entity
-    static_data <- aggregate(
-      data[, static, drop = FALSE],
-      by = list(entity = data[[entity_var]]),
-      FUN = function(x) {
-        non_na <- x[!is.na(x)]
-        if (length(non_na) == 0) NA else non_na[1]
-      }
-    )
-    names(static_data)[names(static_data) == "entity"] <- entity_var
+    # Get unique entity-static pairs (first occurrence per entity)
+    static_data <- data[
+      !duplicated(data[[entity_var]]),
+      c(entity_var, static),
+      drop = FALSE
+    ]
+    # Remove static columns from the data passed to reshape
     data_for_reshape <- data[, setdiff(names(data), static), drop = FALSE]
   } else {
     data_for_reshape <- data
