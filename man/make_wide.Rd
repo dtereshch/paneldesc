@@ -35,12 +35,12 @@ This function reshapes panel data from long format to wide format,
 creating separate columns for each time period.
 }
 \details{
-The data are reshaped to wide format using \code{stats::reshape()}.
+The data are reshaped to long format using \code{stats::reshape()}.
 
 The function works for standard atomic types (logical, integer, double,
-complex, character, raw) and for factors. Non‑standard column types such as
-\code{Date}, \code{POSIXct}, or custom S3/S4 classes are preserved during static
-variable extraction because the function avoids coercive operations.
+complex, character, raw) and for factors. However, non-standard column types
+such as \code{Date}, \code{POSIXct}, or custom S3/S4 classes may lose their special
+attributes during reshaping.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
