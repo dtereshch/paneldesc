@@ -7,57 +7,74 @@
 make_long(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
-\item{data}{A data.frame containing panel data in a wide format.}
+\item{data}{A data.frame containing panel data in a wide format. If \code{data} has
+class \code{"panel_wide"} (from \code{\link[=make_wide]{make_wide()}}), the entity and time variables
+are taken from its metadata unless overridden by \code{index}.}
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
 column in the long format (second element).
-If not specified and data is a \code{panel_data} object, the entity and time values
-will be extracted from the data.frame attributes.}
+If not specified and \code{data} is a \code{panel_wide} object, the entity and time
+values are extracted from the metadata.}
 
 \item{static}{A character vector of variable names that are time-invariant.
-If not specified, the function will automatically detect columns that
+If not specified, the function automatically detects columns that
 do not contain the time separator (or numeric suffix).}
 
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = "_".}
+values in the wide column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating the order of components in column
-names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE}, they are
-\code{"time_spacer_variable"}. Default = FALSE.}
+names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
+they are \code{"time_spacer_variable"}. Default = \code{FALSE}.}
 }
 \value{
-A data.frame containing panel data in a long format.
+A data.frame containing panel data in a long format, with class
+\code{"panel_data"} and the attributes \code{metadata} and \code{details}.
 }
 \description{
 This function reshapes panel data from wide format to long format,
 stacking time-varying columns into rows based on the pattern of column names.
 }
 \details{
-The data are reshaped to long format using \code{stats::reshape()}.
+The structure of the returned data.frame depends on the input. For example,
+suppose your wide panel data contains an entity column \code{id}, time‑varying
+variables \code{y} and \code{x} with time periods 2000 and 2001 (columns \code{y_2000},
+\code{y_2001}, \code{x_2000}, \code{x_2001}), and a static variable \code{z}. The resulting
+long data.frame will have multiple rows per entity, one for each time period,
+with columns \code{id}, \code{year}, \code{z}, \code{y}, and \code{x}. Static variables are replicated
+for each time period rather than stacked.
 
-The function assumes that all time-varying columns follow a consistent naming
-pattern. If some variable‑time combinations are missing (i.e., a column for a
-variable and a particular time period is absent), the function will add that
-column filled with \code{NA} so that the variable is preserved in the long format.
+The reshaped columns are ordered as follows: the entity column appears first,
+then the time column, then any static (time‑invariant) columns, and finally
+all time‑varying variables in the order they were first encountered in the
+wide data. The time periods are sorted according to their natural order.
 
-Columns that are time-invariant (not split by time) are replicated for each
-time period, unless a particular entity-time combination has no
-time-varying data at all—in which case the invariant columns are set to \code{NA}
-to reflect a truly missing observation.
+If some variable‑time combinations are missing from the wide format (i.e., a
+column for a variable and a particular time period is absent), the function
+adds that column filled with \code{NA} so that the variable is preserved in the
+long format. A message is printed indicating which columns were added.
+
+Columns that are time‑invariant (not split by time) are replicated for each
+time period, unless a particular entity‑time combination has no time‑varying
+data at all—in which case the invariant columns are set to \code{NA} to reflect a
+truly missing observation.
+
+The function tries to convert the resulting time column to numeric if all time
+values are coercible, and sorts the output by entity then time.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
-If the input was a \code{panel_data} object, the original metadata elements
-(entity, time, and delta) are preserved.}
+If the input was a \code{panel_wide} object, the original metadata elements
+(entity, time, spacer, invert) are preserved.}
 \item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
 }
 }
 \note{
-If \code{data} has panel attributes (e.g., from \code{\link[=make_wide]{make_wide()}}) and \code{index} is
-not specified, the entity column and the name for the new time column
-are taken from the metadata.
+The input wide data must have unique entity values, each row must
+correspond to a distinct entity. If duplicates are found, the function stops
+with an error listing the number of duplicate entities and up to five examples.
 }
 \examples{
 data(production)
@@ -68,9 +85,8 @@ wide <- make_wide(production, index = c("firm", "year"))
 # Basic usage
 long <- make_long(wide, index = c("firm", "year"))
 
-# With panel_data object (uses metadata)
-panel <- make_panel(production, index = c("firm", "year"))
-wide_panel <- make_wide(panel)
+# With panel_wide object (uses metadata)
+wide_panel <- make_wide(production, index = c("firm", "year"))
 long_panel <- make_long(wide_panel)
 
 # Custom spacer and inverted order
