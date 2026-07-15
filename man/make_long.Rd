@@ -19,10 +19,13 @@ values are extracted from the metadata.}
 
 \item{static}{A character vector of variable names that are time-invariant.
 If not specified, the function automatically detects columns that
-do not contain the time separator (or numeric suffix).}
+do not contain the time separator (or a recognized time suffix/prefix
+when \code{spacer = ""}).}
 
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = \code{"_"}.}
+values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
+when no explicit separator exists; the function will then try to
+identify repeated numeric or non‑numeric time substrings.}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
@@ -43,12 +46,16 @@ variables \code{y} and \code{x} with time periods 2000 and 2001 (columns \code{y
 \code{y_2001}, \code{x_2000}, \code{x_2001}), and a static variable \code{z}. The resulting
 long data.frame will have multiple rows per entity, one for each time period,
 with columns \code{id}, \code{year}, \code{z}, \code{y}, and \code{x}. Static variables are replicated
-for each time period rather than stacked.
+for each time period.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then the time column, then any static (time‑invariant) columns, and finally
 all time‑varying variables in the order they were first encountered in the
-wide data. The time periods are sorted according to their natural order.
+wide data. The time periods are sorted according to their natural order
+(numerically if all values are numeric, otherwise lexicographically).
+\strong{If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
+\code{"1"} map to the same number), the function stops with an error to prevent
+ambiguous column mapping.}
 
 If some variable‑time combinations are missing from the wide format (i.e., a
 column for a variable and a particular time period is absent), the function
@@ -67,14 +74,49 @@ The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_wide} object, the original metadata elements
-(entity, time, spacer, invert) are preserved.}
+for the entity and time variables are preserved; \code{spacer} and \code{invert}
+must be supplied explicitly when they differ from the defaults.}
 \item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
 }
 }
 \note{
-The input wide data must have unique entity values, each row must
+\strong{Desirable input data} – The input wide data.frame should have one row per
+entity and column names that follow a consistent naming convention. Time‑varying
+columns must use the same separator (if \code{spacer} is not empty) and the same
+ordering of variable/time parts. The entity column must contain unique
+identifiers (no duplicates). When \code{spacer = ""}, automatic detection works best
+when column names consist of a variable name directly followed by a time suffix
+(or preceded by a time prefix if \code{invert = TRUE}) using only letters, digits,
+or a consistent numeric time pattern. If these conditions are met, the reshaping
+will be reliable.
+
+The input wide data must have unique entity values; each row must
 correspond to a distinct entity. If duplicates are found, the function stops
 with an error listing the number of duplicate entities and up to five examples.
+
+When \code{spacer = ""} (no separator), the function first tries to identify
+time suffixes that appear with multiple different variables. If that fails,
+it then looks for variable stems that appear with multiple different time
+suffixes, requiring those times to be either all numeric or all of the same
+character length (e.g., \code{"Q1"}, \code{"Q2"}). If still no structure is found, it
+falls back to detecting leading or trailing digits. The automatic detection
+is a best‑effort heuristic; if the structure is irregular, consider using a
+non‑empty \code{spacer} or renaming columns.
+
+\strong{Columns with all‑digit names} – When column names consist entirely of
+digits (e.g., \code{"2000"}, \code{"2001"}) and \code{spacer = ""}, the automatic parsing
+treats them as time values of a single unnamed variable. The resulting
+variable in long format will be named \code{"value"}. This behavior ensures that
+purely numeric column names are correctly interpreted as time periods.
+If you actually have several different time‑varying variables whose names are
+all digits, you should use an explicit \code{spacer} (e.g., \code{"_"}) to disambiguate
+variable and time components, renaming columns to a pattern like
+\code{"var1_2000"}, \code{"var2_2000"}, etc.
+
+A warning is issued when the automatic separator detection encounters columns
+that look like they could be time‑varying but use a separator different from
+\code{spacer}. These columns are treated as time‑invariant. To avoid confusion,
+ensure a consistent naming scheme.
 }
 \examples{
 data(production)
@@ -94,7 +136,7 @@ wide2 <- make_wide(production, index = c("firm", "year"),
                    spacer = ".", invert = TRUE)
 long2 <- make_long(wide2, spacer = ".", invert = TRUE)
 
-# Using spacer = "" (no separator)
+# Using spacer = "" (no separator) – automatic suffix detection
 wide3 <- make_wide(production, index = c("firm", "year"), spacer = "")
 long3 <- make_long(wide3, spacer = "")
 
