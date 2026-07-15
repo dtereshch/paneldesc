@@ -19,7 +19,8 @@
 #'        `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
 #'        Default = FALSE.
 #'
-#' @return A data.frame containing panel data in a wide format.
+#' @return A data.frame containing panel data in a wide format, with class
+#'         `"panel_wide"` and the attributes `metadata` and `details`.
 #'
 #' @details
 #' The structure of the returned data.frame depends on the input. For example,
@@ -30,7 +31,15 @@
 #' Static variables, if declared via the `static` argument, appear as single
 #' columns, replicated once per entity rather than split by time.
 #'
-#' The returned object has class `"panel_data"` and two additional attributes:
+#' The reshaped columns are ordered as follows: the entity column appears first,
+#' then any static variables (in the order specified by the `static` argument),
+#' and finally all time‑varying variables in the order they were present in the
+#' input data. For each such variable, one column per time period is created,
+#' using the unique values of the time variable sorted according to their natural
+#' order. If an entity is missing a particular time period, the corresponding
+#' wide column will contain `NA`.
+#'
+#' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
@@ -42,9 +51,20 @@
 #' The input long data must have exactly one row per entity–time combination;
 #' if duplicates are detected, the function stops with an error listing the
 #' offending pairs. Rows with missing values in the entity or time variables are
-#' automatically removed (with a message) before reshaping. The reshaping preserves
-#' standard atomic types and factors, but complex S3 classes like `POSIXlt`
-#' may not survive the process. Consider converting such columns to simpler types.
+#' automatically removed (with a message) before reshaping.
+#'
+#' The reshaping preserves standard atomic types and factors, but complex S3
+#' classes like `POSIXlt` may not survive the process. When extracting static
+#' variables, the function uses `do.call(c, ...)` to preserve common classes
+#' such as `Date`, `POSIXct`, and `difftime`. However, if a static variable
+#' has a class that is not among the basic atomic types or factors, a warning
+#' is issued, and you should consider converting such columns to simpler types.
+#'
+#' Internally, a temporary separator `"._TEMP_."` is used during the reshape
+#' step and later replaced by the user‑provided `spacer`. The function checks
+#' that neither column names nor time values contain this exact string; if they
+#' do, an error is raised. Avoid using this substring in your variable names
+#' and time values.
 #'
 #' @seealso
 #' See also [make_panel()], [make_long()], [make_balanced()].
@@ -94,7 +114,6 @@ make_wide <- function(
   keep_panel_class <- FALSE
   panel_metadata <- NULL
   panel_details <- NULL
-  entity_time_from_metadata <- FALSE
 
   # --- Extract index from metadata if applicable ---
   if (inherits(data, "panel_data")) {
@@ -106,7 +125,6 @@ make_wide <- function(
         keep_panel_class <- TRUE
         panel_metadata <- meta
         panel_details <- attr(data, "details")
-        entity_time_from_metadata <- TRUE
       } else {
         # User provided index overrides
         if (length(index) != 2 || !is.character(index)) {
@@ -175,42 +193,49 @@ make_wide <- function(
     rownames(data) <- NULL
   }
 
-  # --- Duplicate check: stop with clear error if duplicates exist ---
-  if (!entity_time_from_metadata) {
-    dup_rows <- duplicated(data[c(entity_var, time_var)]) |
-      duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
-    if (any(dup_rows)) {
-      dup_combinations <- unique(data[
-        dup_rows,
-        c(entity_var, time_var),
-        drop = FALSE
-      ])
-      n_dup <- nrow(dup_combinations)
-      examples <- utils::head(dup_combinations, 5)
-      example_strings <- paste0(
-        examples[[entity_var]],
-        "-",
-        examples[[time_var]]
-      )
-      example_str <- paste(example_strings, collapse = ", ")
-      stop(
-        "Duplicate entity-time combinations found: ",
-        n_dup,
-        " unique combinations with duplicates. ",
-        "Examples: ",
-        example_str,
-        call. = FALSE
-      )
-    }
+  # --- Duplicate check: always run, even for panel_data objects ---
+  dup_rows <- duplicated(data[c(entity_var, time_var)]) |
+    duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
+  if (any(dup_rows)) {
+    dup_combinations <- unique(data[
+      dup_rows,
+      c(entity_var, time_var),
+      drop = FALSE
+    ])
+    n_dup <- nrow(dup_combinations)
+    examples <- utils::head(dup_combinations, 5)
+    example_strings <- paste0(
+      examples[[entity_var]],
+      "-",
+      examples[[time_var]]
+    )
+    example_str <- paste(example_strings, collapse = ", ")
+    stop(
+      "Duplicate entity-time combinations found: ",
+      n_dup,
+      " unique combinations with duplicates. ",
+      "Examples: ",
+      example_str,
+      call. = FALSE
+    )
   }
 
-  # --- Helper function to check time-invariance (ignoring NAs) ---
-  check_invariant <- function(var, data, entity_var) {
+  # --- Helper function to check time-invariance ---
+  # `all_na_invariant`: if TRUE, an all‑NA column is considered invariant;
+  # if FALSE, all‑NA is treated as time‑varying.
+  check_invariant <- function(var, data, entity_var, all_na_invariant = TRUE) {
     vals <- data[[var]]
     entities <- data[[entity_var]]
-    # For each entity, get unique non-NA values; if any entity has >1 unique, not invariant
-    uniq_per_entity <- tapply(vals, entities, function(x) unique(x[!is.na(x)]))
-    any_multiple <- any(sapply(uniq_per_entity, length) > 1)
+    vals_list <- split(vals, entities)
+    any_multiple <- any(sapply(vals_list, function(x) {
+      non_na <- x[!is.na(x)]
+      if (length(non_na) == 0) {
+        # no non‑NA values in this entity
+        return(!all_na_invariant)
+      } else {
+        return(length(unique(non_na)) > 1)
+      }
+    }))
     return(!any_multiple)
   }
 
@@ -230,9 +255,9 @@ make_wide <- function(
         call. = FALSE
       )
     }
-    # Check invariance for each static variable
+    # Check invariance for each static variable (all‑NA is allowed)
     invariant_check <- sapply(static, function(v) {
-      check_invariant(v, data, entity_var)
+      check_invariant(v, data, entity_var, all_na_invariant = TRUE)
     })
     if (!all(invariant_check)) {
       non_invariant <- static[!invariant_check]
@@ -245,12 +270,14 @@ make_wide <- function(
   }
 
   # --- Detect all time-invariant variables (for details) ---
+  # Here we treat all‑NA as varying (so they are reshaped).
   all_vars <- setdiff(names(data), c(entity_var, time_var))
   invariant_vars <- all_vars[sapply(
     all_vars,
     check_invariant,
     data = data,
-    entity_var = entity_var
+    entity_var = entity_var,
+    all_na_invariant = FALSE # all‑NA -> not invariant
   )]
 
   # --- Detect and report time-invariant variables (user messages) ---
@@ -270,7 +297,8 @@ make_wide <- function(
       other_vars,
       check_invariant,
       data = data,
-      entity_var = entity_var
+      entity_var = entity_var,
+      all_na_invariant = FALSE # same treatment
     )]
     if (length(additional) > 0) {
       message(
@@ -283,8 +311,6 @@ make_wide <- function(
   }
 
   # --- Prepare data for reshaping ---
-  # If static is provided, we extract the first non-NA value per entity
-  # for each static variable and drop them from the data frame that goes into reshape().
   if (!is.null(static)) {
     # Start with one row per entity (first occurrence)
     static_data <- data[
@@ -293,28 +319,48 @@ make_wide <- function(
       drop = FALSE
     ]
 
-    # For each static variable, replace values with the first non-NA per entity
+    # For each static variable, extract first non-NA value per entity while preserving class
+    entities_uniq <- static_data[[entity_var]]
     for (v in static) {
-      # Compute first non-NA value for each entity (as a vector, possibly character)
-      ent_vals <- tapply(data[[v]], data[[entity_var]], function(x) {
-        non_na <- x[!is.na(x)]
+      vals_list <- split(data[[v]], data[[entity_var]])
+      first_vals <- lapply(entities_uniq, function(e) {
+        vals <- vals_list[[as.character(e)]]
+        non_na <- vals[!is.na(vals)]
         if (length(non_na) == 0) NA else non_na[1]
       })
-      # Map back to the rows in static_data
-      vals <- ent_vals[as.character(static_data[[entity_var]])]
-
-      # Preserve factor levels if the original variable was a factor
       if (is.factor(data[[v]])) {
-        static_data[[v]] <- factor(vals, levels = levels(data[[v]]))
-        # Preserve ordered attribute if present
-        if (is.ordered(data[[v]])) {
-          static_data[[v]] <- ordered(
-            static_data[[v]],
-            levels = levels(data[[v]])
+        static_data[[v]] <- factor(
+          unlist(first_vals, use.names = FALSE),
+          levels = levels(data[[v]]),
+          ordered = is.ordered(data[[v]])
+        )
+      } else {
+        static_data[[v]] <- do.call(c, first_vals)
+        cls <- class(data[[v]])
+        basic_classes <- c(
+          "numeric",
+          "integer",
+          "character",
+          "logical",
+          "factor",
+          "ordered",
+          "Date",
+          "POSIXct",
+          "POSIXt",
+          "difftime",
+          "hms"
+        )
+        if (!any(cls %in% basic_classes) && !is.null(cls)) {
+          warning(
+            "Static variable '",
+            v,
+            "' has class(es) ",
+            paste(cls, collapse = ", "),
+            " that may not be preserved during extraction; ",
+            "consider converting to a simpler type.",
+            call. = FALSE
           )
         }
-      } else {
-        static_data[[v]] <- vals
       }
     }
 
@@ -323,56 +369,89 @@ make_wide <- function(
     data_for_reshape <- data
   }
 
-  # Identify varying variables in the reduced data (all except entity and time)
   varying_vars <- setdiff(names(data_for_reshape), c(entity_var, time_var))
 
   # --- Perform reshape ---
   if (length(varying_vars) == 0) {
-    # No time-varying variables
     if (is.null(static)) {
       stop(
         "No variables to reshape (only entity and time found)",
         call. = FALSE
       )
     } else {
-      # Only static columns exist; return entity + static
       wide <- static_data
       rownames(wide) <- NULL
     }
   } else {
-    # Reshape the reduced data
+    temp_sep <- "._TEMP_."
+    if (any(grepl(temp_sep, names(data_for_reshape)))) {
+      stop(
+        "Column names contain the temporary separator '",
+        temp_sep,
+        "'. Please rename these columns.",
+        call. = FALSE
+      )
+    }
+    if (any(grepl(temp_sep, as.character(data_for_reshape[[time_var]])))) {
+      stop(
+        "Time values contain the temporary separator '",
+        temp_sep,
+        "'. Please change the time values.",
+        call. = FALSE
+      )
+    }
+
     wide <- stats::reshape(
       data_for_reshape,
       direction = "wide",
       idvar = entity_var,
       timevar = time_var,
       v.names = varying_vars,
-      sep = "__TEMP__"
+      sep = temp_sep
     )
-    # Rename columns: replace __TEMP__ with spacer, optionally invert
+
+    # Rename columns: replace last occurrence of temp_sep with spacer
     new_names <- names(wide)
     for (i in seq_along(new_names)) {
       nm <- new_names[i]
-      if (grepl("__TEMP__", nm)) {
-        parts <- strsplit(nm, "__TEMP__")[[1]]
-        var_part <- parts[1]
-        time_part <- parts[2]
-        if (invert) {
-          new_names[i] <- paste0(time_part, spacer, var_part)
-        } else {
-          new_names[i] <- paste0(var_part, spacer, time_part)
+      if (grepl(temp_sep, nm)) {
+        all_pos <- gregexpr(temp_sep, nm, fixed = TRUE)[[1]]
+        if (length(all_pos) > 0) {
+          last_pos <- all_pos[length(all_pos)]
+          var_part <- substr(nm, 1, last_pos - 1)
+          time_part <- substr(nm, last_pos + nchar(temp_sep), nchar(nm))
+          if (invert) {
+            new_names[i] <- paste0(time_part, spacer, var_part)
+          } else {
+            new_names[i] <- paste0(var_part, spacer, time_part)
+          }
         }
       }
     }
     names(wide) <- new_names
     rownames(wide) <- NULL
 
-    # If static columns were provided, merge them back
     if (!is.null(static)) {
-      wide <- merge(wide, static_data, by = entity_var, all.x = TRUE)
-      # Reorder columns: entity first, then time-varying, then static
+      wide <- merge(
+        wide,
+        static_data,
+        by = entity_var,
+        all.x = TRUE,
+        sort = FALSE
+      )
+      # New column order: entity, static, time‑varying
       time_varying_cols <- setdiff(names(wide), c(entity_var, static))
-      wide <- wide[, c(entity_var, time_varying_cols, static), drop = FALSE]
+      wide <- wide[, c(entity_var, static, time_varying_cols), drop = FALSE]
+    }
+
+    # --- Duplicate column name check (after all renaming and merging) ---
+    if (any(duplicated(names(wide)))) {
+      dup_names <- unique(names(wide)[duplicated(names(wide))])
+      stop(
+        "Duplicate column names found after reshaping: ",
+        paste(dup_names, collapse = ", "),
+        call. = FALSE
+      )
     }
   }
 
@@ -394,18 +473,14 @@ make_wide <- function(
     if (!is.null(static)) new_metadata$static <- static
   }
 
-  # --- Build details from scratch (do NOT preserve input details) ---
-  # reshaped = variables that were actually reshaped (time-varying)
-  # static_detected = all variables that are time-invariant (whether provided by user or auto-detected)
   new_details <- list(
     reshaped = varying_vars,
     static_detected = invariant_vars
   )
 
-  # --- Attach attributes and class ---
   attr(wide, "metadata") <- new_metadata
   attr(wide, "details") <- new_details
-  class(wide) <- c("panel_data", class(wide))
+  class(wide) <- c("panel_wide", class(wide))
 
   if (msg_printed) {
     cat("\n")

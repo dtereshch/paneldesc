@@ -28,7 +28,8 @@ variable names in column names. If \code{FALSE}, column names are
 Default = FALSE.}
 }
 \value{
-A data.frame containing panel data in a wide format.
+A data.frame containing panel data in a wide format, with class
+\code{"panel_wide"} and the attributes \code{metadata} and \code{details}.
 }
 \description{
 This function reshapes panel data from long format to wide format,
@@ -43,7 +44,15 @@ per entity, with columns \code{id}, \code{y_2000}, \code{y_2001}, \code{x_2000},
 Static variables, if declared via the \code{static} argument, appear as single
 columns, replicated once per entity rather than split by time.
 
-The returned object has class \code{"panel_data"} and two additional attributes:
+The reshaped columns are ordered as follows: the entity column appears first,
+then any static variables (in the order specified by the \code{static} argument),
+and finally all time‑varying variables in the order they were present in the
+input data. For each such variable, one column per time period is created,
+using the unique values of the time variable sorted according to their natural
+order. If an entity is missing a particular time period, the corresponding
+wide column will contain \code{NA}.
+
+The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_data} object, the original metadata elements
@@ -55,9 +64,20 @@ If the input was a \code{panel_data} object, the original metadata elements
 The input long data must have exactly one row per entity–time combination;
 if duplicates are detected, the function stops with an error listing the
 offending pairs. Rows with missing values in the entity or time variables are
-automatically removed (with a message) before reshaping. The reshaping preserves
-standard atomic types and factors, but complex S3 classes like \code{POSIXlt}
-may not survive the process. Consider converting such columns to simpler types.
+automatically removed (with a message) before reshaping.
+
+The reshaping preserves standard atomic types and factors, but complex S3
+classes like \code{POSIXlt} may not survive the process. When extracting static
+variables, the function uses \code{do.call(c, ...)} to preserve common classes
+such as \code{Date}, \code{POSIXct}, and \code{difftime}. However, if a static variable
+has a class that is not among the basic atomic types or factors, a warning
+is issued, and you should consider converting such columns to simpler types.
+
+Internally, a temporary separator \code{"._TEMP_."} is used during the reshape
+step and later replaced by the user‑provided \code{spacer}. The function checks
+that neither column names nor time values contain this exact string; if they
+do, an error is raised. Avoid using this substring in your variable names
+and time values.
 }
 \examples{
 data(production)
