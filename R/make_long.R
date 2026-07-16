@@ -416,7 +416,7 @@ make_long <- function(
             nchar(col)
           )
           bare <- (var_name == "")
-          if (bare) var_name <- ""
+          if (bare) var_name <- "" # empty, will be handled later
         } else {
           match <- regexpr("\\d+$", col)
           if (match == -1) {
@@ -456,36 +456,51 @@ make_long <- function(
     }
   }
 
-  # --- Special case select = "" ---
-  if (select_special) {
-    bare_entries <- parsed[sapply(parsed, function(x) x$bare)]
-    if (length(bare_entries) == 0) {
-      stop(
-        "No bare columns (columns consisting solely of time values) found. ",
-        "If you intended to reshape columns with variable names, use a non-empty 'select'.",
-        call. = FALSE
-      )
-    }
-    for (col in names(bare_entries)) {
-      bare_entries[[col]]$var <- "value"
-      bare_entries[[col]]$bare <- FALSE
-    }
-    parsed <- bare_entries
-    select <- "value"
-  } else {
-    parsed <- parsed[sapply(parsed, function(x) x$var %in% select)]
-  }
-
+  # --- Early check: if no columns parsed at all ---
   if (length(parsed) == 0) {
     stop(
-      "No columns found that match the variable stubs in 'select'.\n",
-      "Check 'spacer' and 'invert' settings, and ensure that the column names ",
-      "follow the pattern variable + spacer + time (or time + spacer + variable).",
+      "No columns were identified as time-varying based on the current settings.\n",
+      "Check 'spacer' and 'invert' arguments. If you have bare (all-digit) columns,\n",
+      "set spacer = \"\" and select = \"\" to reshape them as a single variable 'value'.",
       call. = FALSE
     )
   }
 
-  if (!select_special) {
+  # --- Special case select = "" (bare columns) ---
+  if (select_special) {
+    # Keep only bare columns (var is empty)
+    bare_entries <- parsed[sapply(parsed, function(x) x$bare)]
+    if (length(bare_entries) == 0) {
+      stop(
+        "No bare columns (columns consisting solely of time values) found.\n",
+        "If you intended to reshape columns with variable names, use a non-empty 'select'.",
+        call. = FALSE
+      )
+    }
+    # Rename var to "value" but keep bare = TRUE
+    for (col in names(bare_entries)) {
+      bare_entries[[col]]$var <- "value"
+      # bare remains TRUE
+    }
+    parsed <- bare_entries
+    select <- "value"
+  } else {
+    # Filter parsed to those with var in select
+    # Ensure we don't subset with an empty list
+    keep <- sapply(parsed, function(x) x$var %in% select)
+    if (is.list(keep)) {
+      keep <- unlist(keep)
+    } # safety, but should be logical
+    parsed <- parsed[keep]
+    if (length(parsed) == 0) {
+      stop(
+        "No columns found that match the variable stubs in 'select'.\n",
+        "Check 'spacer' and 'invert' settings, and ensure that the column names\n",
+        "follow the pattern variable + spacer + time (or time + spacer + variable).",
+        call. = FALSE
+      )
+    }
+    # Verify every stub appears at least once
     present_stubs <- unique(sapply(parsed, function(x) x$var))
     missing_stubs <- setdiff(select, present_stubs)
     if (length(missing_stubs) > 0) {
@@ -549,7 +564,7 @@ make_long <- function(
     vars_in_order <- select[select %in% names(var_to_cols)]
   }
 
-  # Determine bare flags
+  # Determine bare flags (keep them TRUE for bare columns)
   bare_vars <- sapply(vars_in_order, function(var) {
     all(sapply(var_to_cols[[var]], function(col) parsed[[col]]$bare))
   })
@@ -558,16 +573,48 @@ make_long <- function(
   # Helper to generate column name
   generate_colname <- function(var, time, spacer, invert, bare = FALSE) {
     if (bare) {
+      # For bare columns, the column name is just the time value
       return(as.character(time))
-    }
-    if (spacer == "") {
-      if (invert) paste0(time, var) else paste0(var, time)
     } else {
-      if (invert) paste0(time, spacer, var) else paste0(var, spacer, time)
+      if (spacer == "") {
+        if (invert) paste0(time, var) else paste0(var, time)
+      } else {
+        if (invert) paste0(time, spacer, var) else paste0(var, spacer, time)
+      }
     }
   }
 
-  # Add missing columns
+  # --- Build the full set of expected column names (varying_cols) BEFORE adding missing ---
+  varying_list <- list()
+  v.names <- c()
+  varying_cols <- c()
+  for (var in vars_in_order) {
+    bare <- bare_vars[var]
+    cols_for_var <- sapply(unique_times, function(t) {
+      generate_colname(var, t, spacer, invert, bare = bare)
+    })
+    varying_list[[var]] <- cols_for_var
+    v.names <- c(v.names, var)
+    varying_cols <- c(varying_cols, cols_for_var)
+  }
+
+  # --- Conflict check: are any expected columns already present in data but not parsed? ---
+  existing_tv_cols <- names(parsed)
+  # Columns that are in the data, not entity, and not in existing_tv_cols
+  non_tv_cols <- setdiff(names(data), c(entity_col, existing_tv_cols))
+  conflict_cols <- intersect(varying_cols, non_tv_cols)
+  if (length(conflict_cols) > 0) {
+    stop(
+      "The following columns appear to be time-varying but do not match the expected pattern:\n",
+      paste(conflict_cols, collapse = ", "),
+      "\n",
+      "They may use a different separator or have inconsistent naming.\n",
+      "Check 'spacer' and 'invert' arguments, and ensure all time-varying columns follow the same pattern.",
+      call. = FALSE
+    )
+  }
+
+  # --- Add missing columns (those in varying_cols not in data) ---
   added_cols <- character(0)
   for (var in vars_in_order) {
     existing_cols <- var_to_cols[[var]]
@@ -617,37 +664,10 @@ make_long <- function(
     )
   }
 
-  # --- Build varying list ---
-  varying_list <- list()
-  v.names <- c()
-  varying_cols <- c()
-  for (var in vars_in_order) {
-    bare <- bare_vars[var]
-    cols_for_var <- sapply(unique_times, function(t) {
-      generate_colname(var, t, spacer, invert, bare = bare)
-    })
-    varying_list[[var]] <- cols_for_var
-    v.names <- c(v.names, var)
-    varying_cols <- c(varying_cols, cols_for_var)
-  }
+  # --- Now we have all columns; proceed with reshape ---
+  # (varying_list and varying_cols already defined)
 
-  # --- Conflicts and constant detection ---
-  existing_tv_cols <- names(parsed)
-  generated_new_cols <- setdiff(varying_cols, existing_tv_cols)
-  constant_overlap <- intersect(
-    generated_new_cols,
-    setdiff(names(data), c(entity_col, existing_tv_cols))
-  )
-  if (length(constant_overlap) > 0) {
-    stop(
-      "Column name conflict: the following existing column(s) would be treated as time-varying ",
-      "but are not recognized as such: ",
-      paste(constant_overlap, collapse = ", "),
-      ". Please rename these columns or adjust 'spacer'/'invert'.",
-      call. = FALSE
-    )
-  }
-
+  # --- Detect constant columns (those not in entity or varying_cols) ---
   final_constant <- setdiff(names(data), c(entity_col, varying_cols))
 
   # Time column conflict
@@ -689,20 +709,15 @@ make_long <- function(
   rownames(long) <- NULL
 
   # --- Convert time column to appropriate type ---
-  # The time column from reshape is character. Convert to numeric if possible,
-  # and to integer if all values are whole numbers.
   time_char <- as.character(long[[time_col]])
   time_num <- suppressWarnings(as.numeric(time_char))
   if (all(!is.na(time_num))) {
-    # All values are numeric
     if (all(time_num == as.integer(time_num))) {
-      # All are integers, convert to integer
       long[[time_col]] <- as.integer(time_num)
     } else {
-      long[[time_col]] <- time_num # keep as double
+      long[[time_col]] <- time_num
     }
   }
-  # else keep as character
 
   # Order columns
   const_cols <- intersect(final_constant, names(long))
@@ -728,7 +743,7 @@ make_long <- function(
     new_metadata$invert <- invert
     new_metadata$entity <- entity_col
     new_metadata$time <- time_col
-    new_metadata$select <- select
+    new_metadata$select <- select # might be "value" if special
   } else {
     new_metadata <- list(
       function_name = "make_long",
