@@ -61,68 +61,40 @@ All columns not in \code{select} or the index are automatically treated as
 time‑invariant. The function verifies that they are indeed constant over
 time for each entity; if not, it stops with an error listing the offenders.
 
-The reshaped columns are ordered as follows: the entity column appears first,
-then any time‑invariant variables (in the order they appear in the input data),
-and finally the selected time‑varying variables, grouped by variable
-(i.e., all time periods for the first variable, then all time periods for
-the second variable, and so on). Time periods are ordered by their natural order.
+The reshaped columns are ordered by variable first (all periods of variable 1,
+then all periods of variable 2, etc.). Time periods are ordered naturally.
 
-Upon successful reshaping, a summary message is printed:
+Upon successful reshaping, a summary message is printed with aligned headers:
 \itemize{
-\item \verb{Reshaped variables:} the names of the created wide columns.
-\item \verb{Static variables:} the variables treated as time‑invariant.
+\item \verb{Static variables:} (indented to align the colon with \verb{Reshaped variables:})
+\item \verb{Reshaped variables:} (each variable stub on a new line, grouped)
 }
 
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name and the arguments used.
-If the input was a \code{panel_data} object, the original metadata elements
-(entity, time, and delta) are preserved.}
-\item{\code{details}}{List with two components: \code{reshaped_variables} (character vector
-of the wide column names) and \code{static_variables} (character vector of
-time‑invariant variables).}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List with components:
+\describe{
+\item{\code{reshaped_variables}}{character vector of all wide column names}
+\item{\code{reshaped_groups}}{named list, each element is a character vector
+of wide column names for a given stub}
+\item{\code{static_variables}}{character vector of time‑invariant variables}
+}
+}
 }
 }
 \note{
 The input long data must have exactly one row per entity–time combination;
-if duplicates are detected, the function stops with an error listing the
-offending pairs. Rows with missing values in the entity or time variables are
-automatically removed (with a message) before reshaping.
-
-The reshaping preserves standard atomic types and factors, but complex S3
-classes like \code{POSIXlt} may not survive the process. When extracting static
-variables, the function uses \code{do.call(c, ...)} to preserve common classes
-such as \code{Date}, \code{POSIXct}, and \code{difftime}. However, if a static variable
-has a class that is not among the basic atomic types or factors, a warning
-is issued, and you should consider converting such columns to simpler types.
-
-Internally, a temporary separator \code{"._TEMP_."} is used during the reshape
-step and later replaced by the user‑provided \code{spacer}. The function checks
-that neither column names nor time values contain this exact string; if they
-do, an error is raised. Avoid using this substring in your variable names
-and time values.
+duplicates cause an error. Rows with missing entity or time values are removed.
+The reshaping preserves standard atomic types and factors.
 }
 \examples{
 data(production)
-
-# Basic usage: select time-varying variables
 wide <- make_wide(production, select = c("sales", "labor"),
                   index = c("firm", "year"))
-
-# With panel_data object
-panel <- make_panel(production, index = c("firm", "year"))
-wide2 <- make_wide(panel, select = c("sales", "labor"))
-
-# Custom spacer and inverted order
-wide3 <- make_wide(production, select = c("sales", "labor"),
-                   index = c("firm", "year"),
-                   spacer = ".", invert = TRUE)
-
-# Accessing attributes
-attr(wide3, "metadata")
-attr(wide3, "details")
+attr(wide, "details")
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=make_balanced]{make_balanced()}}.
+\code{\link[=make_panel]{make_panel()}}, \code{\link[=make_long]{make_long()}}, \code{\link[=make_balanced]{make_balanced()}}
 }

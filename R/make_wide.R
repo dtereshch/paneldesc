@@ -48,67 +48,38 @@
 #' time‑invariant. The function verifies that they are indeed constant over
 #' time for each entity; if not, it stops with an error listing the offenders.
 #'
-#' The reshaped columns are ordered as follows: the entity column appears first,
-#' then any time‑invariant variables (in the order they appear in the input data),
-#' and finally the selected time‑varying variables, grouped by variable
-#' (i.e., all time periods for the first variable, then all time periods for
-#' the second variable, and so on). Time periods are ordered by their natural order.
+#' The reshaped columns are ordered by variable first (all periods of variable 1,
+#' then all periods of variable 2, etc.). Time periods are ordered naturally.
 #'
-#' Upon successful reshaping, a summary message is printed:
-#' - `Reshaped variables:` the names of the created wide columns.
-#' - `Static variables:` the variables treated as time‑invariant.
+#' Upon successful reshaping, a summary message is printed with aligned headers:
+#' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
+#' - `Reshaped variables:` (each variable stub on a new line, grouped)
 #'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.
-#'         If the input was a `panel_data` object, the original metadata elements
-#'         (entity, time, and delta) are preserved.}
-#'   \item{`details`}{List with two components: `reshaped_variables` (character vector
-#'         of the wide column names) and `static_variables` (character vector of
-#'         time‑invariant variables).}
+#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`details`}{List with components:
+#'         \describe{
+#'           \item{`reshaped_variables`}{character vector of all wide column names}
+#'           \item{`reshaped_groups`}{named list, each element is a character vector
+#'                 of wide column names for a given stub}
+#'           \item{`static_variables`}{character vector of time‑invariant variables}
+#'         }
+#'   }
 #' }
 #'
 #' @note
 #' The input long data must have exactly one row per entity–time combination;
-#' if duplicates are detected, the function stops with an error listing the
-#' offending pairs. Rows with missing values in the entity or time variables are
-#' automatically removed (with a message) before reshaping.
+#' duplicates cause an error. Rows with missing entity or time values are removed.
+#' The reshaping preserves standard atomic types and factors.
 #'
-#' The reshaping preserves standard atomic types and factors, but complex S3
-#' classes like `POSIXlt` may not survive the process. When extracting static
-#' variables, the function uses `do.call(c, ...)` to preserve common classes
-#' such as `Date`, `POSIXct`, and `difftime`. However, if a static variable
-#' has a class that is not among the basic atomic types or factors, a warning
-#' is issued, and you should consider converting such columns to simpler types.
-#'
-#' Internally, a temporary separator `"._TEMP_."` is used during the reshape
-#' step and later replaced by the user‑provided `spacer`. The function checks
-#' that neither column names nor time values contain this exact string; if they
-#' do, an error is raised. Avoid using this substring in your variable names
-#' and time values.
-#'
-#' @seealso
-#' See also [make_panel()], [make_long()], [make_balanced()].
+#' @seealso [make_panel()], [make_long()], [make_balanced()]
 #'
 #' @examples
 #' data(production)
-#'
-#' # Basic usage: select time-varying variables
 #' wide <- make_wide(production, select = c("sales", "labor"),
 #'                   index = c("firm", "year"))
-#'
-#' # With panel_data object
-#' panel <- make_panel(production, index = c("firm", "year"))
-#' wide2 <- make_wide(panel, select = c("sales", "labor"))
-#'
-#' # Custom spacer and inverted order
-#' wide3 <- make_wide(production, select = c("sales", "labor"),
-#'                    index = c("firm", "year"),
-#'                    spacer = ".", invert = TRUE)
-#'
-#' # Accessing attributes
-#' attr(wide3, "metadata")
-#' attr(wide3, "details")
+#' attr(wide, "details")
 #'
 #' @importFrom utils head
 #' @importFrom stats reshape
@@ -120,7 +91,7 @@ make_wide <- function(
   spacer = "_",
   invert = FALSE
 ) {
-  # --- Input validation ---
+  # ---- Input validation ----
   if (!is.data.frame(data)) {
     stop("'data' must be a data.frame, not ", class(data)[1], call. = FALSE)
   }
@@ -137,7 +108,7 @@ make_wide <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
-  # --- Extract index ---
+  # ---- Extract index (entity, time) ----
   entity_var <- NULL
   time_var <- NULL
   keep_panel_class <- FALSE
@@ -414,12 +385,9 @@ make_wide <- function(
     )
   }
 
-  # --- Reorder time-varying columns: variable-major (x_1, x_2, y_1, y_2) ---
-  # Identify time-varying columns (those not entity and not static)
+  # Reorder time-varying columns: variable-major (x_1, x_2, y_1, y_2)
   tv_cols_all <- setdiff(names(wide), c(entity_var, static_vars))
-  # Get sorted time values (original order from data)
   time_values <- sort(unique(data[[time_var]]))
-  # Build desired order: for each variable in select, for each time, the column name
   tv_ordered <- c()
   for (var in select) {
     for (t in time_values) {
@@ -433,16 +401,13 @@ make_wide <- function(
       }
     }
   }
-  # Ensure we have all tv_cols; in case some are missing (should not), append them
   missing_tv <- setdiff(tv_cols_all, tv_ordered)
   if (length(missing_tv) > 0) {
     tv_ordered <- c(tv_ordered, missing_tv)
   }
-
-  # Final column order: entity, static_vars (in original order), then tv_ordered
   wide <- wide[, c(entity_var, static_vars, tv_ordered), drop = FALSE]
 
-  # Duplicate column check (after reordering)
+  # Duplicate column check
   if (any(duplicated(names(wide)))) {
     dup_names <- unique(names(wide)[duplicated(names(wide))])
     stop(
@@ -452,7 +417,16 @@ make_wide <- function(
     )
   }
 
-  # --- Metadata and details ---
+  # ---- Build groups for summary ----
+  groups <- list()
+  for (stub in select) {
+    groups[[stub]] <- sapply(time_values, function(t) {
+      if (invert) paste0(t, spacer, stub) else paste0(stub, spacer, t)
+    })
+  }
+  flat_reshaped <- unlist(groups, use.names = FALSE)
+
+  # ---- Metadata and details ----
   if (keep_panel_class) {
     new_metadata <- panel_metadata
     new_metadata$function_name <- "make_wide"
@@ -471,7 +445,8 @@ make_wide <- function(
   }
 
   new_details <- list(
-    reshaped_variables = tv_ordered,
+    reshaped_variables = flat_reshaped,
+    reshaped_groups = groups,
     static_variables = static_vars
   )
 
@@ -479,12 +454,69 @@ make_wide <- function(
   attr(wide, "details") <- new_details
   class(wide) <- c("panel_wide", class(wide))
 
-  # --- Print summary ---
-  cat("Reshaped variables:", paste(tv_ordered, collapse = ", "), "\n")
-  if (length(static_vars) > 0) {
-    cat("Static variables:", paste(static_vars, collapse = ", "), "\n")
+  # ---- Print summary ----
+  wrap_vars <- function(
+    vars,
+    prefix,
+    cont_indent,
+    max_width = getOption("width") - 2
+  ) {
+    if (length(vars) == 0) {
+      return(paste0(prefix, "none"))
+    }
+    full_str <- paste(vars, collapse = ", ")
+    if (nchar(prefix) + nchar(full_str) <= max_width) {
+      return(paste0(prefix, full_str))
+    }
+    lines <- c()
+    current_line <- prefix
+    for (i in seq_along(vars)) {
+      item <- vars[i]
+      if (i == 1) {
+        if (nchar(current_line) + nchar(item) + 2 <= max_width) {
+          current_line <- paste0(current_line, item)
+        } else {
+          lines <- c(lines, current_line)
+          current_line <- paste0(cont_indent, item)
+        }
+      } else {
+        if (nchar(current_line) + nchar(item) + 2 <= max_width) {
+          current_line <- paste0(current_line, ", ", item)
+        } else {
+          lines <- c(lines, current_line)
+          current_line <- paste0(cont_indent, item)
+        }
+      }
+    }
+    lines <- c(lines, current_line)
+    return(paste(lines, collapse = "\n"))
+  }
+
+  prefix_static <- paste0(
+    strrep(" ", 9 - nchar("Static ")),
+    "Static variables: "
+  )
+  prefix_reshaped <- "Reshaped variables: "
+  cont_indent <- paste0(rep(" ", nchar(prefix_reshaped)), collapse = "")
+
+  # Static
+  static_line <- wrap_vars(static_vars, prefix_static, cont_indent)
+  cat(static_line, "\n")
+
+  # Reshaped groups
+  if (length(groups) > 0) {
+    group_names <- names(groups)
+    first_group <- groups[[group_names[1]]]
+    first_line <- paste0(prefix_reshaped, paste(first_group, collapse = ", "))
+    cat(first_line, "\n")
+    if (length(groups) > 1) {
+      for (g in group_names[-1]) {
+        line <- paste0(cont_indent, paste(groups[[g]], collapse = ", "))
+        cat(line, "\n")
+      }
+    }
   } else {
-    cat("Static variables: none\n")
+    cat(prefix_reshaped, "none\n")
   }
   cat("\n")
 

@@ -61,92 +61,49 @@ variables (\code{x}, \code{y}) plus a static variable \code{z}.
 
 
 All columns not in \code{select} (or the entity column) are treated as
-time‑invariant and are replicated for each time period. The function
-does \strong{not} verify invariance because wide data cannot be checked;
-it relies on the user's judgment.
+time‑invariant and are replicated for each time period.
 
 The reshaped columns are ordered as follows: the entity column appears first,
-then the time column, then any static (time‑invariant) columns, and finally
-all time‑varying variables in the order they appear in \code{select}.
-The time periods are sorted according to their natural order
-(numerically if all values are numeric, otherwise lexicographically).
-If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
-\code{"1"} map to the same number), the function stops with an error.
+then the time column, then static columns, and finally the reshaped variables
+in the order of \code{select}. Time periods are sorted naturally.
 
-If some variable‑time combinations are missing from the wide format, the
-function adds those columns filled with \code{NA} and prints a message.
+If some variable‑time combinations are missing, the function adds those
+columns filled with \code{NA}.
 
-The resulting time column is converted to the most appropriate type:
+The resulting time column is converted to the most appropriate type.
+
+Upon successful reshaping, a summary message is printed with aligned headers:
 \itemize{
-\item If all time values are integers, the column becomes \code{integer}.
-\item If they are numeric but not integers, it becomes \code{double}.
-\item Otherwise, it remains \code{character}.
-}
-
-Upon successful reshaping, a summary message is printed:
-\itemize{
-\item \verb{Reshaped variables:} the stubs (long‑form variable names).
-\item \verb{Static variables:} the variables treated as time‑invariant.
+\item \verb{Static variables:} (indented to align the colon with \verb{Reshaped variables:})
+\item \verb{Reshaped variables:} (the stubs)
 }
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
-\item{\code{metadata}}{List containing the function name and the arguments used.
-If the input was a \code{panel_wide} object, the original metadata elements
-for the entity and time variables are preserved.}
-\item{\code{details}}{List with two components: \code{reshaped_variables} (character vector
-of the long‑form variable stubs) and \code{static_variables} (character vector
-of time‑invariant variables).}
+\item{\code{metadata}}{List containing the function name and the arguments used.}
+\item{\code{details}}{List with components:
+\describe{
+\item{\code{reshaped_variables}}{character vector of the stubs}
+\item{\code{static_variables}}{character vector of time‑invariant columns}
+}
+}
 }
 }
 \note{
-\strong{Desirable input data} – The input wide data.frame should have one row per
-entity and column names that follow a consistent naming convention. Time‑varying
-columns must use the same separator (if \code{spacer} is not empty) and the same
-ordering of variable/time parts. The entity column must contain unique
-identifiers (no duplicates). When \code{spacer = ""}, automatic detection works best
-when column names consist of a variable name directly followed by a time suffix
-(or preceded by a time prefix if \code{invert = TRUE}) using only letters, digits,
-or a consistent numeric time pattern.
-
-The input wide data must have unique entity values; duplicates cause an error.
-
-When \code{spacer = ""}, the function uses heuristic detection. Column names that
-consist solely of digits (e.g., \code{"2000"}, \code{"2001"}) are \strong{not} recognized as
-time‑varying; if you have such columns, you should use a non‑empty \code{spacer}
-and proper variable names (e.g., \code{"x_2000"}).
-
-A warning is issued when the automatic separator detection encounters columns
-that use a different separator; those are treated as time‑invariant.
+The input wide data must have one row per entity (unique entity values).
+Column names must follow a consistent pattern. If \code{spacer = ""}, heuristic
+detection is used; all‑digit column names are not recognized – use a non‑empty
+spacer and proper variable names.
 }
 \examples{
 data(production)
-
-# First create a wide data frame
 wide <- make_wide(production, select = c("sales", "labor"),
                   index = c("firm", "year"))
-
-# Basic usage
 long <- make_long(wide, select = c("sales", "labor"),
                   index = c("firm", "year"))
-
-# With panel_wide object (uses metadata)
-wide_panel <- make_wide(production, select = c("sales", "labor"),
-                        index = c("firm", "year"))
-long_panel <- make_long(wide_panel, select = c("sales", "labor"))
-
-# Custom spacer and inverted order
-wide2 <- make_wide(production, select = c("sales", "labor"),
-                   index = c("firm", "year"),
-                   spacer = ".", invert = TRUE)
-long2 <- make_long(wide2, select = c("sales", "labor"),
-                   spacer = ".", invert = TRUE)
-
-# Accessing attributes
-attr(long, "metadata")
 attr(long, "details")
 
 }
 \seealso{
-See also \code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_balanced]{make_balanced()}}.
+\code{\link[=make_panel]{make_panel()}}, \code{\link[=make_wide]{make_wide()}}, \code{\link[=make_balanced]{make_balanced()}}
 }
