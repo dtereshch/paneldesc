@@ -65,6 +65,11 @@
 #' If some variable‑time combinations are missing from the wide format, the
 #' function adds those columns filled with `NA` and prints a message.
 #'
+#' The resulting time column is converted to the most appropriate type:
+#' - If all time values are integers, the column becomes `integer`.
+#' - If they are numeric but not integers, it becomes `double`.
+#' - Otherwise, it remains `character`.
+#'
 #' Upon successful reshaping, a summary message is printed:
 #' - `Reshaped variables:` the stubs (long‑form variable names).
 #' - `Static variables:` the variables treated as time‑invariant.
@@ -683,12 +688,21 @@ make_long <- function(
   )
   rownames(long) <- NULL
 
-  # Convert time to numeric if possible
+  # --- Convert time column to appropriate type ---
+  # The time column from reshape is character. Convert to numeric if possible,
+  # and to integer if all values are whole numbers.
   time_char <- as.character(long[[time_col]])
-  time_num_test <- suppressWarnings(as.numeric(time_char))
-  if (all(!is.na(time_num_test))) {
-    long[[time_col]] <- time_num_test
+  time_num <- suppressWarnings(as.numeric(time_char))
+  if (all(!is.na(time_num))) {
+    # All values are numeric
+    if (all(time_num == as.integer(time_num))) {
+      # All are integers, convert to integer
+      long[[time_col]] <- as.integer(time_num)
+    } else {
+      long[[time_col]] <- time_num # keep as double
+    }
   }
+  # else keep as character
 
   # Order columns
   const_cols <- intersect(final_constant, names(long))

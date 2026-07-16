@@ -78,6 +78,13 @@ If numeric sorting would produce duplicate representations (e.g., \code{"01"} an
 If some variable‑time combinations are missing from the wide format, the
 function adds those columns filled with \code{NA} and prints a message.
 
+The resulting time column is converted to the most appropriate type:
+\itemize{
+\item If all time values are integers, the column becomes \code{integer}.
+\item If they are numeric but not integers, it becomes \code{double}.
+\item Otherwise, it remains \code{character}.
+}
+
 Upon successful reshaping, a summary message is printed:
 \itemize{
 \item \verb{Reshaped variables:} the stubs (long‑form variable names).
