@@ -50,23 +50,23 @@
 #'
 #' The reshaped columns are ordered as follows: the entity column appears first,
 #' then any time‑invariant variables (in the order they appear in the input data),
-#' and finally the selected time‑varying variables, each expanded by time period.
-#' Time periods are ordered by their natural order (as given by unique values of
-#' the time variable). If an entity is missing a particular time period, the
-#' corresponding wide column will contain `NA`.
+#' and finally the selected time‑varying variables, grouped by variable
+#' (i.e., all time periods for the first variable, then all time periods for
+#' the second variable, and so on). Time periods are ordered by their natural order.
+#'
+#' Upon successful reshaping, a summary message is printed:
+#' - `Reshaped variables:` the names of the created wide columns.
+#' - `Static variables:` the variables treated as time‑invariant.
 #'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
 #'         (entity, time, and delta) are preserved.}
-#'   \item{`details`}{List containing information used to print the summary
-#'         message, including direction, counts, j‑variable, time values,
-#'         mapping between stubs and wide columns, and static variables.}
+#'   \item{`details`}{List with two components: `reshaped_variables` (character vector
+#'         of the wide column names) and `static_variables` (character vector of
+#'         time‑invariant variables).}
 #' }
-#'
-#' Upon successful reshaping, a summary message similar to Stata's `reshape` is
-#' printed to the console.
 #'
 #' @note
 #' The input long data must have exactly one row per entity–time combination;
@@ -216,10 +216,6 @@ make_wide <- function(
     )
   }
 
-  # --- Pre‑reshape info ---
-  n_obs_before <- nrow(data)
-  n_vars_before <- ncol(data)
-
   # Remove NA rows
   na_entity <- is.na(data[[entity_var]])
   na_time <- is.na(data[[time_var]])
@@ -299,10 +295,6 @@ make_wide <- function(
         call. = FALSE
       )
     }
-    message(
-      "Variables treated as time-invariant: ",
-      paste(static_vars, collapse = ", ")
-    )
   }
 
   # Prepare static data
@@ -390,7 +382,7 @@ make_wide <- function(
     sep = temp_sep
   )
 
-  # Rename columns
+  # Rename columns: replace last occurrence of temp_sep with spacer
   new_names <- names(wide)
   for (i in seq_along(new_names)) {
     nm <- new_names[i]
@@ -420,11 +412,37 @@ make_wide <- function(
       all.x = TRUE,
       sort = FALSE
     )
-    time_varying_cols <- setdiff(names(wide), c(entity_var, static_vars))
-    wide <- wide[, c(entity_var, static_vars, time_varying_cols), drop = FALSE]
   }
 
-  # Duplicate column check
+  # --- Reorder time-varying columns: variable-major (x_1, x_2, y_1, y_2) ---
+  # Identify time-varying columns (those not entity and not static)
+  tv_cols_all <- setdiff(names(wide), c(entity_var, static_vars))
+  # Get sorted time values (original order from data)
+  time_values <- sort(unique(data[[time_var]]))
+  # Build desired order: for each variable in select, for each time, the column name
+  tv_ordered <- c()
+  for (var in select) {
+    for (t in time_values) {
+      if (invert) {
+        colname <- paste0(t, spacer, var)
+      } else {
+        colname <- paste0(var, spacer, t)
+      }
+      if (colname %in% tv_cols_all) {
+        tv_ordered <- c(tv_ordered, colname)
+      }
+    }
+  }
+  # Ensure we have all tv_cols; in case some are missing (should not), append them
+  missing_tv <- setdiff(tv_cols_all, tv_ordered)
+  if (length(missing_tv) > 0) {
+    tv_ordered <- c(tv_ordered, missing_tv)
+  }
+
+  # Final column order: entity, static_vars (in original order), then tv_ordered
+  wide <- wide[, c(entity_var, static_vars, tv_ordered), drop = FALSE]
+
+  # Duplicate column check (after reordering)
   if (any(duplicated(names(wide)))) {
     dup_names <- unique(names(wide)[duplicated(names(wide))])
     stop(
@@ -432,21 +450,6 @@ make_wide <- function(
       paste(dup_names, collapse = ", "),
       call. = FALSE
     )
-  }
-
-  # --- Post‑reshape info ---
-  n_obs_after <- nrow(wide)
-  n_vars_after <- ncol(wide)
-  time_values <- sort(unique(data[[time_var]]))
-  n_j <- length(time_values)
-
-  # Build mapping
-  xij_mapping <- list()
-  for (stub in select) {
-    cols <- sapply(time_values, function(t) {
-      if (invert) paste0(t, spacer, stub) else paste0(stub, spacer, t)
-    })
-    xij_mapping[[stub]] <- cols
   }
 
   # --- Metadata and details ---
@@ -468,15 +471,8 @@ make_wide <- function(
   }
 
   new_details <- list(
-    direction = "long_to_wide",
-    n_obs_before = n_obs_before,
-    n_obs_after = n_obs_after,
-    n_vars_before = n_vars_before,
-    n_vars_after = n_vars_after,
-    j_var = time_var,
-    j_values = time_values,
-    xij_mapping = xij_mapping,
-    static = static_vars
+    reshaped_variables = tv_ordered,
+    static_variables = static_vars
   )
 
   attr(wide, "metadata") <- new_metadata
@@ -484,14 +480,11 @@ make_wide <- function(
   class(wide) <- c("panel_wide", class(wide))
 
   # --- Print summary ---
-  cat("\nData long -> wide\n")
-  cat(sprintf("Number of obs. %3d -> %3d\n", n_obs_before, n_obs_after))
-  cat(sprintf("Number of variables %3d -> %3d\n", n_vars_before, n_vars_after))
-  cat(sprintf("j variable (%d values) %s -> (dropped)\n", n_j, time_var))
-  cat("xij variables:\n")
-  for (stub in select) {
-    cols <- paste(xij_mapping[[stub]], collapse = " ")
-    cat(sprintf("  %s -> %s\n", stub, cols))
+  cat("Reshaped variables:", paste(tv_ordered, collapse = ", "), "\n")
+  if (length(static_vars) > 0) {
+    cat("Static variables:", paste(static_vars, collapse = ", "), "\n")
+  } else {
+    cat("Static variables: none\n")
   }
   cat("\n")
 

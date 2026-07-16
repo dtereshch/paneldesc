@@ -63,23 +63,25 @@ time for each entity; if not, it stops with an error listing the offenders.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then any time‑invariant variables (in the order they appear in the input data),
-and finally the selected time‑varying variables, each expanded by time period.
-Time periods are ordered by their natural order (as given by unique values of
-the time variable). If an entity is missing a particular time period, the
-corresponding wide column will contain \code{NA}.
+and finally the selected time‑varying variables, grouped by variable
+(i.e., all time periods for the first variable, then all time periods for
+the second variable, and so on). Time periods are ordered by their natural order.
+
+Upon successful reshaping, a summary message is printed:
+\itemize{
+\item \verb{Reshaped variables:} the names of the created wide columns.
+\item \verb{Static variables:} the variables treated as time‑invariant.
+}
 
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_data} object, the original metadata elements
 (entity, time, and delta) are preserved.}
-\item{\code{details}}{List containing information used to print the summary
-message, including direction, counts, j‑variable, time values,
-mapping between stubs and wide columns, and static variables.}
+\item{\code{details}}{List with two components: \code{reshaped_variables} (character vector
+of the wide column names) and \code{static_variables} (character vector of
+time‑invariant variables).}
 }
-
-Upon successful reshaping, a summary message similar to Stata's \code{reshape} is
-printed to the console.
 }
 \note{
 The input long data must have exactly one row per entity–time combination;
