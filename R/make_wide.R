@@ -14,7 +14,7 @@
 #'        If not specified and data is a `panel_data` object, the entity and time values
 #'        will be extracted from the data.frame attributes.
 #' @param spacer A character string to insert between variable names and time
-#'        values in the wide format column names. Default = "_".
+#'        values in the wide format column names. Default = `"_"`.
 #' @param invert A logical flag indicating whether to put time values before
 #'        variable names in column names. If `FALSE`, column names are
 #'        `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
@@ -24,14 +24,29 @@
 #'         `"panel_wide"` and the attributes `metadata` and `details`.
 #'
 #' @details
-#' The structure of the returned data.frame depends on the input. For example,
-#' suppose your long panel data contains an entity column `id`, a time column
-#' `year`, and you select time‑varying variables `y` and `x`. If there are two
-#' time periods (e.g., 2000 and 2001), the resulting wide data.frame will have
-#' a single row per entity, with columns `id`, `y_2000`, `y_2001`, `x_2000`,
-#' and `x_2001`. Any other columns in the data (e.g., `industry`, `region`)
-#' are treated as time‑invariant and appear as single columns, replicated once
-#' per entity, provided they are indeed constant over time for each entity.
+#' The function converts data from long to wide format. Below is an illustration
+#' of the transformation for two time periods (t = 1, 2) and two time‑varying
+#' variables (`x`, `y`) plus a static variable `z`.
+#'
+#' **Long format (input):**
+#'
+#' | id | t | x | y | z |
+#' |----|---|---|---|---|
+#' | 1  | 1 | 5 | 8 | A |
+#' | 1  | 2 | 7 | 9 | A |
+#' | 2  | 1 | 6 | 7 | B |
+#' | 2  | 2 | 8 | 6 | B |
+#'
+#' **Wide format (output) with `spacer = "_"` and `invert = FALSE`:**
+#'
+#' | id | x_1 | x_2 | y_1 | y_2 | z |
+#' |----|-----|-----|-----|-----|---|
+#' | 1  | 5   | 7   | 8   | 9   | A |
+#' | 2  | 6   | 8   | 7   | 6   | B |
+#'
+#' All columns not in `select` or the index are automatically treated as
+#' time‑invariant. The function verifies that they are indeed constant over
+#' time for each entity; if not, it stops with an error listing the offenders.
 #'
 #' The reshaped columns are ordered as follows: the entity column appears first,
 #' then any time‑invariant variables (in the order they appear in the input data),
@@ -40,23 +55,18 @@
 #' the time variable). If an entity is missing a particular time period, the
 #' corresponding wide column will contain `NA`.
 #'
-#' The function checks that:
-#' \itemize{
-#'   \item All variables in `select` exist in `data`.
-#'   \item `select` does not contain the entity or time variables.
-#'   \item At least one variable is selected for reshaping.
-#'   \item All variables not in `select` or the index are time‑invariant;
-#'         if any are not, the function stops and lists them.
-#' }
-#'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
 #'         (entity, time, and delta) are preserved.}
-#'   \item{`details`}{List containing the names of reshaped (`select`) and static
-#'         variables.}
+#'   \item{`details`}{List containing information used to print the summary
+#'         message, including direction, counts, j‑variable, time values,
+#'         mapping between stubs and wide columns, and static variables.}
 #' }
+#'
+#' Upon successful reshaping, a summary message similar to Stata's `reshape` is
+#' printed to the console.
 #'
 #' @note
 #' The input long data must have exactly one row per entity–time combination;
@@ -127,14 +137,12 @@ make_wide <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
-  msg_printed <- FALSE
+  # --- Extract index ---
   entity_var <- NULL
   time_var <- NULL
   keep_panel_class <- FALSE
   panel_metadata <- NULL
-  panel_details <- NULL
 
-  # --- Extract index from metadata if applicable ---
   if (inherits(data, "panel_data")) {
     meta <- attr(data, "metadata")
     if (!is.null(meta) && !is.null(meta$entity) && !is.null(meta$time)) {
@@ -143,9 +151,7 @@ make_wide <- function(
         time_var <- meta$time
         keep_panel_class <- TRUE
         panel_metadata <- meta
-        panel_details <- attr(data, "details")
       } else {
-        # User provided index overrides
         if (length(index) != 2 || !is.character(index)) {
           stop("'index' must be a character vector of length 2", call. = FALSE)
         }
@@ -153,7 +159,6 @@ make_wide <- function(
         time_var <- index[2]
       }
     } else {
-      # No valid metadata, fall back to user index
       if (is.null(index)) {
         stop("For regular data.frames, 'index' must be provided", call. = FALSE)
       }
@@ -164,7 +169,6 @@ make_wide <- function(
       time_var <- index[2]
     }
   } else {
-    # Regular data frame
     if (is.null(index)) {
       stop("For regular data.frames, 'index' must be provided", call. = FALSE)
     }
@@ -175,7 +179,7 @@ make_wide <- function(
     time_var <- index[2]
   }
 
-  # --- Validate existence of index variables ---
+  # Validate existence
   if (!entity_var %in% names(data)) {
     stop('entity variable "', entity_var, '" not found in data', call. = FALSE)
   }
@@ -186,7 +190,7 @@ make_wide <- function(
     stop("entity and time variables cannot be the same", call. = FALSE)
   }
 
-  # --- Validate select variables ---
+  # Validate select
   missing_vars <- select[!select %in% names(data)]
   if (length(missing_vars) > 0) {
     stop(
@@ -212,7 +216,11 @@ make_wide <- function(
     )
   }
 
-  # --- Remove rows with NA in entity or time ---
+  # --- Pre‑reshape info ---
+  n_obs_before <- nrow(data)
+  n_vars_before <- ncol(data)
+
+  # Remove NA rows
   na_entity <- is.na(data[[entity_var]])
   na_time <- is.na(data[[time_var]])
   if (any(na_entity)) {
@@ -222,7 +230,6 @@ make_wide <- function(
       entity_var,
       "' variable found and excluded."
     )
-    msg_printed <- TRUE
   }
   if (any(na_time)) {
     message(
@@ -231,14 +238,13 @@ make_wide <- function(
       time_var,
       "' variable found and excluded."
     )
-    msg_printed <- TRUE
   }
   if (any(na_entity | na_time)) {
     data <- data[!(na_entity | na_time), , drop = FALSE]
     rownames(data) <- NULL
   }
 
-  # --- Duplicate check: always run, even for panel_data objects ---
+  # Duplicate check
   dup_rows <- duplicated(data[c(entity_var, time_var)]) |
     duplicated(data[c(entity_var, time_var)], fromLast = TRUE)
   if (any(dup_rows)) {
@@ -249,24 +255,18 @@ make_wide <- function(
     ])
     n_dup <- nrow(dup_combinations)
     examples <- utils::head(dup_combinations, 5)
-    example_strings <- paste0(
-      examples[[entity_var]],
-      "-",
-      examples[[time_var]]
-    )
+    example_strings <- paste0(examples[[entity_var]], "-", examples[[time_var]])
     example_str <- paste(example_strings, collapse = ", ")
     stop(
       "Duplicate entity-time combinations found: ",
       n_dup,
-      " unique combinations with duplicates. ",
-      "Examples: ",
+      " unique combinations with duplicates. Examples: ",
       example_str,
       call. = FALSE
     )
   }
 
-  # --- Helper function to check time-invariance ---
-  # `all_na_invariant`: if TRUE, an all‑NA column is considered invariant.
+  # Helper: check invariance
   check_invariant <- function(var, data, entity_var, all_na_invariant = TRUE) {
     vals <- data[[var]]
     entities <- data[[entity_var]]
@@ -274,20 +274,18 @@ make_wide <- function(
     any_multiple <- any(sapply(vals_list, function(x) {
       non_na <- x[!is.na(x)]
       if (length(non_na) == 0) {
-        # no non‑NA values in this entity
         return(!all_na_invariant)
-      } else {
-        return(length(unique(non_na)) > 1)
       }
+      return(length(unique(non_na)) > 1)
     }))
     return(!any_multiple)
   }
 
-  # --- Determine static variables (all variables except entity, time, and select) ---
+  # Determine static variables
   all_vars <- names(data)
   static_vars <- setdiff(all_vars, c(entity_var, time_var, select))
 
-  # --- Check that all static variables are indeed time-invariant ---
+  # Check invariance
   if (length(static_vars) > 0) {
     invariant_check <- sapply(static_vars, function(v) {
       check_invariant(v, data, entity_var, all_na_invariant = TRUE)
@@ -305,19 +303,15 @@ make_wide <- function(
       "Variables treated as time-invariant: ",
       paste(static_vars, collapse = ", ")
     )
-    msg_printed <- TRUE
   }
 
-  # --- Prepare static data (one row per entity) ---
+  # Prepare static data
   if (length(static_vars) > 0) {
-    # Start with one row per entity (first occurrence)
     static_data <- data[
       !duplicated(data[[entity_var]]),
       c(entity_var, static_vars),
       drop = FALSE
     ]
-
-    # For each static variable, extract first non-NA value per entity while preserving class
     entities_uniq <- static_data[[entity_var]]
     for (v in static_vars) {
       vals_list <- split(data[[v]], data[[entity_var]])
@@ -365,10 +359,10 @@ make_wide <- function(
     static_data <- NULL
   }
 
-  # --- Data for reshaping: keep only entity, time, and selected variables ---
+  # Data for reshaping
   data_for_reshape <- data[, c(entity_var, time_var, select), drop = FALSE]
 
-  # --- Perform reshape ---
+  # Perform reshape
   temp_sep <- "._TEMP_."
   if (any(grepl(temp_sep, names(data_for_reshape)))) {
     stop(
@@ -396,7 +390,7 @@ make_wide <- function(
     sep = temp_sep
   )
 
-  # Rename columns: replace last occurrence of temp_sep with spacer
+  # Rename columns
   new_names <- names(wide)
   for (i in seq_along(new_names)) {
     nm <- new_names[i]
@@ -417,7 +411,7 @@ make_wide <- function(
   names(wide) <- new_names
   rownames(wide) <- NULL
 
-  # --- Merge with static data if any ---
+  # Merge static
   if (!is.null(static_data)) {
     wide <- merge(
       wide,
@@ -426,14 +420,11 @@ make_wide <- function(
       all.x = TRUE,
       sort = FALSE
     )
-    # New column order: entity, static, time‑varying (reshaped)
-    # Reshaped columns are those whose names contain the spacer (or we can get them from select)
-    # We can identify them as all columns except entity_var and static_vars
     time_varying_cols <- setdiff(names(wide), c(entity_var, static_vars))
     wide <- wide[, c(entity_var, static_vars, time_varying_cols), drop = FALSE]
   }
 
-  # --- Duplicate column name check (after all renaming and merging) ---
+  # Duplicate column check
   if (any(duplicated(names(wide)))) {
     dup_names <- unique(names(wide)[duplicated(names(wide))])
     stop(
@@ -443,7 +434,22 @@ make_wide <- function(
     )
   }
 
-  # --- Build metadata attribute ---
+  # --- Post‑reshape info ---
+  n_obs_after <- nrow(wide)
+  n_vars_after <- ncol(wide)
+  time_values <- sort(unique(data[[time_var]]))
+  n_j <- length(time_values)
+
+  # Build mapping
+  xij_mapping <- list()
+  for (stub in select) {
+    cols <- sapply(time_values, function(t) {
+      if (invert) paste0(t, spacer, stub) else paste0(stub, spacer, t)
+    })
+    xij_mapping[[stub]] <- cols
+  }
+
+  # --- Metadata and details ---
   if (keep_panel_class) {
     new_metadata <- panel_metadata
     new_metadata$function_name <- "make_wide"
@@ -462,7 +468,14 @@ make_wide <- function(
   }
 
   new_details <- list(
-    reshaped = select,
+    direction = "long_to_wide",
+    n_obs_before = n_obs_before,
+    n_obs_after = n_obs_after,
+    n_vars_before = n_vars_before,
+    n_vars_after = n_vars_after,
+    j_var = time_var,
+    j_values = time_values,
+    xij_mapping = xij_mapping,
     static = static_vars
   )
 
@@ -470,8 +483,17 @@ make_wide <- function(
   attr(wide, "details") <- new_details
   class(wide) <- c("panel_wide", class(wide))
 
-  if (msg_printed) {
-    cat("\n")
+  # --- Print summary ---
+  cat("\nData long -> wide\n")
+  cat(sprintf("Number of obs. %3d -> %3d\n", n_obs_before, n_obs_after))
+  cat(sprintf("Number of variables %3d -> %3d\n", n_vars_before, n_vars_after))
+  cat(sprintf("j variable (%d values) %s -> (dropped)\n", n_j, time_var))
+  cat("xij variables:\n")
+  for (stub in select) {
+    cols <- paste(xij_mapping[[stub]], collapse = " ")
+    cat(sprintf("  %s -> %s\n", stub, cols))
   }
+  cat("\n")
+
   return(wide)
 }

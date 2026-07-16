@@ -19,7 +19,7 @@ If not specified and data is a \code{panel_data} object, the entity and time val
 will be extracted from the data.frame attributes.}
 
 \item{spacer}{A character string to insert between variable names and time
-values in the wide format column names. Default = "_".}
+values in the wide format column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating whether to put time values before
 variable names in column names. If \code{FALSE}, column names are
@@ -37,14 +37,29 @@ time‑varying variables. All other variables (except the entity and time
 identifiers) are treated as time‑invariant and are verified as such.
 }
 \details{
-The structure of the returned data.frame depends on the input. For example,
-suppose your long panel data contains an entity column \code{id}, a time column
-\code{year}, and you select time‑varying variables \code{y} and \code{x}. If there are two
-time periods (e.g., 2000 and 2001), the resulting wide data.frame will have
-a single row per entity, with columns \code{id}, \code{y_2000}, \code{y_2001}, \code{x_2000},
-and \code{x_2001}. Any other columns in the data (e.g., \code{industry}, \code{region})
-are treated as time‑invariant and appear as single columns, replicated once
-per entity, provided they are indeed constant over time for each entity.
+The function converts data from long to wide format. Below is an illustration
+of the transformation for two time periods (t = 1, 2) and two time‑varying
+variables (\code{x}, \code{y}) plus a static variable \code{z}.
+
+\strong{Long format (input):}\tabular{lllll}{
+   id \tab t \tab x \tab y \tab z \cr
+   1 \tab 1 \tab 5 \tab 8 \tab A \cr
+   1 \tab 2 \tab 7 \tab 9 \tab A \cr
+   2 \tab 1 \tab 6 \tab 7 \tab B \cr
+   2 \tab 2 \tab 8 \tab 6 \tab B \cr
+}
+
+
+\strong{Wide format (output) with \code{spacer = "_"} and \code{invert = FALSE}:}\tabular{llllll}{
+   id \tab x_1 \tab x_2 \tab y_1 \tab y_2 \tab z \cr
+   1 \tab 5 \tab 7 \tab 8 \tab 9 \tab A \cr
+   2 \tab 6 \tab 8 \tab 7 \tab 6 \tab B \cr
+}
+
+
+All columns not in \code{select} or the index are automatically treated as
+time‑invariant. The function verifies that they are indeed constant over
+time for each entity; if not, it stops with an error listing the offenders.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then any time‑invariant variables (in the order they appear in the input data),
@@ -53,23 +68,18 @@ Time periods are ordered by their natural order (as given by unique values of
 the time variable). If an entity is missing a particular time period, the
 corresponding wide column will contain \code{NA}.
 
-The function checks that:
-\itemize{
-\item All variables in \code{select} exist in \code{data}.
-\item \code{select} does not contain the entity or time variables.
-\item At least one variable is selected for reshaping.
-\item All variables not in \code{select} or the index are time‑invariant;
-if any are not, the function stops and lists them.
-}
-
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_data} object, the original metadata elements
 (entity, time, and delta) are preserved.}
-\item{\code{details}}{List containing the names of reshaped (\code{select}) and static
-variables.}
+\item{\code{details}}{List containing information used to print the summary
+message, including direction, counts, j‑variable, time values,
+mapping between stubs and wide columns, and static variables.}
 }
+
+Upon successful reshaping, a summary message similar to Stata's \code{reshape} is
+printed to the console.
 }
 \note{
 The input long data must have exactly one row per entity–time combination;
