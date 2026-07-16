@@ -4,23 +4,25 @@
 \alias{make_long}
 \title{Convert Panel Data from Wide to Long Format}
 \usage{
-make_long(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
+make_long(data, select, index = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a wide format. If \code{data} has
 class \code{"panel_wide"} (from \code{\link[=make_wide]{make_wide()}}), the entity and time variables
 are taken from its metadata unless overridden by \code{index}.}
 
+\item{select}{A character vector specifying the stubs (variable names) of the
+time‑varying columns to reshape. For example, if the wide data contains
+columns \code{x_2000}, \code{x_2001}, \code{y_2000}, \code{y_2001}, then \code{select = c("x", "y")}.
+If columns consist solely of time values (e.g., \code{"2001"}, \code{"2002"}), you
+can pass \code{select = ""} to reshape them as a single variable named \code{"value"}.
+This argument has no default and must be provided explicitly.}
+
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
 column in the long format (second element).
 If not specified and \code{data} is a \code{panel_wide} object, the entity and time
 values are extracted from the metadata.}
-
-\item{static}{A character vector of variable names that are time-invariant.
-If not specified, the function automatically detects columns that
-do not contain the time separator (or a recognized time suffix/prefix
-when \code{spacer = ""}).}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
@@ -37,21 +39,22 @@ A data.frame containing panel data in a long format, with class
 }
 \description{
 This function reshapes panel data from wide format to long format,
-stacking time-varying columns into rows based on the pattern of column names.
+stacking selected time‑varying columns into rows based on the pattern of column names.
 }
 \details{
 The structure of the returned data.frame depends on the input. For example,
 suppose your wide panel data contains an entity column \code{id}, time‑varying
 variables \code{y} and \code{x} with time periods 2000 and 2001 (columns \code{y_2000},
-\code{y_2001}, \code{x_2000}, \code{x_2001}), and a static variable \code{z}. The resulting
-long data.frame will have multiple rows per entity, one for each time period,
-with columns \code{id}, \code{year}, \code{z}, \code{y}, and \code{x}. Static variables are replicated
-for each time period.
+\code{y_2001}, \code{x_2000}, \code{x_2001}), and a static variable \code{z}. If you specify
+\code{select = c("y", "x")}, the resulting long data.frame will have multiple rows
+per entity, one for each time period, with columns \code{id}, \code{year}, \code{z}, \code{y}, and \code{x}.
+All columns not in \code{select} (and not the entity column) are treated as
+time‑invariant and are replicated for each time period.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then the time column, then any static (time‑invariant) columns, and finally
-all time‑varying variables in the order they were first encountered in the
-wide data. The time periods are sorted according to their natural order
+all time‑varying variables in the order they appear in \code{select}.
+The time periods are sorted according to their natural order
 (numerically if all values are numeric, otherwise lexicographically).
 \strong{If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
 \code{"1"} map to the same number), the function stops with an error to prevent
@@ -62,10 +65,10 @@ column for a variable and a particular time period is absent), the function
 adds that column filled with \code{NA} so that the variable is preserved in the
 long format. A message is printed indicating which columns were added.
 
-Columns that are time‑invariant (not split by time) are replicated for each
-time period, unless a particular entity‑time combination has no time‑varying
-data at all—in which case the invariant columns are set to \code{NA} to reflect a
-truly missing observation.
+Columns that are time‑invariant (not selected) are replicated for each time
+period, unless a particular entity‑time combination has no time‑varying data
+at all—in which case the invariant columns are set to \code{NA} to reflect a truly
+missing observation.
 
 The function tries to convert the resulting time column to numeric if all time
 values are coercible, and sorts the output by entity then time.
@@ -76,7 +79,7 @@ The returned object has class \code{"panel_data"} and two additional attributes:
 If the input was a \code{panel_wide} object, the original metadata elements
 for the entity and time variables are preserved; \code{spacer} and \code{invert}
 must be supplied explicitly when they differ from the defaults.}
-\item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
+\item{\code{details}}{List containing the names of reshaped variables (\code{select}) and detected static variables.}
 }
 }
 \note{
@@ -106,10 +109,9 @@ non‑empty \code{spacer} or renaming columns.
 \strong{Columns with all‑digit names} – When column names consist entirely of
 digits (e.g., \code{"2000"}, \code{"2001"}) and \code{spacer = ""}, the automatic parsing
 treats them as time values of a single unnamed variable. The resulting
-variable in long format will be named \code{"value"}. This behavior ensures that
-purely numeric column names are correctly interpreted as time periods.
-If you actually have several different time‑varying variables whose names are
-all digits, you should use an explicit \code{spacer} (e.g., \code{"_"}) to disambiguate
+variable in long format will be named \code{"value"}. To use this feature, set
+\code{select = ""}. If you have several different time‑varying variables whose names
+are all digits, you should use an explicit \code{spacer} (e.g., \code{"_"}) to disambiguate
 variable and time components, renaming columns to a pattern like
 \code{"var1_2000"}, \code{"var2_2000"}, etc.
 
@@ -122,31 +124,37 @@ ensure a consistent naming scheme.
 data(production)
 
 # First create a wide data frame
-wide <- make_wide(production, index = c("firm", "year"))
+wide <- make_wide(production, select = c("sales", "labor"),
+                  index = c("firm", "year"))
 
 # Basic usage
-long <- make_long(wide, index = c("firm", "year"))
+long <- make_long(wide, select = c("sales", "labor"),
+                  index = c("firm", "year"))
 
 # With panel_wide object (uses metadata)
-wide_panel <- make_wide(production, index = c("firm", "year"))
-long_panel <- make_long(wide_panel)
+wide_panel <- make_wide(production, select = c("sales", "labor"),
+                        index = c("firm", "year"))
+long_panel <- make_long(wide_panel, select = c("sales", "labor"))
 
 # Custom spacer and inverted order
-wide2 <- make_wide(production, index = c("firm", "year"),
+wide2 <- make_wide(production, select = c("sales", "labor"),
+                   index = c("firm", "year"),
                    spacer = ".", invert = TRUE)
-long2 <- make_long(wide2, spacer = ".", invert = TRUE)
+long2 <- make_long(wide2, select = c("sales", "labor"),
+                   spacer = ".", invert = TRUE)
 
 # Using spacer = "" (no separator) – automatic suffix detection
-wide3 <- make_wide(production, index = c("firm", "year"), spacer = "")
-long3 <- make_long(wide3, spacer = "")
+wide3 <- make_wide(production, select = c("sales", "labor"),
+                   index = c("firm", "year"), spacer = "")
+long3 <- make_long(wide3, select = c("sales", "labor"), spacer = "")
 
-# Explicitly declaring static variables
-wide4 <- make_wide(production, index = c("firm", "year"), static = "region")
-long4 <- make_long(wide4, static = "region")
+# All‑digit column names (single variable "value") – use select = ""
+wide_num <- data.frame(id = 1:3, `2000` = c(1,2,3), `2001` = c(4,5,6), check.names = FALSE)
+long_num <- make_long(wide_num, select = "", index = c("id", "year"), spacer = "")
 
 # Accessing attributes
-attr(long4, "metadata")
-attr(long4, "details")
+attr(long3, "metadata")
+attr(long3, "details")
 
 }
 \seealso{
