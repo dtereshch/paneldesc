@@ -59,36 +59,25 @@
 #' all time‑varying variables in the order they appear in `select`.
 #' The time periods are sorted according to their natural order
 #' (numerically if all values are numeric, otherwise lexicographically).
-#' **If numeric sorting would produce duplicate representations (e.g., `"01"` and
-#' `"1"` map to the same number), the function stops with an error to prevent
-#' ambiguous column mapping.**
+#' If numeric sorting would produce duplicate representations (e.g., `"01"` and
+#' `"1"` map to the same number), the function stops with an error.
 #'
-#' If some variable‑time combinations are missing from the wide format (i.e., a
-#' column for a variable and a particular time period is absent), the function
-#' adds that column filled with `NA` so that the variable is preserved in the
-#' long format. A message is printed indicating which columns were added.
+#' If some variable‑time combinations are missing from the wide format, the
+#' function adds those columns filled with `NA` and prints a message.
 #'
-#' Columns that are time‑invariant (not selected) are replicated for each time
-#' period, unless a particular entity‑time combination has no time‑varying data
-#' at all—in which case the invariant columns are set to `NA` to reflect a truly
-#' missing observation.
-#'
-#' The function tries to convert the resulting time column to numeric if all time
-#' values are coercible, and sorts the output by entity then time.
+#' Upon successful reshaping, a summary message is printed:
+#' - `Reshaped variables:` the stubs (long‑form variable names).
+#' - `Static variables:` the variables treated as time‑invariant.
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_wide` object, the original metadata elements
-#'         for the entity and time variables are preserved; `spacer` and `invert`
-#'         must be supplied explicitly when they differ from the defaults.}
-#'   \item{`details`}{List containing information used to print the summary
-#'         message, including direction, counts, j‑variable, time values,
-#'         mapping between stubs and wide columns, and static variables.}
+#'         for the entity and time variables are preserved.}
+#'   \item{`details`}{List with two components: `reshaped_variables` (character vector
+#'         of the long‑form variable stubs) and `static_variables` (character vector
+#'         of time‑invariant variables).}
 #' }
-#'
-#' Upon successful reshaping, a summary message similar to Stata's `reshape` is
-#' printed to the console.
 #'
 #' @note
 #' **Desirable input data** – The input wide data.frame should have one row per
@@ -98,35 +87,17 @@
 #' identifiers (no duplicates). When `spacer = ""`, automatic detection works best
 #' when column names consist of a variable name directly followed by a time suffix
 #' (or preceded by a time prefix if `invert = TRUE`) using only letters, digits,
-#' or a consistent numeric time pattern. If these conditions are met, the reshaping
-#' will be reliable.
+#' or a consistent numeric time pattern.
 #'
-#' The input wide data must have unique entity values; each row must
-#' correspond to a distinct entity. If duplicates are found, the function stops
-#' with an error listing the number of duplicate entities and up to five examples.
+#' The input wide data must have unique entity values; duplicates cause an error.
 #'
-#' When `spacer = ""` (no separator), the function first tries to identify
-#' time suffixes that appear with multiple different variables. If that fails,
-#' it then looks for variable stems that appear with multiple different time
-#' suffixes, requiring those times to be either all numeric or all of the same
-#' character length (e.g., `"Q1"`, `"Q2"`). If still no structure is found, it
-#' falls back to detecting leading or trailing digits. The automatic detection
-#' is a best‑effort heuristic; if the structure is irregular, consider using a
-#' non‑empty `spacer` or renaming columns.
-#'
-#' **Columns with all‑digit names** – When column names consist entirely of
-#' digits (e.g., `"2000"`, `"2001"`) and `spacer = ""`, the automatic parsing
-#' treats them as time values of a single unnamed variable. The resulting
-#' variable in long format will be named `"value"`. To use this feature, set
-#' `select = ""`. If you have several different time‑varying variables whose names
-#' are all digits, you should use an explicit `spacer` (e.g., `"_"`) to disambiguate
-#' variable and time components, renaming columns to a pattern like
-#' `"var1_2000"`, `"var2_2000"`, etc.
+#' When `spacer = ""`, the function uses heuristic detection; see the main package
+#' documentation for details. A special case: if column names are purely numeric
+#' (e.g., `"2000"`, `"2001"`), using `select = ""` reshapes them as a single
+#' variable named `"value"`.
 #'
 #' A warning is issued when the automatic separator detection encounters columns
-#' that look like they could be time‑varying but use a separator different from
-#' `spacer`. These columns are treated as time‑invariant. To avoid confusion,
-#' ensure a consistent naming scheme.
+#' that use a different separator; those are treated as time‑invariant.
 #'
 #' @seealso
 #' See also [make_panel()], [make_wide()], [make_balanced()].
@@ -154,18 +125,13 @@
 #' long2 <- make_long(wide2, select = c("sales", "labor"),
 #'                    spacer = ".", invert = TRUE)
 #'
-#' # Using spacer = "" (no separator) – automatic suffix detection
-#' wide3 <- make_wide(production, select = c("sales", "labor"),
-#'                    index = c("firm", "year"), spacer = "")
-#' long3 <- make_long(wide3, select = c("sales", "labor"), spacer = "")
-#'
 #' # All‑digit column names (single variable "value") – use select = ""
 #' wide_num <- data.frame(id = 1:3, `2000` = c(1,2,3), `2001` = c(4,5,6), check.names = FALSE)
 #' long_num <- make_long(wide_num, select = "", index = c("id", "year"), spacer = "")
 #'
 #' # Accessing attributes
-#' attr(long3, "metadata")
-#' attr(long3, "details")
+#' attr(long, "metadata")
+#' attr(long, "details")
 #'
 #' @importFrom stats reshape
 #' @export
@@ -264,10 +230,6 @@ make_long <- function(
       call. = FALSE
     )
   }
-
-  # Pre‑reshape info
-  n_obs_before <- nrow(data)
-  n_vars_before <- ncol(data)
 
   # Duplicate entity check
   if (any(duplicated(data[[entity_col]]))) {
@@ -682,12 +644,6 @@ make_long <- function(
   }
 
   final_constant <- setdiff(names(data), c(entity_col, varying_cols))
-  if (length(final_constant) > 0) {
-    message(
-      "Variables treated as time-invariant: ",
-      paste(final_constant, collapse = ", ")
-    )
-  }
 
   # Time column conflict
   if (time_col %in% c(entity_col, final_constant, varying_cols)) {
@@ -750,21 +706,6 @@ make_long <- function(
     }
   }
 
-  # --- Post‑reshape info ---
-  n_obs_after <- nrow(long)
-  n_vars_after <- ncol(long)
-  n_j <- length(unique_times)
-
-  # Build mapping: for each stub, wide column names
-  xij_mapping <- list()
-  for (var in vars_in_order) {
-    bare <- bare_vars[var]
-    cols <- sapply(unique_times, function(t) {
-      generate_colname(var, t, spacer, invert, bare = bare)
-    })
-    xij_mapping[[var]] <- cols
-  }
-
   # --- Metadata and details ---
   if (keep_panel_class) {
     new_metadata <- panel_metadata
@@ -786,15 +727,8 @@ make_long <- function(
   }
 
   new_details <- list(
-    direction = "wide_to_long",
-    n_obs_before = n_obs_before,
-    n_obs_after = n_obs_after,
-    n_vars_before = n_vars_before,
-    n_vars_after = n_vars_after,
-    j_var = time_col,
-    j_values = unique_times,
-    xij_mapping = xij_mapping,
-    static = final_constant
+    reshaped_variables = v.names,
+    static_variables = final_constant
   )
 
   attr(long, "metadata") <- new_metadata
@@ -802,14 +736,11 @@ make_long <- function(
   class(long) <- c("panel_data", class(long))
 
   # --- Print summary ---
-  cat("\nData wide -> long\n")
-  cat(sprintf("Number of obs. %3d -> %3d\n", n_obs_before, n_obs_after))
-  cat(sprintf("Number of variables %3d -> %3d\n", n_vars_before, n_vars_after))
-  cat(sprintf("j variable (%d values) -> %s\n", n_j, time_col))
-  cat("xij variables:\n")
-  for (var in vars_in_order) {
-    cols <- paste(xij_mapping[[var]], collapse = " ")
-    cat(sprintf("  %s -> %s\n", cols, var))
+  cat("Reshaped variables:", paste(v.names, collapse = ", "), "\n")
+  if (length(final_constant) > 0) {
+    cat("Static variables:", paste(final_constant, collapse = ", "), "\n")
+  } else {
+    cat("Static variables: none\n")
   }
   cat("\n")
 

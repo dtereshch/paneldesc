@@ -72,36 +72,27 @@ then the time column, then any static (time‑invariant) columns, and finally
 all time‑varying variables in the order they appear in \code{select}.
 The time periods are sorted according to their natural order
 (numerically if all values are numeric, otherwise lexicographically).
-\strong{If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
-\code{"1"} map to the same number), the function stops with an error to prevent
-ambiguous column mapping.}
+If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
+\code{"1"} map to the same number), the function stops with an error.
 
-If some variable‑time combinations are missing from the wide format (i.e., a
-column for a variable and a particular time period is absent), the function
-adds that column filled with \code{NA} so that the variable is preserved in the
-long format. A message is printed indicating which columns were added.
+If some variable‑time combinations are missing from the wide format, the
+function adds those columns filled with \code{NA} and prints a message.
 
-Columns that are time‑invariant (not selected) are replicated for each time
-period, unless a particular entity‑time combination has no time‑varying data
-at all—in which case the invariant columns are set to \code{NA} to reflect a truly
-missing observation.
-
-The function tries to convert the resulting time column to numeric if all time
-values are coercible, and sorts the output by entity then time.
+Upon successful reshaping, a summary message is printed:
+\itemize{
+\item \verb{Reshaped variables:} the stubs (long‑form variable names).
+\item \verb{Static variables:} the variables treated as time‑invariant.
+}
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_wide} object, the original metadata elements
-for the entity and time variables are preserved; \code{spacer} and \code{invert}
-must be supplied explicitly when they differ from the defaults.}
-\item{\code{details}}{List containing information used to print the summary
-message, including direction, counts, j‑variable, time values,
-mapping between stubs and wide columns, and static variables.}
+for the entity and time variables are preserved.}
+\item{\code{details}}{List with two components: \code{reshaped_variables} (character vector
+of the long‑form variable stubs) and \code{static_variables} (character vector
+of time‑invariant variables).}
 }
-
-Upon successful reshaping, a summary message similar to Stata's \code{reshape} is
-printed to the console.
 }
 \note{
 \strong{Desirable input data} – The input wide data.frame should have one row per
@@ -111,35 +102,17 @@ ordering of variable/time parts. The entity column must contain unique
 identifiers (no duplicates). When \code{spacer = ""}, automatic detection works best
 when column names consist of a variable name directly followed by a time suffix
 (or preceded by a time prefix if \code{invert = TRUE}) using only letters, digits,
-or a consistent numeric time pattern. If these conditions are met, the reshaping
-will be reliable.
+or a consistent numeric time pattern.
 
-The input wide data must have unique entity values; each row must
-correspond to a distinct entity. If duplicates are found, the function stops
-with an error listing the number of duplicate entities and up to five examples.
+The input wide data must have unique entity values; duplicates cause an error.
 
-When \code{spacer = ""} (no separator), the function first tries to identify
-time suffixes that appear with multiple different variables. If that fails,
-it then looks for variable stems that appear with multiple different time
-suffixes, requiring those times to be either all numeric or all of the same
-character length (e.g., \code{"Q1"}, \code{"Q2"}). If still no structure is found, it
-falls back to detecting leading or trailing digits. The automatic detection
-is a best‑effort heuristic; if the structure is irregular, consider using a
-non‑empty \code{spacer} or renaming columns.
-
-\strong{Columns with all‑digit names} – When column names consist entirely of
-digits (e.g., \code{"2000"}, \code{"2001"}) and \code{spacer = ""}, the automatic parsing
-treats them as time values of a single unnamed variable. The resulting
-variable in long format will be named \code{"value"}. To use this feature, set
-\code{select = ""}. If you have several different time‑varying variables whose names
-are all digits, you should use an explicit \code{spacer} (e.g., \code{"_"}) to disambiguate
-variable and time components, renaming columns to a pattern like
-\code{"var1_2000"}, \code{"var2_2000"}, etc.
+When \code{spacer = ""}, the function uses heuristic detection; see the main package
+documentation for details. A special case: if column names are purely numeric
+(e.g., \code{"2000"}, \code{"2001"}), using \code{select = ""} reshapes them as a single
+variable named \code{"value"}.
 
 A warning is issued when the automatic separator detection encounters columns
-that look like they could be time‑varying but use a separator different from
-\code{spacer}. These columns are treated as time‑invariant. To avoid confusion,
-ensure a consistent naming scheme.
+that use a different separator; those are treated as time‑invariant.
 }
 \examples{
 data(production)
@@ -164,18 +137,13 @@ wide2 <- make_wide(production, select = c("sales", "labor"),
 long2 <- make_long(wide2, select = c("sales", "labor"),
                    spacer = ".", invert = TRUE)
 
-# Using spacer = "" (no separator) – automatic suffix detection
-wide3 <- make_wide(production, select = c("sales", "labor"),
-                   index = c("firm", "year"), spacer = "")
-long3 <- make_long(wide3, select = c("sales", "labor"), spacer = "")
-
 # All‑digit column names (single variable "value") – use select = ""
 wide_num <- data.frame(id = 1:3, `2000` = c(1,2,3), `2001` = c(4,5,6), check.names = FALSE)
 long_num <- make_long(wide_num, select = "", index = c("id", "year"), spacer = "")
 
 # Accessing attributes
-attr(long3, "metadata")
-attr(long3, "details")
+attr(long, "metadata")
+attr(long, "details")
 
 }
 \seealso{
