@@ -14,8 +14,6 @@ are taken from its metadata unless overridden by \code{index}.}
 \item{select}{A character vector specifying the stubs (variable names) of the
 time‑varying columns to reshape. For example, if the wide data contains
 columns \code{x_2000}, \code{x_2001}, \code{y_2000}, \code{y_2001}, then \code{select = c("x", "y")}.
-If columns consist solely of time values (e.g., \code{"2001"}, \code{"2002"}), you
-can pass \code{select = ""} to reshape them as a single variable named \code{"value"}.
 This argument has no default and must be provided explicitly.}
 
 \item{index}{A character vector of length 2 specifying the name of the
@@ -113,10 +111,10 @@ or a consistent numeric time pattern.
 
 The input wide data must have unique entity values; duplicates cause an error.
 
-When \code{spacer = ""}, the function uses heuristic detection; see the main package
-documentation for details. A special case: if column names are purely numeric
-(e.g., \code{"2000"}, \code{"2001"}), using \code{select = ""} reshapes them as a single
-variable named \code{"value"}.
+When \code{spacer = ""}, the function uses heuristic detection. Column names that
+consist solely of digits (e.g., \code{"2000"}, \code{"2001"}) are \strong{not} recognized as
+time‑varying; if you have such columns, you should use a non‑empty \code{spacer}
+and proper variable names (e.g., \code{"x_2000"}).
 
 A warning is issued when the automatic separator detection encounters columns
 that use a different separator; those are treated as time‑invariant.
@@ -143,10 +141,6 @@ wide2 <- make_wide(production, select = c("sales", "labor"),
                    spacer = ".", invert = TRUE)
 long2 <- make_long(wide2, select = c("sales", "labor"),
                    spacer = ".", invert = TRUE)
-
-# All‑digit column names (single variable "value") – use select = ""
-wide_num <- data.frame(id = 1:3, `2000` = c(1,2,3), `2001` = c(4,5,6), check.names = FALSE)
-long_num <- make_long(wide_num, select = "", index = c("id", "year"), spacer = "")
 
 # Accessing attributes
 attr(long, "metadata")
