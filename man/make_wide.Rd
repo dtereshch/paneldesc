@@ -4,20 +4,19 @@
 \alias{make_wide}
 \title{Convert Panel Data from Long to Wide Format}
 \usage{
-make_wide(data, index = NULL, static = NULL, spacer = "_", invert = FALSE)
+make_wide(data, select, index = NULL, spacer = "_", invert = FALSE)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
+
+\item{select}{A character vector specifying the names of the time‑varying
+variables to reshape into wide format. This argument has no default
+and must be provided explicitly.}
 
 \item{index}{A character vector of length 2 specifying the names of the
 entity and time variables.
 If not specified and data is a \code{panel_data} object, the entity and time values
 will be extracted from the data.frame attributes.}
-
-\item{static}{A character vector of variable names that are time-invariant.
-If specified, the function verifies invariance and excludes these
-variables from reshaping; they appear as single columns in the wide
-output.}
 
 \item{spacer}{A character string to insert between variable names and time
 values in the wide format column names. Default = "_".}
@@ -33,31 +32,43 @@ A data.frame containing panel data in a wide format, with class
 }
 \description{
 This function reshapes panel data from long format to wide format,
-creating separate columns for each time period.
+creating separate columns for each time period for a selected set of
+time‑varying variables. All other variables (except the entity and time
+identifiers) are treated as time‑invariant and are verified as such.
 }
 \details{
 The structure of the returned data.frame depends on the input. For example,
 suppose your long panel data contains an entity column \code{id}, a time column
-\code{year}, and time‑varying variables \code{y} and \code{x}. If there are two time periods
-(e.g., 2000 and 2001), the resulting wide data.frame will have a single row
-per entity, with columns \code{id}, \code{y_2000}, \code{y_2001}, \code{x_2000}, and \code{x_2001}.
-Static variables, if declared via the \code{static} argument, appear as single
-columns, replicated once per entity rather than split by time.
+\code{year}, and you select time‑varying variables \code{y} and \code{x}. If there are two
+time periods (e.g., 2000 and 2001), the resulting wide data.frame will have
+a single row per entity, with columns \code{id}, \code{y_2000}, \code{y_2001}, \code{x_2000},
+and \code{x_2001}. Any other columns in the data (e.g., \code{industry}, \code{region})
+are treated as time‑invariant and appear as single columns, replicated once
+per entity, provided they are indeed constant over time for each entity.
 
 The reshaped columns are ordered as follows: the entity column appears first,
-then any static variables (in the order specified by the \code{static} argument),
-and finally all time‑varying variables in the order they were present in the
-input data. For each such variable, one column per time period is created,
-using the unique values of the time variable sorted according to their natural
-order. If an entity is missing a particular time period, the corresponding
-wide column will contain \code{NA}.
+then any time‑invariant variables (in the order they appear in the input data),
+and finally the selected time‑varying variables, each expanded by time period.
+Time periods are ordered by their natural order (as given by unique values of
+the time variable). If an entity is missing a particular time period, the
+corresponding wide column will contain \code{NA}.
+
+The function checks that:
+\itemize{
+\item All variables in \code{select} exist in \code{data}.
+\item \code{select} does not contain the entity or time variables.
+\item At least one variable is selected for reshaping.
+\item All variables not in \code{select} or the index are time‑invariant;
+if any are not, the function stops and lists them.
+}
 
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_data} object, the original metadata elements
 (entity, time, and delta) are preserved.}
-\item{\code{details}}{List containing the names of reshaped variables and detected static variables.}
+\item{\code{details}}{List containing the names of reshaped (\code{select}) and static
+variables.}
 }
 }
 \note{
@@ -82,15 +93,17 @@ and time values.
 \examples{
 data(production)
 
-# Basic usage
-wide <- make_wide(production, index = c("firm", "year"))
+# Basic usage: select time-varying variables
+wide <- make_wide(production, select = c("sales", "labor"),
+                  index = c("firm", "year"))
 
 # With panel_data object
 panel <- make_panel(production, index = c("firm", "year"))
-wide2 <- make_wide(panel)
+wide2 <- make_wide(panel, select = c("sales", "labor"))
 
 # Custom spacer and inverted order
-wide3 <- make_wide(production, index = c("firm", "year"),
+wide3 <- make_wide(production, select = c("sales", "labor"),
+                   index = c("firm", "year"),
                    spacer = ".", invert = TRUE)
 
 # Accessing attributes
