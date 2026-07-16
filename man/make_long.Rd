@@ -42,14 +42,30 @@ This function reshapes panel data from wide format to long format,
 stacking selected time‑varying columns into rows based on the pattern of column names.
 }
 \details{
-The structure of the returned data.frame depends on the input. For example,
-suppose your wide panel data contains an entity column \code{id}, time‑varying
-variables \code{y} and \code{x} with time periods 2000 and 2001 (columns \code{y_2000},
-\code{y_2001}, \code{x_2000}, \code{x_2001}), and a static variable \code{z}. If you specify
-\code{select = c("y", "x")}, the resulting long data.frame will have multiple rows
-per entity, one for each time period, with columns \code{id}, \code{year}, \code{z}, \code{y}, and \code{x}.
-All columns not in \code{select} (and not the entity column) are treated as
-time‑invariant and are replicated for each time period.
+The function converts data from wide to long format. Below is an illustration
+of the transformation for two time periods (t = 1, 2) and two time‑varying
+variables (\code{x}, \code{y}) plus a static variable \code{z}.
+
+\strong{Wide format (input):}\tabular{llllll}{
+   id \tab x_1 \tab x_2 \tab y_1 \tab y_2 \tab z \cr
+   1 \tab 5 \tab 7 \tab 8 \tab 9 \tab A \cr
+   2 \tab 6 \tab 8 \tab 7 \tab 6 \tab B \cr
+}
+
+
+\strong{Long format (output) with \code{spacer = "_"} and \code{invert = FALSE}:}\tabular{lllll}{
+   id \tab t \tab x \tab y \tab z \cr
+   1 \tab 1 \tab 5 \tab 8 \tab A \cr
+   1 \tab 2 \tab 7 \tab 9 \tab A \cr
+   2 \tab 1 \tab 6 \tab 7 \tab B \cr
+   2 \tab 2 \tab 8 \tab 6 \tab B \cr
+}
+
+
+All columns not in \code{select} (or the entity column) are treated as
+time‑invariant and are replicated for each time period. The function
+does \strong{not} verify invariance because wide data cannot be checked;
+it relies on the user's judgment.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then the time column, then any static (time‑invariant) columns, and finally
@@ -79,8 +95,13 @@ The returned object has class \code{"panel_data"} and two additional attributes:
 If the input was a \code{panel_wide} object, the original metadata elements
 for the entity and time variables are preserved; \code{spacer} and \code{invert}
 must be supplied explicitly when they differ from the defaults.}
-\item{\code{details}}{List containing the names of reshaped variables (\code{select}) and detected static variables.}
+\item{\code{details}}{List containing information used to print the summary
+message, including direction, counts, j‑variable, time values,
+mapping between stubs and wide columns, and static variables.}
 }
+
+Upon successful reshaping, a summary message similar to Stata's \code{reshape} is
+printed to the console.
 }
 \note{
 \strong{Desirable input data} – The input wide data.frame should have one row per
