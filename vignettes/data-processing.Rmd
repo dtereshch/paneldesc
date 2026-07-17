@@ -82,18 +82,22 @@ In the latter case, the returned data frame is the same as the original one.
 
 A standard type of panel data transformation is reshaping from long format to wide format and vice versa.
 
-Since the original data frame is presented in long format, we can reshape it to wide format using `make_wide()`. Note that `region` variable is time-invariant, so it is better to declare it using `static` argument. 
+Note that `region` variable is time-invariant, while other variables are time-varying. For reuse, we first create a vector with names of variables to be reshaped (everything except static variables and panel identifiers). 
 
 ```{r}
-panel_wide <- make_wide(panel, static = "region")
-names(panel_wide)
+vars <- c("sales", "capital", "labor", "industry", "ownership")
+```
+
+Since the original data frame is presented in long format, we can reshape it to wide format using `make_wide()`. 
+
+```{r}
+panel_wide <- make_wide(panel, select = vars)
 ```
 
 Next, as an exercise, we can convert the wide format data we just obtained back to long format.
 
 ```{r}
-panel_long <- make_long(panel_wide, static = "region")
-names(panel_long)
+panel_long <- make_long(panel_wide, select = vars)
 ```
 
 In the latter case, the data frame is the same as the original one.
