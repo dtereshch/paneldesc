@@ -52,7 +52,10 @@
 #' then any time‑invariant variables (in the order they appear in the input data),
 #' and finally the selected time‑varying variables, grouped by variable
 #' (i.e., all time periods for the first variable, then all time periods for
-#' the second variable, and so on). Time periods are ordered by their natural order.
+#' the second variable, and so on). Time periods are ordered by their natural
+#' order. For character or numeric time variables this means increasing order.
+#' For factor time variables the order follows the factor levels; this may not
+#' represent chronological order unless the levels are set appropriately.
 #'
 #' Upon successful reshaping, a summary message is printed with aligned headers:
 #' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
@@ -79,15 +82,12 @@
 #' offending pairs. Rows with missing values in the entity or time variables are
 #' automatically removed (with a message) before reshaping.
 #'
-#' The reshaping preserves standard atomic types and factors, but complex S3
-#' classes like `POSIXlt` may not survive the process. When extracting static
-#' variables, the function uses `do.call(c, ...)` to preserve common classes
-#' such as `Date`, `POSIXct`, and `difftime`. If a static variable contains only
-#' `NA` values, the original class is still preserved (using the first row’s
-#' value as a template). If a static variable has a class that is not among the
-#' basic atomic types or factors and contains at least one non‑`NA` observation,
-#' a warning is issued, and you should consider converting such columns to
-#' simpler types.
+#' The reshaping preserves standard atomic types and factors. When extracting
+#' static variables, the function attempts to preserve the original column class
+#' (e.g., `Date`, `POSIXct`). If the class cannot be maintained (for example
+#' because the column’s assignment method does not handle `NA` values as
+#' expected), a warning is issued and you should consider converting the column
+#' to a simpler type before calling `make_wide()`.
 #'
 #' Internally, a temporary separator `"._TEMP_."` is used during the reshape
 #' step and later replaced by the user‑provided `spacer`. The function checks
@@ -176,7 +176,10 @@ make_wide <- function(
       }
     } else {
       if (is.null(index)) {
-        stop("For regular data.frames, 'index' must be provided", call. = FALSE)
+        stop(
+          "For panel_data objects with incomplete metadata, 'index' must be provided",
+          call. = FALSE
+        )
       }
       if (length(index) != 2 || !is.character(index)) {
         stop("'index' must be a character vector of length 2", call. = FALSE)
@@ -313,7 +316,7 @@ make_wide <- function(
     }
   }
 
-  # Prepare static data
+  # Prepare static data (class-preserving version)
   if (length(static_vars) > 0) {
     static_data <- data[
       !duplicated(data[[entity_var]]),
@@ -323,63 +326,39 @@ make_wide <- function(
     entities_uniq <- static_data[[entity_var]]
     for (v in static_vars) {
       vals_list <- split(data[[v]], data[[entity_var]])
-      first_vals <- lapply(entities_uniq, function(e) {
-        vals <- vals_list[[as.character(e)]]
-        non_na <- vals[!is.na(vals)]
-        if (length(non_na) == 0) NA else non_na[1]
-      })
       if (is.factor(data[[v]])) {
+        # factor handling unchanged
+        first_vals <- lapply(entities_uniq, function(e) {
+          vals <- vals_list[[as.character(e)]]
+          non_na <- vals[!is.na(vals)]
+          if (length(non_na) == 0) NA else non_na[1]
+        })
         static_data[[v]] <- factor(
           unlist(first_vals, use.names = FALSE),
           levels = levels(data[[v]]),
           ordered = is.ordered(data[[v]])
         )
       } else {
-        if (length(first_vals) == 0) {
-          static_data[[v]] <- data[[v]][0]
-        } else if (
-          all(vapply(
-            first_vals,
-            function(x) length(x) == 1 && is.na(x),
-            logical(1)
-          ))
-        ) {
-          static_data[[v]] <- rep(data[[v]][1], length(entities_uniq))
-        } else {
-          static_data[[v]] <- do.call(c, first_vals)
-        }
-        if (
-          !all(vapply(
-            first_vals,
-            function(x) length(x) == 1 && is.na(x),
-            logical(1)
-          ))
-        ) {
-          cls <- class(data[[v]])
-          basic_classes <- c(
-            "numeric",
-            "integer",
-            "character",
-            "logical",
-            "factor",
-            "ordered",
-            "Date",
-            "POSIXct",
-            "POSIXt",
-            "difftime",
-            "hms"
-          )
-          if (!any(cls %in% basic_classes) && !is.null(cls)) {
-            warning(
-              "Static variable '",
-              v,
-              "' has class(es) ",
-              paste(cls, collapse = ", "),
-              " that may not be preserved during extraction; ",
-              "consider converting to a simpler type.",
-              call. = FALSE
-            )
+        # Preserve class by starting with a correctly classed vector of the right length
+        static_data[[v]] <- data[[v]][1:length(entities_uniq)]
+        for (i in seq_along(entities_uniq)) {
+          vals <- vals_list[[as.character(entities_uniq[i])]]
+          non_na <- vals[!is.na(vals)]
+          if (length(non_na) == 0) {
+            static_data[[v]][i] <- NA
+          } else {
+            static_data[[v]][i] <- non_na[1]
           }
+        }
+        # Warn if class was not preserved
+        if (!identical(class(static_data[[v]]), class(data[[v]]))) {
+          warning(
+            "Static variable '",
+            v,
+            "' lost its original class during extraction. ",
+            "Please check and possibly convert to a simpler type.",
+            call. = FALSE
+          )
         }
       }
     }
@@ -389,6 +368,9 @@ make_wide <- function(
 
   # Data for reshaping
   data_for_reshape <- data[, c(entity_var, time_var, select), drop = FALSE]
+
+  # ---- Store sorted unique time values for later use ----
+  time_values <- sort(unique(data[[time_var]]))
 
   # Perform reshape
   temp_sep <- "._TEMP_."
@@ -439,6 +421,31 @@ make_wide <- function(
   names(wide) <- new_names
   rownames(wide) <- NULL
 
+  # ---- Restore factor attributes for reshaped variables ----
+  # (base::reshape turns factors into integer codes)
+  factor_select <- select[sapply(data[select], is.factor)]
+  if (length(factor_select) > 0) {
+    for (var in factor_select) {
+      orig_levels <- levels(data[[var]])
+      orig_ordered <- is.ordered(data[[var]])
+      # Build column names for this variable across all time points
+      if (invert) {
+        cols <- paste0(time_values, spacer, var)
+      } else {
+        cols <- paste0(var, spacer, time_values)
+      }
+      cols <- intersect(cols, names(wide))
+      for (col in cols) {
+        # Map integer codes back to factor labels
+        wide[[col]] <- factor(
+          orig_levels[wide[[col]]],
+          levels = orig_levels,
+          ordered = orig_ordered
+        )
+      }
+    }
+  }
+
   # Merge static
   if (!is.null(static_data)) {
     wide <- merge(
@@ -452,7 +459,6 @@ make_wide <- function(
 
   # Reorder time-varying columns: variable-major (x_1, x_2, y_1, y_2)
   tv_cols_all <- setdiff(names(wide), c(entity_var, static_vars))
-  time_values <- sort(unique(data[[time_var]]))
   tv_ordered <- c()
   for (var in select) {
     for (t in time_values) {

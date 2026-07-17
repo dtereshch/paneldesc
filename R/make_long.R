@@ -9,7 +9,8 @@
 #' @param select A character vector specifying the stubs (variable names) of the
 #'        time‑varying columns to reshape. For example, if the wide data contains
 #'        columns `x_2000`, `x_2001`, `y_2000`, `y_2001`, then `select = c("x", "y")`.
-#'        This argument has no default and must be provided explicitly.
+#'        The stubs must be unique (no duplicate entries). This argument has no
+#'        default and must be provided explicitly.
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
 #'        column in the long format (second element).
@@ -17,9 +18,12 @@
 #'        values are extracted from the metadata.
 #' @param spacer A character string used to separate variable names and time
 #'        values in the wide column names. Default = `"_"`. Use `""` (empty string)
-#'        when no explicit separator exists; the function will then try to
-#'        identify variable stubs by looking for a common prefix/suffix that is
-#'        followed/preceded by varying numeric or non‑numeric time substrings.
+#'        when no explicit separator exists. When `spacer` is not empty, the
+#'        function splits column names at the first/last occurrence of the
+#'        separator (depending on `invert`) and matches the stub part against
+#'        `select`. When `spacer` is empty, column names must **start** (if
+#'        `invert = FALSE`) or **end** (if `invert = TRUE`) with one of the stubs
+#'        in `select`, and the remaining part is taken as the time value.
 #' @param invert A logical flag indicating the order of components in column
 #'        names. If `FALSE`, column names are `"variable_spacer_time"`; if `TRUE`,
 #'        they are `"time_spacer_variable"`. Default = `FALSE`.
@@ -61,6 +65,10 @@
 #' If numeric sorting would produce duplicate representations (e.g., `"01"` and
 #' `"1"` map to the same number), the function stops with an error.
 #'
+#' Only the time periods that appear in the columns of the selected stubs are
+#' used. Columns belonging to unselected stubs are ignored when determining the
+#' set of time points.
+#'
 #' If some variable‑time combinations are missing from the wide format, the
 #' function adds those columns filled with `NA` and prints a message.
 #' After reshaping, if a row has `NA` for **all** reshaped variables,
@@ -90,24 +98,39 @@
 #'   }
 #' }
 #'
+#' @section Handling of `spacer = ""`:
+#' When `spacer = ""` the function splits column names using the **stubs given in
+#' `select`**. Every column that should be reshaped must start with a stub (if
+#' `invert = FALSE`) or end with a stub (if `invert = TRUE`), and the remainder
+#' of the column name is taken as the time value. This rule is strict:
+#'
+#' * **No stub may be a prefix of another** when `invert = FALSE` (or a suffix
+#'   when `invert = TRUE`). If this condition is violated an error is thrown
+#'   because a column name could match multiple stubs, making the split
+#'   ambiguous.
+#'
+#' * For example, `select = c("gdp", "gdp_ppp")` with `invert = FALSE` and
+#'   `spacer = ""` would cause an error because `"gdp"` is a prefix of
+#'   `"gdp_ppp"`, and a column named `gdp_ppp2000` would match both stubs.
+#'   The solution is to **use a non‑empty `spacer`** (e.g., `spacer = "_"`)
+#'   when column names contain a delimiter, or to rename the variables so
+#'   that no stub is a prefix/suffix of another.
+#'
+#' * If you have columns like `gdp2000`, `gdp2001`, `gdp_ppp2000` etc.,
+#'   simply set `spacer = "_"` and `select = c("gdp", "gdp_ppp")`. The
+#'   underscore will be used to separate the stub from the time value,
+#'   avoiding any ambiguity.
+#'
 #' @note
 #' **Desirable input data** – The input wide data.frame should have one row per
 #' entity and column names that follow a consistent naming convention. Time‑varying
-#' columns must use the same separator (if `spacer` is not empty) and the same
-#' ordering of variable/time parts. The entity column must contain unique
-#' identifiers (no duplicates). When `spacer = ""`, the function identifies
-#' variable stubs by looking for a common prefix that is followed by varying
-#' time suffixes (or, if `invert = TRUE`, a common suffix preceded by varying
-#' time prefixes). This approach works reliably when the time parts are either
-#' all numeric or have the same character length across columns for a given
-#' variable. Purely numeric column names (e.g., `"2000"`, `"2001"`) are **not**
-#' recognised as time‑varying; use a non‑empty `spacer` and explicit variable
-#' names in such cases.
+#' columns must use the same separator (if `spacer` is not empty) or the same
+#' stub‑time pattern (if `spacer` is empty). The entity column must contain unique
+#' identifiers (no duplicates). Purely numeric column names (e.g., `"2000"`,
+#' `"2001"`) are **not** recognised as time‑varying; use a non‑empty `spacer` and
+#' explicit variable names in such cases.
 #'
 #' The input wide data must have unique entity values; duplicates cause an error.
-#'
-#' A warning is issued when the automatic separator detection encounters columns
-#' that use a different separator; those are treated as time‑invariant.
 #'
 #' @seealso
 #' See also [make_panel()], [make_wide()], [make_balanced()].
@@ -171,11 +194,47 @@ make_long <- function(
   if (any(select == "")) {
     stop("'select' cannot contain empty strings", call. = FALSE)
   }
+  if (anyDuplicated(select)) {
+    dup_stubs <- unique(select[duplicated(select)])
+    stop(
+      "'select' must contain unique variable stubs. Duplicates found: ",
+      paste(dup_stubs, collapse = ", "),
+      call. = FALSE
+    )
+  }
   if (!is.character(spacer) || length(spacer) != 1) {
     stop("'spacer' must be a single character string", call. = FALSE)
   }
   if (!is.logical(invert) || length(invert) != 1) {
     stop("'invert' must be a single logical value", call. = FALSE)
+  }
+
+  # ---- Prevent stub‑prefix ambiguity when spacer == "" ----
+  if (spacer == "") {
+    for (i in seq_along(select)) {
+      others <- setdiff(select, select[i])
+      if (!invert) {
+        if (any(startsWith(others, select[i]))) {
+          stop(
+            "When spacer is empty, a stub in 'select' must not be a prefix of another. ",
+            "Conflicting stub: '",
+            select[i],
+            "'.",
+            call. = FALSE
+          )
+        }
+      } else {
+        if (any(endsWith(others, select[i]))) {
+          stop(
+            "When spacer is empty, a stub in 'select' must not be a suffix of another. ",
+            "Conflicting stub: '",
+            select[i],
+            "'.",
+            call. = FALSE
+          )
+        }
+      }
+    }
   }
 
   # ---- Extract index ----
@@ -230,7 +289,6 @@ make_long <- function(
     time_col <- index[2]
   }
 
-  # Validate entity
   if (!entity_col %in% names(data)) {
     stop('entity column "', entity_col, '" not found in data', call. = FALSE)
   }
@@ -243,7 +301,6 @@ make_long <- function(
     )
   }
 
-  # Duplicate entity check
   if (any(duplicated(data[[entity_col]]))) {
     dup_entities <- unique(data[[entity_col]][duplicated(data[[entity_col]])])
     n_dup <- length(dup_entities)
@@ -261,185 +318,61 @@ make_long <- function(
   all_cols <- names(data)
   candidates <- setdiff(all_cols, entity_col)
 
-  # ---- Parse columns ----
+  # ---- Parse columns (SIMPLIFIED: stub‑driven) ----
   parsed <- list()
   time_values <- c()
 
-  if (spacer == "") {
-    # ---- Auto‑detection (improved) -------------------------------------------
-    # Only the safe strategy: find variable stubs that are shared across
-    # columns and are followed (or preceded) by varying time substrings.
-    # This avoids the earlier bug where short, frequent substrings were
-    # mistakenly treated as time parts.
-    detect_var_parts <- function(col_names, invert) {
-      var_to_times <- list()
-      for (nm in col_names) {
-        len <- nchar(nm)
-        if (len < 2) {
-          next
-        }
-        if (invert) {
-          # time prefix, variable suffix
-          for (i in 1:(len - 1)) {
-            tpart <- substr(nm, 1, i)
-            vpart <- substr(nm, i + 1, len)
-            var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
-          }
-        } else {
-          # variable prefix, time suffix
-          for (i in 1:(len - 1)) {
-            vpart <- substr(nm, 1, i)
-            tpart <- substr(nm, i + 1, len)
-            var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
-          }
-        }
-      }
-      # keep only stubs that appear with at least 2 distinct time values
-      var_to_times[lengths(var_to_times) > 1]
-    }
-
-    var_map <- detect_var_parts(candidates, invert)
-    if (length(var_map) > 0) {
-      # filter out stubs whose time parts are all non‑numeric *and* have
-      # varying lengths (common in messy data)
-      keep <- logical(length(var_map))
-      names(keep) <- names(var_map)
-      for (v in names(var_map)) {
-        times <- var_map[[v]]
-        num_times <- suppressWarnings(as.numeric(times))
-        if (all(!is.na(num_times))) {
-          keep[v] <- TRUE # all numeric -> safe
-        } else {
-          # if non‑numeric, they must all have the same length
-          keep[v] <- length(unique(nchar(times))) == 1
-        }
-      }
-      var_map <- var_map[keep]
-
-      if (length(var_map) > 0) {
-        # sort stubs by decreasing nchar to match longer names first
-        sorted_vars <- names(var_map)[order(
-          nchar(names(var_map)),
-          decreasing = TRUE
-        )]
-        for (col in candidates) {
-          found <- FALSE
-          for (vpart in sorted_vars) {
-            if (invert) {
-              if (endsWith(col, vpart) && nchar(col) > nchar(vpart)) {
-                tpart <- substr(col, 1, nchar(col) - nchar(vpart))
-                if (tpart %in% var_map[[vpart]]) {
-                  parsed[[col]] <- list(var = vpart, time = tpart)
-                  time_values <- c(time_values, tpart)
-                  found <- TRUE
-                  break
-                }
-              }
-            } else {
-              if (startsWith(col, vpart) && nchar(col) > nchar(vpart)) {
-                tpart <- substr(col, nchar(vpart) + 1, nchar(col))
-                if (tpart %in% var_map[[vpart]]) {
-                  parsed[[col]] <- list(var = vpart, time = tpart)
-                  time_values <- c(time_values, tpart)
-                  found <- TRUE
-                  break
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    # Fallback: if still nothing, try numeric‑only suffixes/prefixes
-    if (length(parsed) == 0) {
-      message(
-        "No time structure detected with automatic suffix/prefix detection. ",
-        "Falling back to numeric‑only time values. Consider using a non‑empty 'spacer'."
-      )
-      for (col in candidates) {
-        if (invert) {
-          match <- regexpr("^\\d+", col)
-          if (match == -1) {
-            next
-          }
-          time_val <- regmatches(col, match)
-          var_name <- substr(
-            col,
-            match + attr(match, "match.length"),
-            nchar(col)
-          )
-          if (var_name != "") {
-            parsed[[col]] <- list(var = var_name, time = time_val)
-            time_values <- c(time_values, time_val)
-          }
-        } else {
-          match <- regexpr("\\d+$", col)
-          if (match == -1) {
-            next
-          }
-          time_val <- regmatches(col, match)
-          var_name <- substr(col, 1, match - 1)
-          if (var_name != "") {
-            parsed[[col]] <- list(var = var_name, time = time_val)
-            time_values <- c(time_values, time_val)
-          }
-        }
-      }
-    }
-  } else {
-    # ---- Explicit separator ----
-    for (col in candidates) {
+  for (col in candidates) {
+    if (spacer != "") {
       if (!grepl(spacer, col, fixed = TRUE)) {
         next
       }
       parts <- strsplit(col, spacer, fixed = TRUE)[[1]]
+      if (length(parts) < 2) {
+        next
+      }
       if (invert) {
-        if (length(parts) < 2) {
-          next
-        }
         time_val <- parts[1]
         var_name <- paste(parts[-1], collapse = spacer)
       } else {
-        if (length(parts) < 2) {
-          next
-        }
-        var_name <- paste(parts[-length(parts)], collapse = spacer)
         time_val <- parts[length(parts)]
+        var_name <- paste(parts[-length(parts)], collapse = spacer)
       }
-      if (var_name != "") {
+      if (var_name != "" && var_name %in% select) {
         parsed[[col]] <- list(var = var_name, time = time_val)
         time_values <- c(time_values, time_val)
+      }
+    } else {
+      # spacer == "" : use stubs directly
+      for (stub in select) {
+        if (!invert) {
+          if (startsWith(col, stub) && nchar(col) > nchar(stub)) {
+            time_val <- substr(col, nchar(stub) + 1, nchar(col))
+            parsed[[col]] <- list(var = stub, time = time_val)
+            time_values <- c(time_values, time_val)
+            break
+          }
+        } else {
+          if (endsWith(col, stub) && nchar(col) > nchar(stub)) {
+            time_val <- substr(col, 1, nchar(col) - nchar(stub))
+            parsed[[col]] <- list(var = stub, time = time_val)
+            time_values <- c(time_values, time_val)
+            break
+          }
+        }
       }
     }
   }
 
-  # ---- Early check: if no columns parsed ----
   if (length(parsed) == 0) {
     stop(
-      "No columns were identified as time‑varying based on the current settings.\n",
-      "Check 'select', 'spacer', and 'invert' arguments.",
+      "No columns were identified as time‑varying. ",
+      "Check 'select', 'spacer', and 'invert'.",
       call. = FALSE
     )
   }
 
-  # ---- Filter parsed to those with var in select ----
-  keep <- sapply(parsed, function(x) x$var %in% select)
-  if (is.list(keep)) {
-    keep <- unlist(keep)
-  }
-  parsed <- parsed[keep]
-  if (length(parsed) == 0) {
-    stop(
-      "No columns found that match the variable stubs in 'select'.\n",
-      "Check 'select', 'spacer', and 'invert' settings, and ensure that the column names\n",
-      "follow the pattern variable + spacer + time (or time + spacer + variable).",
-      call. = FALSE
-    )
-  }
-
-  # Verify every stub appears at least once
-  present_stubs <- unique(sapply(parsed, function(x) x$var))
+  present_stubs <- unique(sapply(parsed, `[[`, "var"))
   missing_stubs <- setdiff(select, present_stubs)
   if (length(missing_stubs) > 0) {
     stop(
@@ -449,24 +382,23 @@ make_long <- function(
     )
   }
 
-  # ---- Check invert (warning) ----
-  var_names <- sapply(parsed, function(x) x$var, USE.NAMES = FALSE)
-  time_vals <- sapply(parsed, function(x) x$time, USE.NAMES = FALSE)
+  # ---- Optional invert‑warning ----
+  var_names <- sapply(parsed, `[[`, "var", USE.NAMES = FALSE)
+  time_vals <- sapply(parsed, `[[`, "time", USE.NAMES = FALSE)
   time_numeric <- suppressWarnings(as.numeric(time_vals))
   var_numeric <- suppressWarnings(as.numeric(var_names))
   prop_time_numeric <- sum(!is.na(time_numeric)) / length(time_vals)
   prop_var_numeric <- sum(!is.na(var_numeric)) / length(var_names)
   if (prop_time_numeric < 0.5 && prop_var_numeric > 0.5) {
-    suggested_invert <- ifelse(invert, "FALSE", "TRUE")
+    suggested <- ifelse(invert, "FALSE", "TRUE")
     warning(
       "It appears that 'invert' may be incorrectly specified.\n",
       "Most extracted time values are non‑numeric (",
       round((1 - prop_time_numeric) * 100),
       "%) while most variable names are numeric (",
       round(prop_var_numeric * 100),
-      "%).\nThis often happens when the order of variable and time components is swapped.\n",
-      "Consider setting 'invert = ",
-      suggested_invert,
+      "%).\nConsider setting 'invert = ",
+      suggested,
       "'.",
       call. = FALSE
     )
@@ -479,7 +411,7 @@ make_long <- function(
     if (any(duplicated(time_nums))) {
       stop(
         "Time labels contain values that become identical after numeric conversion ",
-        "(e.g., '01' and '1'). Please ensure unique numeric representations or treat times as character.",
+        "(e.g., '01' and '1').",
         call. = FALSE
       )
     }
@@ -488,25 +420,26 @@ make_long <- function(
     unique_times <- sort(unique_times)
   }
 
-  # ---- Group by variable ----
+  # ---- Group columns by variable ----
   var_to_cols <- list()
   for (col in names(parsed)) {
     var <- parsed[[col]]$var
     var_to_cols[[var]] <- c(var_to_cols[[var]], col)
   }
-
   vars_in_order <- select[select %in% names(var_to_cols)]
 
-  # Helper to generate column name
+  # ---- Column name generator ----
   generate_colname <- function(var, time, spacer, invert) {
     if (spacer == "") {
       if (invert) paste0(time, var) else paste0(var, time)
+    } else if (invert) {
+      paste0(time, spacer, var)
     } else {
-      if (invert) paste0(time, spacer, var) else paste0(var, spacer, time)
+      paste0(var, spacer, time)
     }
   }
 
-  # ---- Build expected column names ----
+  # ---- Build expected column names and detect conflicts ----
   varying_list <- list()
   v.names <- c()
   varying_cols <- c()
@@ -519,7 +452,6 @@ make_long <- function(
     varying_cols <- c(varying_cols, cols_for_var)
   }
 
-  # ---- Conflict check ----
   existing_tv_cols <- names(parsed)
   non_tv_cols <- setdiff(names(data), c(entity_col, existing_tv_cols))
   conflict_cols <- intersect(varying_cols, non_tv_cols)
@@ -527,9 +459,7 @@ make_long <- function(
     stop(
       "The following columns appear to be time‑varying but do not match the expected pattern:\n",
       paste(conflict_cols, collapse = ", "),
-      "\n",
-      "They may use a different separator or have inconsistent naming.\n",
-      "Check 'select', 'spacer', and 'invert' settings.",
+      "\nCheck 'select', 'spacer', and 'invert'.",
       call. = FALSE
     )
   }
@@ -556,13 +486,12 @@ make_long <- function(
               attributes(new_col) <- c(attributes(new_col), attrs_to_copy)
             }
           } else {
+            template_val <- template
             if (any(!is.na(template))) {
               valid_idx <- which(!is.na(template))[1]
               template_val <- template[valid_idx]
-              template_val[1] <- NA
-            } else {
-              template_val <- template[1]
             }
+            template_val[1] <- NA
             new_col <- rep(template_val, nrow(data))
             attrs <- attributes(template)
             if (!is.null(attrs)) attributes(new_col) <- attrs
@@ -586,13 +515,13 @@ make_long <- function(
   # ---- Detect constant columns ----
   final_constant <- setdiff(names(data), c(entity_col, varying_cols))
 
-  # ---- Time column conflict ----
+  # ---- Time column name conflict ----
   if (time_col %in% c(entity_col, final_constant, varying_cols)) {
     stop(
       "The chosen time column name '",
       time_col,
       "' already exists in the wide data as a constant or varying column. ",
-      "Please choose a different name for the time column using the 'index' argument.",
+      "Please choose a different name using 'index'.",
       call. = FALSE
     )
   }
@@ -602,7 +531,6 @@ make_long <- function(
     stop(
       "Reshaped variable name(s) conflict with existing column names: ",
       paste(overlap, collapse = ", "),
-      ". Please rename the variables or choose different entity/time column names.",
       call. = FALSE
     )
   }
@@ -643,12 +571,10 @@ make_long <- function(
   long <- long[order(long[[entity_col]], long[[time_col]]), ]
   rownames(long) <- NULL
 
-  # ---- Mark constant as NA if all varying are missing ----
+  # ---- NA handling for constant columns ----
   if (length(v.names) > 0) {
     all_na <- rowSums(is.na(long[, v.names, drop = FALSE])) == length(v.names)
-    if (any(all_na)) {
-      long[all_na, const_cols] <- NA
-    }
+    if (any(all_na)) long[all_na, const_cols] <- NA
   }
 
   # ---- Metadata and details ----
@@ -675,7 +601,6 @@ make_long <- function(
     reshaped_variables = v.names,
     static_variables = final_constant
   )
-
   attr(long, "metadata") <- new_metadata
   attr(long, "details") <- new_details
   class(long) <- c("panel_data", class(long))
@@ -715,7 +640,7 @@ make_long <- function(
       }
     }
     lines <- c(lines, current_line)
-    return(paste(lines, collapse = "\n"))
+    paste(lines, collapse = "\n")
   }
 
   prefix_static <- paste0(
@@ -727,10 +652,8 @@ make_long <- function(
 
   static_line <- wrap_vars(final_constant, prefix_static, cont_indent)
   cat(static_line, "\n")
-
   reshaped_line <- wrap_vars(v.names, prefix_reshaped, cont_indent)
-  cat(reshaped_line, "\n")
-  cat("\n")
+  cat(reshaped_line, "\n\n")
 
   return(long)
 }

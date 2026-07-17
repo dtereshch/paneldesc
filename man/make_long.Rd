@@ -14,7 +14,8 @@ are taken from its metadata unless overridden by \code{index}.}
 \item{select}{A character vector specifying the stubs (variable names) of the
 time‑varying columns to reshape. For example, if the wide data contains
 columns \code{x_2000}, \code{x_2001}, \code{y_2000}, \code{y_2001}, then \code{select = c("x", "y")}.
-This argument has no default and must be provided explicitly.}
+The stubs must be unique (no duplicate entries). This argument has no
+default and must be provided explicitly.}
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
@@ -24,9 +25,12 @@ values are extracted from the metadata.}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
-when no explicit separator exists; the function will then try to
-identify variable stubs by looking for a common prefix/suffix that is
-followed/preceded by varying numeric or non‑numeric time substrings.}
+when no explicit separator exists. When \code{spacer} is not empty, the
+function splits column names at the first/last occurrence of the
+separator (depending on \code{invert}) and matches the stub part against
+\code{select}. When \code{spacer} is empty, column names must \strong{start} (if
+\code{invert = FALSE}) or \strong{end} (if \code{invert = TRUE}) with one of the stubs
+in \code{select}, and the remaining part is taken as the time value.}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
@@ -74,6 +78,10 @@ The time periods are sorted according to their natural order
 If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
 \code{"1"} map to the same number), the function stops with an error.
 
+Only the time periods that appear in the columns of the selected stubs are
+used. Columns belonging to unselected stubs are ignored when determining the
+set of time points.
+
 If some variable‑time combinations are missing from the wide format, the
 function adds those columns filled with \code{NA} and prints a message.
 After reshaping, if a row has \code{NA} for \strong{all} reshaped variables,
@@ -110,22 +118,38 @@ for the entity and time variables are preserved.}
 \note{
 \strong{Desirable input data} – The input wide data.frame should have one row per
 entity and column names that follow a consistent naming convention. Time‑varying
-columns must use the same separator (if \code{spacer} is not empty) and the same
-ordering of variable/time parts. The entity column must contain unique
-identifiers (no duplicates). When \code{spacer = ""}, the function identifies
-variable stubs by looking for a common prefix that is followed by varying
-time suffixes (or, if \code{invert = TRUE}, a common suffix preceded by varying
-time prefixes). This approach works reliably when the time parts are either
-all numeric or have the same character length across columns for a given
-variable. Purely numeric column names (e.g., \code{"2000"}, \code{"2001"}) are \strong{not}
-recognised as time‑varying; use a non‑empty \code{spacer} and explicit variable
-names in such cases.
+columns must use the same separator (if \code{spacer} is not empty) or the same
+stub‑time pattern (if \code{spacer} is empty). The entity column must contain unique
+identifiers (no duplicates). Purely numeric column names (e.g., \code{"2000"},
+\code{"2001"}) are \strong{not} recognised as time‑varying; use a non‑empty \code{spacer} and
+explicit variable names in such cases.
 
 The input wide data must have unique entity values; duplicates cause an error.
-
-A warning is issued when the automatic separator detection encounters columns
-that use a different separator; those are treated as time‑invariant.
 }
+\section{Handling of \code{spacer = ""}}{
+
+When \code{spacer = ""} the function splits column names using the \strong{stubs given in
+\code{select}}. Every column that should be reshaped must start with a stub (if
+\code{invert = FALSE}) or end with a stub (if \code{invert = TRUE}), and the remainder
+of the column name is taken as the time value. This rule is strict:
+\itemize{
+\item \strong{No stub may be a prefix of another} when \code{invert = FALSE} (or a suffix
+when \code{invert = TRUE}). If this condition is violated an error is thrown
+because a column name could match multiple stubs, making the split
+ambiguous.
+\item For example, \code{select = c("gdp", "gdp_ppp")} with \code{invert = FALSE} and
+\code{spacer = ""} would cause an error because \code{"gdp"} is a prefix of
+\code{"gdp_ppp"}, and a column named \code{gdp_ppp2000} would match both stubs.
+The solution is to \strong{use a non‑empty \code{spacer}} (e.g., \code{spacer = "_"})
+when column names contain a delimiter, or to rename the variables so
+that no stub is a prefix/suffix of another.
+\item If you have columns like \code{gdp2000}, \code{gdp2001}, \code{gdp_ppp2000} etc.,
+simply set \code{spacer = "_"} and \code{select = c("gdp", "gdp_ppp")}. The
+underscore will be used to separate the stub from the time value,
+avoiding any ambiguity.
+}
+}
+
 \examples{
 data(production)
 

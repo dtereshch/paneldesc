@@ -65,7 +65,10 @@ The reshaped columns are ordered as follows: the entity column appears first,
 then any time‑invariant variables (in the order they appear in the input data),
 and finally the selected time‑varying variables, grouped by variable
 (i.e., all time periods for the first variable, then all time periods for
-the second variable, and so on). Time periods are ordered by their natural order.
+the second variable, and so on). Time periods are ordered by their natural
+order. For character or numeric time variables this means increasing order.
+For factor time variables the order follows the factor levels; this may not
+represent chronological order unless the levels are set appropriately.
 
 Upon successful reshaping, a summary message is printed with aligned headers:
 \itemize{
@@ -94,15 +97,12 @@ if duplicates are detected, the function stops with an error listing the
 offending pairs. Rows with missing values in the entity or time variables are
 automatically removed (with a message) before reshaping.
 
-The reshaping preserves standard atomic types and factors, but complex S3
-classes like \code{POSIXlt} may not survive the process. When extracting static
-variables, the function uses \code{do.call(c, ...)} to preserve common classes
-such as \code{Date}, \code{POSIXct}, and \code{difftime}. If a static variable contains only
-\code{NA} values, the original class is still preserved (using the first row’s
-value as a template). If a static variable has a class that is not among the
-basic atomic types or factors and contains at least one non‑\code{NA} observation,
-a warning is issued, and you should consider converting such columns to
-simpler types.
+The reshaping preserves standard atomic types and factors. When extracting
+static variables, the function attempts to preserve the original column class
+(e.g., \code{Date}, \code{POSIXct}). If the class cannot be maintained (for example
+because the column’s assignment method does not handle \code{NA} values as
+expected), a warning is issued and you should consider converting the column
+to a simpler type before calling \code{make_wide()}.
 
 Internally, a temporary separator \code{"._TEMP_."} is used during the reshape
 step and later replaced by the user‑provided \code{spacer}. The function checks
