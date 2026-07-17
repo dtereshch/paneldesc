@@ -48,8 +48,11 @@
 #' time‑invariant. The function verifies that they are indeed constant over
 #' time for each entity; if not, it stops with an error listing the offenders.
 #'
-#' The reshaped columns are ordered by variable first (all periods of variable 1,
-#' then all periods of variable 2, etc.). Time periods are ordered naturally.
+#' The reshaped columns are ordered as follows: the entity column appears first,
+#' then any time‑invariant variables (in the order they appear in the input data),
+#' and finally the selected time‑varying variables, grouped by variable
+#' (i.e., all time periods for the first variable, then all time periods for
+#' the second variable, and so on). Time periods are ordered by their natural order.
 #'
 #' Upon successful reshaping, a summary message is printed with aligned headers:
 #' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
@@ -57,7 +60,9 @@
 #'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.
+#'         If the input was a `panel_data` object, the original metadata elements
+#'         (entity, time, and delta) are preserved.}
 #'   \item{`details`}{List with components:
 #'         \describe{
 #'           \item{`reshaped_variables`}{character vector of all wide column names}
@@ -70,15 +75,52 @@
 #'
 #' @note
 #' The input long data must have exactly one row per entity–time combination;
-#' duplicates cause an error. Rows with missing entity or time values are removed.
-#' The reshaping preserves standard atomic types and factors.
+#' if duplicates are detected, the function stops with an error listing the
+#' offending pairs. Rows with missing values in the entity or time variables are
+#' automatically removed (with a message) before reshaping.
 #'
-#' @seealso [make_panel()], [make_long()], [make_balanced()]
+#' The reshaping preserves standard atomic types and factors, but complex S3
+#' classes like `POSIXlt` may not survive the process. When extracting static
+#' variables, the function uses `do.call(c, ...)` to preserve common classes
+#' such as `Date`, `POSIXct`, and `difftime`. However, if a static variable
+#' has a class that is not among the basic atomic types or factors, a warning
+#' is issued, and you should consider converting such columns to simpler types.
+#'
+#' Internally, a temporary separator `"._TEMP_."` is used during the reshape
+#' step and later replaced by the user‑provided `spacer`. The function checks
+#' that neither column names nor time values contain this exact string; if they
+#' do, an error is raised. Avoid using this substring in your variable names
+#' and time values.
+#'
+#' @seealso
+#' See also [make_panel()], [make_long()], [make_balanced()].
 #'
 #' @examples
 #' data(production)
-#' wide <- make_wide(production, select = c("sales", "labor"),
+#'
+#' # Define the time-varying variables to reshape (optional, for reuse)
+#' vars <- c("sales", "capital", "labor", "industry", "ownership")
+#'
+#' # Direct selection of variables inside the function
+#' wide <- make_wide(production,
+#'                   select = c("sales", "capital", "labor", "industry", "ownership"),
 #'                   index = c("firm", "year"))
+#'
+#' # Using a pre-defined vector
+#' wide2 <- make_wide(production, select = vars, index = c("firm", "year"))
+#'
+#' # Custom spacer and inverted order
+#' wide3 <- make_wide(production,
+#'                    select = vars,
+#'                    index = c("firm", "year"),
+#'                    spacer = ".", invert = TRUE)
+#'
+#' # With panel_data object
+#' panel <- make_panel(production, index = c("firm", "year"))
+#' wide4 <- make_wide(panel, select = vars)
+#'
+#' # Accessing attributes
+#' attr(wide, "metadata")
 #' attr(wide, "details")
 #'
 #' @importFrom utils head
@@ -108,7 +150,7 @@ make_wide <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
-  # ---- Extract index (entity, time) ----
+  # ---- Extract index ----
   entity_var <- NULL
   time_var <- NULL
   keep_panel_class <- FALSE

@@ -48,16 +48,25 @@
 #' | 2  | 2 | 8 | 6 | B |
 #'
 #' All columns not in `select` (or the entity column) are treated as
-#' time‑invariant and are replicated for each time period.
+#' time‑invariant and are replicated for each time period. The function
+#' does **not** verify invariance because wide data cannot be checked;
+#' it relies on the user's judgment.
 #'
 #' The reshaped columns are ordered as follows: the entity column appears first,
-#' then the time column, then static columns, and finally the reshaped variables
-#' in the order of `select`. Time periods are sorted naturally.
+#' then the time column, then any static (time‑invariant) columns, and finally
+#' all time‑varying variables in the order they appear in `select`.
+#' The time periods are sorted according to their natural order
+#' (numerically if all values are numeric, otherwise lexicographically).
+#' If numeric sorting would produce duplicate representations (e.g., `"01"` and
+#' `"1"` map to the same number), the function stops with an error.
 #'
-#' If some variable‑time combinations are missing, the function adds those
-#' columns filled with `NA`.
+#' If some variable‑time combinations are missing from the wide format, the
+#' function adds those columns filled with `NA` and prints a message.
 #'
-#' The resulting time column is converted to the most appropriate type.
+#' The resulting time column is converted to the most appropriate type:
+#' - If all time values are integers, the column becomes `integer`.
+#' - If they are numeric but not integers, it becomes `double`.
+#' - Otherwise, it remains `character`.
 #'
 #' Upon successful reshaping, a summary message is printed with aligned headers:
 #' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
@@ -65,29 +74,75 @@
 #'
 #' The returned object has class `"panel_data"` and two additional attributes:
 #' \describe{
-#'   \item{`metadata`}{List containing the function name and the arguments used.}
+#'   \item{`metadata`}{List containing the function name and the arguments used.
+#'         If the input was a `panel_wide` object, the original metadata elements
+#'         for the entity and time variables are preserved.}
 #'   \item{`details`}{List with components:
 #'         \describe{
-#'           \item{`reshaped_variables`}{character vector of the stubs}
+#'           \item{`reshaped_variables`}{character vector of the long‑form variable stubs}
 #'           \item{`static_variables`}{character vector of time‑invariant columns}
 #'         }
 #'   }
 #' }
 #'
 #' @note
-#' The input wide data must have one row per entity (unique entity values).
-#' Column names must follow a consistent pattern. If `spacer = ""`, heuristic
-#' detection is used; all‑digit column names are not recognized – use a non‑empty
-#' spacer and proper variable names.
+#' **Desirable input data** – The input wide data.frame should have one row per
+#' entity and column names that follow a consistent naming convention. Time‑varying
+#' columns must use the same separator (if `spacer` is not empty) and the same
+#' ordering of variable/time parts. The entity column must contain unique
+#' identifiers (no duplicates). When `spacer = ""`, automatic detection works best
+#' when column names consist of a variable name directly followed by a time suffix
+#' (or preceded by a time prefix if `invert = TRUE`) using only letters, digits,
+#' or a consistent numeric time pattern.
 #'
-#' @seealso [make_panel()], [make_wide()], [make_balanced()]
+#' The input wide data must have unique entity values; duplicates cause an error.
+#'
+#' When `spacer = ""`, the function uses heuristic detection. Column names that
+#' consist solely of digits (e.g., `"2000"`, `"2001"`) are **not** recognized as
+#' time‑varying; if you have such columns, you should use a non‑empty `spacer`
+#' and proper variable names (e.g., `"x_2000"`).
+#'
+#' A warning is issued when the automatic separator detection encounters columns
+#' that use a different separator; those are treated as time‑invariant.
+#'
+#' @seealso
+#' See also [make_panel()], [make_wide()], [make_balanced()].
 #'
 #' @examples
 #' data(production)
-#' wide <- make_wide(production, select = c("sales", "labor"),
+#'
+#' # Define the time-varying variables to reshape (optional, for reuse)
+#' vars <- c("sales", "capital", "labor", "industry", "ownership")
+#'
+#' # First create a wide data frame (using direct specification)
+#' wide <- make_wide(production,
+#'                   select = c("sales", "capital", "labor", "industry", "ownership"),
 #'                   index = c("firm", "year"))
-#' long <- make_long(wide, select = c("sales", "labor"),
+#'
+#' # Direct selection of variables inside the function
+#' long <- make_long(wide,
+#'                   select = c("sales", "capital", "labor", "industry", "ownership"),
 #'                   index = c("firm", "year"))
+#'
+#' # Using a pre-defined vector
+#' long2 <- make_long(wide, select = vars, index = c("firm", "year"))
+#'
+#' # Custom spacer and inverted order
+#' wide_custom <- make_wide(production,
+#'                          select = vars,
+#'                          index = c("firm", "year"),
+#'                          spacer = ".", invert = TRUE)
+#' long3 <- make_long(wide_custom,
+#'                    select = vars,
+#'                    spacer = ".", invert = TRUE)
+#'
+#' # With panel_wide object (uses metadata)
+#' panel <- make_panel(production, index = c("firm", "year"))
+#' wide_panel <- make_wide(panel, select = vars)
+#' long_panel <- make_long(wide_panel, select = vars)
+#'
+#' # Accessing attributes
+#' attr(long, "metadata")
 #' attr(long, "details")
 #'
 #' @importFrom stats reshape
