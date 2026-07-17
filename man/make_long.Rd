@@ -25,7 +25,8 @@ values are extracted from the metadata.}
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
 when no explicit separator exists; the function will then try to
-identify repeated numeric or non‑numeric time substrings.}
+identify variable stubs by looking for a common prefix/suffix that is
+followed/preceded by varying numeric or non‑numeric time substrings.}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
@@ -75,6 +76,10 @@ If numeric sorting would produce duplicate representations (e.g., \code{"01"} an
 
 If some variable‑time combinations are missing from the wide format, the
 function adds those columns filled with \code{NA} and prints a message.
+After reshaping, if a row has \code{NA} for \strong{all} reshaped variables,
+the static columns for that row are also set to \code{NA}.  This prevents
+a false impression that the entity had a valid observation at that time
+point (only time‑varying variables were missing).
 
 The resulting time column is converted to the most appropriate type:
 \itemize{
@@ -107,17 +112,16 @@ for the entity and time variables are preserved.}
 entity and column names that follow a consistent naming convention. Time‑varying
 columns must use the same separator (if \code{spacer} is not empty) and the same
 ordering of variable/time parts. The entity column must contain unique
-identifiers (no duplicates). When \code{spacer = ""}, automatic detection works best
-when column names consist of a variable name directly followed by a time suffix
-(or preceded by a time prefix if \code{invert = TRUE}) using only letters, digits,
-or a consistent numeric time pattern.
+identifiers (no duplicates). When \code{spacer = ""}, the function identifies
+variable stubs by looking for a common prefix that is followed by varying
+time suffixes (or, if \code{invert = TRUE}, a common suffix preceded by varying
+time prefixes). This approach works reliably when the time parts are either
+all numeric or have the same character length across columns for a given
+variable. Purely numeric column names (e.g., \code{"2000"}, \code{"2001"}) are \strong{not}
+recognised as time‑varying; use a non‑empty \code{spacer} and explicit variable
+names in such cases.
 
 The input wide data must have unique entity values; duplicates cause an error.
-
-When \code{spacer = ""}, the function uses heuristic detection. Column names that
-consist solely of digits (e.g., \code{"2000"}, \code{"2001"}) are \strong{not} recognized as
-time‑varying; if you have such columns, you should use a non‑empty \code{spacer}
-and proper variable names (e.g., \code{"x_2000"}).
 
 A warning is issued when the automatic separator detection encounters columns
 that use a different separator; those are treated as time‑invariant.

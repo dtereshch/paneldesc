@@ -18,7 +18,8 @@
 #' @param spacer A character string used to separate variable names and time
 #'        values in the wide column names. Default = `"_"`. Use `""` (empty string)
 #'        when no explicit separator exists; the function will then try to
-#'        identify repeated numeric or non‑numeric time substrings.
+#'        identify variable stubs by looking for a common prefix/suffix that is
+#'        followed/preceded by varying numeric or non‑numeric time substrings.
 #' @param invert A logical flag indicating the order of components in column
 #'        names. If `FALSE`, column names are `"variable_spacer_time"`; if `TRUE`,
 #'        they are `"time_spacer_variable"`. Default = `FALSE`.
@@ -62,6 +63,10 @@
 #'
 #' If some variable‑time combinations are missing from the wide format, the
 #' function adds those columns filled with `NA` and prints a message.
+#' After reshaping, if a row has `NA` for **all** reshaped variables,
+#' the static columns for that row are also set to `NA`.  This prevents
+#' a false impression that the entity had a valid observation at that time
+#' point (only time‑varying variables were missing).
 #'
 #' The resulting time column is converted to the most appropriate type:
 #' - If all time values are integers, the column becomes `integer`.
@@ -90,17 +95,16 @@
 #' entity and column names that follow a consistent naming convention. Time‑varying
 #' columns must use the same separator (if `spacer` is not empty) and the same
 #' ordering of variable/time parts. The entity column must contain unique
-#' identifiers (no duplicates). When `spacer = ""`, automatic detection works best
-#' when column names consist of a variable name directly followed by a time suffix
-#' (or preceded by a time prefix if `invert = TRUE`) using only letters, digits,
-#' or a consistent numeric time pattern.
+#' identifiers (no duplicates). When `spacer = ""`, the function identifies
+#' variable stubs by looking for a common prefix that is followed by varying
+#' time suffixes (or, if `invert = TRUE`, a common suffix preceded by varying
+#' time prefixes). This approach works reliably when the time parts are either
+#' all numeric or have the same character length across columns for a given
+#' variable. Purely numeric column names (e.g., `"2000"`, `"2001"`) are **not**
+#' recognised as time‑varying; use a non‑empty `spacer` and explicit variable
+#' names in such cases.
 #'
 #' The input wide data must have unique entity values; duplicates cause an error.
-#'
-#' When `spacer = ""`, the function uses heuristic detection. Column names that
-#' consist solely of digits (e.g., `"2000"`, `"2001"`) are **not** recognized as
-#' time‑varying; if you have such columns, you should use a non‑empty `spacer`
-#' and proper variable names (e.g., `"x_2000"`).
 #'
 #' A warning is issued when the automatic separator detection encounters columns
 #' that use a different separator; those are treated as time‑invariant.
@@ -262,132 +266,83 @@ make_long <- function(
   time_values <- c()
 
   if (spacer == "") {
-    # First strategy: time parts with ≥2 variables
-    detect_time_parts <- function(col_names, invert) {
-      time_to_vars <- list()
+    # ---- Auto‑detection (improved) -------------------------------------------
+    # Only the safe strategy: find variable stubs that are shared across
+    # columns and are followed (or preceded) by varying time substrings.
+    # This avoids the earlier bug where short, frequent substrings were
+    # mistakenly treated as time parts.
+    detect_var_parts <- function(col_names, invert) {
+      var_to_times <- list()
       for (nm in col_names) {
         len <- nchar(nm)
         if (len < 2) {
           next
         }
         if (invert) {
+          # time prefix, variable suffix
           for (i in 1:(len - 1)) {
             tpart <- substr(nm, 1, i)
             vpart <- substr(nm, i + 1, len)
-            time_to_vars[[tpart]] <- unique(c(time_to_vars[[tpart]], vpart))
+            var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
           }
         } else {
+          # variable prefix, time suffix
           for (i in 1:(len - 1)) {
-            tpart <- substr(nm, len - i + 1, len)
-            vpart <- substr(nm, 1, len - i)
-            time_to_vars[[tpart]] <- unique(c(time_to_vars[[tpart]], vpart))
+            vpart <- substr(nm, 1, i)
+            tpart <- substr(nm, i + 1, len)
+            var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
           }
         }
       }
-      time_to_vars[lengths(time_to_vars) > 1]
+      # keep only stubs that appear with at least 2 distinct time values
+      var_to_times[lengths(var_to_times) > 1]
     }
 
-    time_map <- detect_time_parts(candidates, invert)
-    if (length(time_map) > 0) {
-      sorted_times <- names(time_map)[order(
-        nchar(names(time_map)),
-        decreasing = TRUE
-      )]
-      for (col in candidates) {
-        found <- FALSE
-        for (tpart in sorted_times) {
-          if (invert) {
-            if (startsWith(col, tpart) && nchar(col) > nchar(tpart)) {
-              var_name <- substr(col, nchar(tpart) + 1, nchar(col))
-              if (var_name != "") {
-                parsed[[col]] <- list(var = var_name, time = tpart)
-                time_values <- c(time_values, tpart)
-                found <- TRUE
-                break
-              }
-            }
-          } else {
-            if (endsWith(col, tpart) && nchar(col) > nchar(tpart)) {
-              var_name <- substr(col, 1, nchar(col) - nchar(tpart))
-              if (var_name != "") {
-                parsed[[col]] <- list(var = var_name, time = tpart)
-                time_values <- c(time_values, tpart)
-                found <- TRUE
-                break
-              }
-            }
-          }
+    var_map <- detect_var_parts(candidates, invert)
+    if (length(var_map) > 0) {
+      # filter out stubs whose time parts are all non‑numeric *and* have
+      # varying lengths (common in messy data)
+      keep <- logical(length(var_map))
+      names(keep) <- names(var_map)
+      for (v in names(var_map)) {
+        times <- var_map[[v]]
+        num_times <- suppressWarnings(as.numeric(times))
+        if (all(!is.na(num_times))) {
+          keep[v] <- TRUE # all numeric -> safe
+        } else {
+          # if non‑numeric, they must all have the same length
+          keep[v] <- length(unique(nchar(times))) == 1
         }
       }
-    }
+      var_map <- var_map[keep]
 
-    # Second strategy: var parts with ≥2 times
-    if (length(parsed) == 0) {
-      detect_var_parts <- function(col_names, invert) {
-        var_to_times <- list()
-        for (nm in col_names) {
-          len <- nchar(nm)
-          if (len < 2) {
-            next
-          }
-          if (invert) {
-            for (i in 1:(len - 1)) {
-              tpart <- substr(nm, 1, i)
-              vpart <- substr(nm, i + 1, len)
-              var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
-            }
-          } else {
-            for (i in 1:(len - 1)) {
-              vpart <- substr(nm, 1, i)
-              tpart <- substr(nm, i + 1, len)
-              var_to_times[[vpart]] <- unique(c(var_to_times[[vpart]], tpart))
-            }
-          }
-        }
-        var_to_times[lengths(var_to_times) > 1]
-      }
-
-      var_map <- detect_var_parts(candidates, invert)
       if (length(var_map) > 0) {
-        keep <- logical(length(var_map))
-        names(keep) <- names(var_map)
-        for (v in names(var_map)) {
-          times <- var_map[[v]]
-          num_times <- suppressWarnings(as.numeric(times))
-          if (all(!is.na(num_times))) {
-            keep[v] <- TRUE
-          } else {
-            keep[v] <- length(unique(nchar(times))) == 1
-          }
-        }
-        var_map <- var_map[keep]
-        if (length(var_map) > 0) {
-          sorted_vars <- names(var_map)[order(
-            nchar(names(var_map)),
-            decreasing = TRUE
-          )]
-          for (col in candidates) {
-            found <- FALSE
-            for (vpart in sorted_vars) {
-              if (invert) {
-                if (endsWith(col, vpart) && nchar(col) > nchar(vpart)) {
-                  tpart <- substr(col, 1, nchar(col) - nchar(vpart))
-                  if (tpart %in% var_map[[vpart]]) {
-                    parsed[[col]] <- list(var = vpart, time = tpart)
-                    time_values <- c(time_values, tpart)
-                    found <- TRUE
-                    break
-                  }
+        # sort stubs by decreasing nchar to match longer names first
+        sorted_vars <- names(var_map)[order(
+          nchar(names(var_map)),
+          decreasing = TRUE
+        )]
+        for (col in candidates) {
+          found <- FALSE
+          for (vpart in sorted_vars) {
+            if (invert) {
+              if (endsWith(col, vpart) && nchar(col) > nchar(vpart)) {
+                tpart <- substr(col, 1, nchar(col) - nchar(vpart))
+                if (tpart %in% var_map[[vpart]]) {
+                  parsed[[col]] <- list(var = vpart, time = tpart)
+                  time_values <- c(time_values, tpart)
+                  found <- TRUE
+                  break
                 }
-              } else {
-                if (startsWith(col, vpart) && nchar(col) > nchar(vpart)) {
-                  tpart <- substr(col, nchar(vpart) + 1, nchar(col))
-                  if (tpart %in% var_map[[vpart]]) {
-                    parsed[[col]] <- list(var = vpart, time = tpart)
-                    time_values <- c(time_values, tpart)
-                    found <- TRUE
-                    break
-                  }
+              }
+            } else {
+              if (startsWith(col, vpart) && nchar(col) > nchar(vpart)) {
+                tpart <- substr(col, nchar(vpart) + 1, nchar(col))
+                if (tpart %in% var_map[[vpart]]) {
+                  parsed[[col]] <- list(var = vpart, time = tpart)
+                  time_values <- c(time_values, tpart)
+                  found <- TRUE
+                  break
                 }
               }
             }
@@ -396,11 +351,11 @@ make_long <- function(
       }
     }
 
-    # Fallback: numeric-only suffixes/prefixes (skip bare columns)
+    # Fallback: if still nothing, try numeric‑only suffixes/prefixes
     if (length(parsed) == 0) {
       message(
         "No time structure detected with automatic suffix/prefix detection. ",
-        "Falling back to numeric-only time values. Consider using a non-empty 'spacer'."
+        "Falling back to numeric‑only time values. Consider using a non‑empty 'spacer'."
       )
       for (col in candidates) {
         if (invert) {
@@ -433,7 +388,7 @@ make_long <- function(
       }
     }
   } else {
-    # Explicit separator
+    # ---- Explicit separator ----
     for (col in candidates) {
       if (!grepl(spacer, col, fixed = TRUE)) {
         next
@@ -462,7 +417,7 @@ make_long <- function(
   # ---- Early check: if no columns parsed ----
   if (length(parsed) == 0) {
     stop(
-      "No columns were identified as time-varying based on the current settings.\n",
+      "No columns were identified as time‑varying based on the current settings.\n",
       "Check 'select', 'spacer', and 'invert' arguments.",
       call. = FALSE
     )
@@ -505,7 +460,7 @@ make_long <- function(
     suggested_invert <- ifelse(invert, "FALSE", "TRUE")
     warning(
       "It appears that 'invert' may be incorrectly specified.\n",
-      "Most extracted time values are non-numeric (",
+      "Most extracted time values are non‑numeric (",
       round((1 - prop_time_numeric) * 100),
       "%) while most variable names are numeric (",
       round(prop_var_numeric * 100),
@@ -570,7 +525,7 @@ make_long <- function(
   conflict_cols <- intersect(varying_cols, non_tv_cols)
   if (length(conflict_cols) > 0) {
     stop(
-      "The following columns appear to be time-varying but do not match the expected pattern:\n",
+      "The following columns appear to be time‑varying but do not match the expected pattern:\n",
       paste(conflict_cols, collapse = ", "),
       "\n",
       "They may use a different separator or have inconsistent naming.\n",
