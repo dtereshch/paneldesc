@@ -82,9 +82,12 @@
 #' The reshaping preserves standard atomic types and factors, but complex S3
 #' classes like `POSIXlt` may not survive the process. When extracting static
 #' variables, the function uses `do.call(c, ...)` to preserve common classes
-#' such as `Date`, `POSIXct`, and `difftime`. However, if a static variable
-#' has a class that is not among the basic atomic types or factors, a warning
-#' is issued, and you should consider converting such columns to simpler types.
+#' such as `Date`, `POSIXct`, and `difftime`. If a static variable contains only
+#' `NA` values, the original class is still preserved (using the first row’s
+#' value as a template). If a static variable has a class that is not among the
+#' basic atomic types or factors and contains at least one non‑`NA` observation,
+#' a warning is issued, and you should consider converting such columns to
+#' simpler types.
 #'
 #' Internally, a temporary separator `"._TEMP_."` is used during the reshape
 #' step and later replaced by the user‑provided `spacer`. The function checks
@@ -332,31 +335,51 @@ make_wide <- function(
           ordered = is.ordered(data[[v]])
         )
       } else {
-        static_data[[v]] <- do.call(c, first_vals)
-        cls <- class(data[[v]])
-        basic_classes <- c(
-          "numeric",
-          "integer",
-          "character",
-          "logical",
-          "factor",
-          "ordered",
-          "Date",
-          "POSIXct",
-          "POSIXt",
-          "difftime",
-          "hms"
-        )
-        if (!any(cls %in% basic_classes) && !is.null(cls)) {
-          warning(
-            "Static variable '",
-            v,
-            "' has class(es) ",
-            paste(cls, collapse = ", "),
-            " that may not be preserved during extraction; ",
-            "consider converting to a simpler type.",
-            call. = FALSE
+        if (length(first_vals) == 0) {
+          static_data[[v]] <- data[[v]][0]
+        } else if (
+          all(vapply(
+            first_vals,
+            function(x) length(x) == 1 && is.na(x),
+            logical(1)
+          ))
+        ) {
+          static_data[[v]] <- rep(data[[v]][1], length(entities_uniq))
+        } else {
+          static_data[[v]] <- do.call(c, first_vals)
+        }
+        if (
+          !all(vapply(
+            first_vals,
+            function(x) length(x) == 1 && is.na(x),
+            logical(1)
+          ))
+        ) {
+          cls <- class(data[[v]])
+          basic_classes <- c(
+            "numeric",
+            "integer",
+            "character",
+            "logical",
+            "factor",
+            "ordered",
+            "Date",
+            "POSIXct",
+            "POSIXt",
+            "difftime",
+            "hms"
           )
+          if (!any(cls %in% basic_classes) && !is.null(cls)) {
+            warning(
+              "Static variable '",
+              v,
+              "' has class(es) ",
+              paste(cls, collapse = ", "),
+              " that may not be preserved during extraction; ",
+              "consider converting to a simpler type.",
+              call. = FALSE
+            )
+          }
         }
       }
     }

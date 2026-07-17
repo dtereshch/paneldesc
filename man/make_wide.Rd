@@ -97,9 +97,12 @@ automatically removed (with a message) before reshaping.
 The reshaping preserves standard atomic types and factors, but complex S3
 classes like \code{POSIXlt} may not survive the process. When extracting static
 variables, the function uses \code{do.call(c, ...)} to preserve common classes
-such as \code{Date}, \code{POSIXct}, and \code{difftime}. However, if a static variable
-has a class that is not among the basic atomic types or factors, a warning
-is issued, and you should consider converting such columns to simpler types.
+such as \code{Date}, \code{POSIXct}, and \code{difftime}. If a static variable contains only
+\code{NA} values, the original class is still preserved (using the first row’s
+value as a template). If a static variable has a class that is not among the
+basic atomic types or factors and contains at least one non‑\code{NA} observation,
+a warning is issued, and you should consider converting such columns to
+simpler types.
 
 Internally, a temporary separator \code{"._TEMP_."} is used during the reshape
 step and later replaced by the user‑provided \code{spacer}. The function checks
