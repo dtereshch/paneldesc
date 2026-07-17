@@ -25,12 +25,19 @@ values are extracted from the metadata.}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
-when no explicit separator exists. When \code{spacer} is not empty, the
-function splits column names at the first/last occurrence of the
-separator (depending on \code{invert}) and matches the stub part against
-\code{select}. When \code{spacer} is empty, column names must \strong{start} (if
-\code{invert = FALSE}) or \strong{end} (if \code{invert = TRUE}) with one of the stubs
-in \code{select}, and the remaining part is taken as the time value.}
+when no explicit separator exists. When \code{spacer} is not empty, the function
+splits column names on \strong{every} occurrence of the separator: if
+\code{invert = FALSE} the \strong{last} component is taken as the time value and the
+preceding components (re‑joined with the separator) form the variable stub;
+if \code{invert = TRUE} the \strong{first} component is the time value and the rest
+(re‑joined) is the stub. The stub is then matched against \code{select}.
+When \code{spacer} is empty, column names are matched to stubs using a
+\strong{longest‑prefix rule}: a column must \strong{start} (if \code{invert = FALSE})
+or \strong{end} (if \code{invert = TRUE}) with one of the stubs in \code{select}, and
+the remaining part becomes the time value. If multiple stubs could match,
+the \strong{longest} one is chosen automatically — this allows, for example,
+\code{select = c("gdp", "gdp_ppp")} to correctly assign \code{gdp_ppp2000} to the
+stub \code{"gdp_ppp"} and \code{gdp2000} to \code{"gdp"}.}
 
 \item{invert}{A logical flag indicating the order of components in column
 names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
@@ -129,25 +136,20 @@ The input wide data must have unique entity values; duplicates cause an error.
 \section{Handling of \code{spacer = ""}}{
 
 When \code{spacer = ""} the function splits column names using the \strong{stubs given in
-\code{select}}. Every column that should be reshaped must start with a stub (if
-\code{invert = FALSE}) or end with a stub (if \code{invert = TRUE}), and the remainder
-of the column name is taken as the time value. This rule is strict:
+\code{select}} by matching the longest possible stub. For each column:
 \itemize{
-\item \strong{No stub may be a prefix of another} when \code{invert = FALSE} (or a suffix
-when \code{invert = TRUE}). If this condition is violated an error is thrown
-because a column name could match multiple stubs, making the split
-ambiguous.
-\item For example, \code{select = c("gdp", "gdp_ppp")} with \code{invert = FALSE} and
-\code{spacer = ""} would cause an error because \code{"gdp"} is a prefix of
-\code{"gdp_ppp"}, and a column named \code{gdp_ppp2000} would match both stubs.
-The solution is to \strong{use a non‑empty \code{spacer}} (e.g., \code{spacer = "_"})
-when column names contain a delimiter, or to rename the variables so
-that no stub is a prefix/suffix of another.
-\item If you have columns like \code{gdp2000}, \code{gdp2001}, \code{gdp_ppp2000} etc.,
-simply set \code{spacer = "_"} and \code{select = c("gdp", "gdp_ppp")}. The
-underscore will be used to separate the stub from the time value,
-avoiding any ambiguity.
+\item If \code{invert = FALSE}, it checks whether the column \strong{starts with} one
+of the stubs; if multiple stubs match, the \strong{longest} one is used.
+\item If \code{invert = TRUE}, it checks whether the column \strong{ends with} one
+of the stubs, again choosing the longest match.
 }
+The remainder of the column name after removing the matched stub is taken as
+the time value. This approach works intuitively with stubs that share common
+prefixes (e.g., \code{"gdp"} and \code{"gdp_ppp"}): a column like \code{gdp_ppp2000} will
+correctly be assigned to \code{"gdp_ppp"} because it is longer than \code{"gdp"}, while
+\code{gdp2000} will be assigned to \code{"gdp"}. If you encounter a scenario where the
+longest‑match rule does not give the desired split, use a non‑empty \code{spacer}
+(e.g., \code{"_"}) to provide an explicit delimiter.
 }
 
 \examples{

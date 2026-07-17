@@ -18,12 +18,19 @@
 #'        values are extracted from the metadata.
 #' @param spacer A character string used to separate variable names and time
 #'        values in the wide column names. Default = `"_"`. Use `""` (empty string)
-#'        when no explicit separator exists. When `spacer` is not empty, the
-#'        function splits column names at the first/last occurrence of the
-#'        separator (depending on `invert`) and matches the stub part against
-#'        `select`. When `spacer` is empty, column names must **start** (if
-#'        `invert = FALSE`) or **end** (if `invert = TRUE`) with one of the stubs
-#'        in `select`, and the remaining part is taken as the time value.
+#'        when no explicit separator exists. When `spacer` is not empty, the function
+#'        splits column names on **every** occurrence of the separator: if
+#'        `invert = FALSE` the **last** component is taken as the time value and the
+#'        preceding components (re‑joined with the separator) form the variable stub;
+#'        if `invert = TRUE` the **first** component is the time value and the rest
+#'        (re‑joined) is the stub. The stub is then matched against `select`.
+#'        When `spacer` is empty, column names are matched to stubs using a
+#'        **longest‑prefix rule**: a column must **start** (if `invert = FALSE`)
+#'        or **end** (if `invert = TRUE`) with one of the stubs in `select`, and
+#'        the remaining part becomes the time value. If multiple stubs could match,
+#'        the **longest** one is chosen automatically — this allows, for example,
+#'        `select = c("gdp", "gdp_ppp")` to correctly assign `gdp_ppp2000` to the
+#'        stub `"gdp_ppp"` and `gdp2000` to `"gdp"`.
 #' @param invert A logical flag indicating the order of components in column
 #'        names. If `FALSE`, column names are `"variable_spacer_time"`; if `TRUE`,
 #'        they are `"time_spacer_variable"`. Default = `FALSE`.
@@ -100,26 +107,20 @@
 #'
 #' @section Handling of `spacer = ""`:
 #' When `spacer = ""` the function splits column names using the **stubs given in
-#' `select`**. Every column that should be reshaped must start with a stub (if
-#' `invert = FALSE`) or end with a stub (if `invert = TRUE`), and the remainder
-#' of the column name is taken as the time value. This rule is strict:
-#'
-#' * **No stub may be a prefix of another** when `invert = FALSE` (or a suffix
-#'   when `invert = TRUE`). If this condition is violated an error is thrown
-#'   because a column name could match multiple stubs, making the split
-#'   ambiguous.
-#'
-#' * For example, `select = c("gdp", "gdp_ppp")` with `invert = FALSE` and
-#'   `spacer = ""` would cause an error because `"gdp"` is a prefix of
-#'   `"gdp_ppp"`, and a column named `gdp_ppp2000` would match both stubs.
-#'   The solution is to **use a non‑empty `spacer`** (e.g., `spacer = "_"`)
-#'   when column names contain a delimiter, or to rename the variables so
-#'   that no stub is a prefix/suffix of another.
-#'
-#' * If you have columns like `gdp2000`, `gdp2001`, `gdp_ppp2000` etc.,
-#'   simply set `spacer = "_"` and `select = c("gdp", "gdp_ppp")`. The
-#'   underscore will be used to separate the stub from the time value,
-#'   avoiding any ambiguity.
+#' `select`** by matching the longest possible stub. For each column:
+#' \itemize{
+#'   \item If `invert = FALSE`, it checks whether the column **starts with** one
+#'         of the stubs; if multiple stubs match, the **longest** one is used.
+#'   \item If `invert = TRUE`, it checks whether the column **ends with** one
+#'         of the stubs, again choosing the longest match.
+#' }
+#' The remainder of the column name after removing the matched stub is taken as
+#' the time value. This approach works intuitively with stubs that share common
+#' prefixes (e.g., `"gdp"` and `"gdp_ppp"`): a column like `gdp_ppp2000` will
+#' correctly be assigned to `"gdp_ppp"` because it is longer than `"gdp"`, while
+#' `gdp2000` will be assigned to `"gdp"`. If you encounter a scenario where the
+#' longest‑match rule does not give the desired split, use a non‑empty `spacer`
+#' (e.g., `"_"`) to provide an explicit delimiter.
 #'
 #' @note
 #' **Desirable input data** – The input wide data.frame should have one row per
@@ -209,34 +210,6 @@ make_long <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
-  # ---- Prevent stub‑prefix ambiguity when spacer == "" ----
-  if (spacer == "") {
-    for (i in seq_along(select)) {
-      others <- setdiff(select, select[i])
-      if (!invert) {
-        if (any(startsWith(others, select[i]))) {
-          stop(
-            "When spacer is empty, a stub in 'select' must not be a prefix of another. ",
-            "Conflicting stub: '",
-            select[i],
-            "'.",
-            call. = FALSE
-          )
-        }
-      } else {
-        if (any(endsWith(others, select[i]))) {
-          stop(
-            "When spacer is empty, a stub in 'select' must not be a suffix of another. ",
-            "Conflicting stub: '",
-            select[i],
-            "'.",
-            call. = FALSE
-          )
-        }
-      }
-    }
-  }
-
   # ---- Extract index ----
   entity_col <- NULL
   time_col <- NULL
@@ -318,9 +291,16 @@ make_long <- function(
   all_cols <- names(data)
   candidates <- setdiff(all_cols, entity_col)
 
-  # ---- Parse columns (SIMPLIFIED: stub‑driven) ----
+  # ---- Parse columns (SIMPLIFIED, longest‑match for spacer == "") ----
   parsed <- list()
   time_values <- c()
+
+  # For empty spacer, sort stubs by decreasing length so longest matches first
+  stubs_sorted <- if (spacer == "") {
+    select[order(nchar(select), decreasing = TRUE)]
+  } else {
+    select
+  }
 
   for (col in candidates) {
     if (spacer != "") {
@@ -343,8 +323,8 @@ make_long <- function(
         time_values <- c(time_values, time_val)
       }
     } else {
-      # spacer == "" : use stubs directly
-      for (stub in select) {
+      # spacer == "" : longest‑prefix (or suffix) match
+      for (stub in stubs_sorted) {
         if (!invert) {
           if (startsWith(col, stub) && nchar(col) > nchar(stub)) {
             time_val <- substr(col, nchar(stub) + 1, nchar(col))
