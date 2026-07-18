@@ -4,7 +4,14 @@
 \alias{make_long}
 \title{Convert Panel Data from Wide to Long Format}
 \usage{
-make_long(data, select, index = NULL, spacer = "_", invert = FALSE)
+make_long(
+  data,
+  select,
+  index = NULL,
+  static = NULL,
+  spacer = "_",
+  invert = FALSE
+)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a wide format. If \code{data} has
@@ -22,6 +29,13 @@ entity column (first element) and the name to give to the new time
 column in the long format (second element).
 If not specified and \code{data} is a \code{panel_wide} object, the entity and time
 values are extracted from the metadata.}
+
+\item{static}{An optional character vector of names of time‑invariant variables.
+When provided, these columns are explicitly treated as static (not reshaped)
+and must be present in \code{data}. If \code{NULL} (default), the function behaves as
+before: all columns not matched by \code{select} (or the entity column) are
+considered static. This argument is never taken from the attributes of
+a \code{panel_wide} object – it must be supplied explicitly.}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
@@ -152,6 +166,25 @@ longest‑match rule does not give the desired split, use a non‑empty \code{sp
 (e.g., \code{"_"}) to provide an explicit delimiter.
 }
 
+\section{Using the \code{static} argument}{
+
+In wide data, column names like \code{x_1}, \code{x_2}, \code{x_const} may cause ambiguity:
+with \code{select = "x"} and \code{spacer = "_"}, \code{x_const} would be interpreted as
+variable \code{x} at time \code{const}. To explicitly mark \code{x_const} as time‑invariant,
+supply \code{static = "x_const"}. This ensures it is never reshaped.
+
+When \code{static} is specified, the function:
+\itemize{
+\item Fixes the indicated columns as static.
+\item Searches for any other columns not matched by \code{select} (auto‑detected).
+\item Checks that \strong{all} static variables (user‑defined and auto‑detected)
+are actually constant within each entity; a warning is issued if any
+variable shows variation.
+}
+The summary message distinguishes between the two groups only when both are
+present; otherwise it appears as usual.
+}
+
 \examples{
 data(production)
 
@@ -184,6 +217,11 @@ long3 <- make_long(wide_custom,
 panel <- make_panel(production, index = c("firm", "year"))
 wide_panel <- make_wide(panel, select = vars)
 long_panel <- make_long(wide_panel, select = vars)
+
+# Using the `static` argument to explicitly mark a time‑invariant variable
+# The `production` dataset contains `region`, which is constant over time.
+long_region <- make_long(wide, select = vars, index = c("firm", "year"),
+                         static = "region")
 
 # Accessing attributes
 attr(long, "metadata")

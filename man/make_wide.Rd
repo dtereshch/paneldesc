@@ -4,7 +4,14 @@
 \alias{make_wide}
 \title{Convert Panel Data from Long to Wide Format}
 \usage{
-make_wide(data, select, index = NULL, spacer = "_", invert = FALSE)
+make_wide(
+  data,
+  select,
+  index = NULL,
+  static = NULL,
+  spacer = "_",
+  invert = FALSE
+)
 }
 \arguments{
 \item{data}{A data.frame containing panel data in a long format.}
@@ -17,6 +24,12 @@ and must be provided explicitly.}
 entity and time variables.
 If not specified and data is a \code{panel_data} object, the entity and time values
 will be extracted from the data.frame attributes.}
+
+\item{static}{An optional character vector of names of time‑invariant variables.
+When provided, these columns are explicitly treated as static (not reshaped)
+and must be present in \code{data}. If \code{NULL} (default), the function behaves as
+before: all columns not in \code{select} or \code{index} are considered static.
+This argument is never taken from the attributes of a \code{panel_data} object.}
 
 \item{spacer}{A character string to insert between variable names and time
 values in the wide format column names. Default = \code{"_"}.}
@@ -76,6 +89,10 @@ Upon successful reshaping, a summary message is printed with aligned headers:
 \item \verb{Reshaped variables:} (each variable stub on a new line, grouped)
 }
 
+If \code{static} is explicitly provided and there are also auto‑detected static
+variables, the summary distinguishes them with \code{(user-defined)} and
+\code{(auto-detected)} annotations.
+
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
@@ -133,6 +150,11 @@ wide3 <- make_wide(production,
 # With panel_data object
 panel <- make_panel(production, index = c("firm", "year"))
 wide4 <- make_wide(panel, select = vars)
+
+# Using `static` to explicitly mark a time‑invariant variable
+# The `production` dataset contains `region`, which is constant over time.
+wide_region <- make_wide(production, select = vars,
+                         index = c("firm", "year"), static = "region")
 
 # Accessing attributes
 attr(wide, "metadata")

@@ -16,6 +16,12 @@
 #'        column in the long format (second element).
 #'        If not specified and `data` is a `panel_wide` object, the entity and time
 #'        values are extracted from the metadata.
+#' @param static An optional character vector of names of time‑invariant variables.
+#'        When provided, these columns are explicitly treated as static (not reshaped)
+#'        and must be present in `data`. If `NULL` (default), the function behaves as
+#'        before: all columns not matched by `select` (or the entity column) are
+#'        considered static. This argument is never taken from the attributes of
+#'        a `panel_wide` object – it must be supplied explicitly.
 #' @param spacer A character string used to separate variable names and time
 #'        values in the wide column names. Default = `"_"`. Use `""` (empty string)
 #'        when no explicit separator exists. When `spacer` is not empty, the function
@@ -122,6 +128,23 @@
 #' longest‑match rule does not give the desired split, use a non‑empty `spacer`
 #' (e.g., `"_"`) to provide an explicit delimiter.
 #'
+#' @section Using the `static` argument:
+#' In wide data, column names like `x_1`, `x_2`, `x_const` may cause ambiguity:
+#' with `select = "x"` and `spacer = "_"`, `x_const` would be interpreted as
+#' variable `x` at time `const`. To explicitly mark `x_const` as time‑invariant,
+#' supply `static = "x_const"`. This ensures it is never reshaped.
+#'
+#' When `static` is specified, the function:
+#' \itemize{
+#'   \item Fixes the indicated columns as static.
+#'   \item Searches for any other columns not matched by `select` (auto‑detected).
+#'   \item Checks that **all** static variables (user‑defined and auto‑detected)
+#'         are actually constant within each entity; a warning is issued if any
+#'         variable shows variation.
+#' }
+#' The summary message distinguishes between the two groups only when both are
+#' present; otherwise it appears as usual.
+#'
 #' @note
 #' **Desirable input data** – The input wide data.frame should have one row per
 #' entity and column names that follow a consistent naming convention. Time‑varying
@@ -169,6 +192,11 @@
 #' wide_panel <- make_wide(panel, select = vars)
 #' long_panel <- make_long(wide_panel, select = vars)
 #'
+#' # Using the `static` argument to explicitly mark a time‑invariant variable
+#' # The `production` dataset contains `region`, which is constant over time.
+#' long_region <- make_long(wide, select = vars, index = c("firm", "year"),
+#'                          static = "region")
+#'
 #' # Accessing attributes
 #' attr(long, "metadata")
 #' attr(long, "details")
@@ -179,6 +207,7 @@ make_long <- function(
   data,
   select,
   index = NULL,
+  static = NULL,
   spacer = "_",
   invert = FALSE
 ) {
@@ -208,6 +237,45 @@ make_long <- function(
   }
   if (!is.logical(invert) || length(invert) != 1) {
     stop("'invert' must be a single logical value", call. = FALSE)
+  }
+
+  # ---- Validate static ----
+  if (!is.null(static)) {
+    if (!is.character(static) || length(static) == 0) {
+      stop(
+        "'static' must be a non-empty character vector or NULL",
+        call. = FALSE
+      )
+    }
+    if (any(static == "")) {
+      stop("'static' cannot contain empty strings", call. = FALSE)
+    }
+    if (anyDuplicated(static)) {
+      dup_static <- unique(static[duplicated(static)])
+      stop(
+        "'static' must contain unique variable names. Duplicates found: ",
+        paste(dup_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Check existence in data (early, before further processing)
+    missing_static <- setdiff(static, names(data))
+    if (length(missing_static) > 0) {
+      stop(
+        "The following variables in 'static' were not found in 'data': ",
+        paste(missing_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Check no overlap with select
+    overlap_select <- intersect(static, select)
+    if (length(overlap_select) > 0) {
+      stop(
+        "'static' and 'select' must not intersect. Overlapping variables: ",
+        paste(overlap_select, collapse = ", "),
+        call. = FALSE
+      )
+    }
   }
 
   # ---- Extract index ----
@@ -274,6 +342,26 @@ make_long <- function(
     )
   }
 
+  # Static must not contain entity or time column
+  if (!is.null(static)) {
+    if (entity_col %in% static) {
+      stop(
+        "'static' cannot contain the entity column '",
+        entity_col,
+        "'",
+        call. = FALSE
+      )
+    }
+    if (time_col %in% static) {
+      stop(
+        "'static' cannot contain the time column name '",
+        time_col,
+        "'",
+        call. = FALSE
+      )
+    }
+  }
+
   if (any(duplicated(data[[entity_col]]))) {
     dup_entities <- unique(data[[entity_col]][duplicated(data[[entity_col]])])
     n_dup <- length(dup_entities)
@@ -295,6 +383,9 @@ make_long <- function(
   parsed <- list()
   time_values <- c()
 
+  # Prepare static column names to be skipped during parsing
+  static_names <- if (is.null(static)) character(0) else static
+
   # For empty spacer, sort stubs by decreasing length so longest matches first
   stubs_sorted <- if (spacer == "") {
     select[order(nchar(select), decreasing = TRUE)]
@@ -303,6 +394,11 @@ make_long <- function(
   }
 
   for (col in candidates) {
+    # Skip columns explicitly declared as static
+    if (col %in% static_names) {
+      next
+    }
+
     if (spacer != "") {
       if (!grepl(spacer, col, fixed = TRUE)) {
         next
@@ -493,6 +589,7 @@ make_long <- function(
   }
 
   # ---- Detect constant columns ----
+  # All columns not entity and not varying are considered static.
   final_constant <- setdiff(names(data), c(entity_col, varying_cols))
 
   # ---- Time column name conflict ----
@@ -532,6 +629,47 @@ make_long <- function(
   )
   rownames(long) <- NULL
 
+  # ---- Check time‑invariance of static variables ----
+  const_cols <- intersect(final_constant, names(long))
+  if (length(const_cols) > 0) {
+    violation_list <- list()
+    # Group by entity and check uniqueness
+    entity_groups <- split(long, long[[entity_col]])
+    for (var in const_cols) {
+      bad_entities <- character(0)
+      for (grp in entity_groups) {
+        vals <- grp[[var]]
+        if (length(unique(vals)) > 1) {
+          bad_entities <- c(bad_entities, as.character(grp[[entity_col]][1]))
+        }
+      }
+      if (length(bad_entities) > 0) {
+        violation_list[[var]] <- bad_entities
+      }
+    }
+    if (length(violation_list) > 0) {
+      msg_lines <- "The following static variables are not time‑invariant for some entities:"
+      for (v in names(violation_list)) {
+        ents <- violation_list[[v]]
+        msg_lines <- c(
+          msg_lines,
+          sprintf(
+            "  %s (entities: %s)",
+            v,
+            paste(utils::head(ents, 5), collapse = ", ")
+          )
+        )
+        if (length(ents) > 5) {
+          msg_lines <- c(
+            msg_lines,
+            sprintf("    ... and %d more", length(ents) - 5)
+          )
+        }
+      }
+      warning(paste(msg_lines, collapse = "\n"), call. = FALSE)
+    }
+  }
+
   # ---- Convert time column to appropriate type ----
   time_char <- as.character(long[[time_col]])
   time_num <- suppressWarnings(as.numeric(time_char))
@@ -544,7 +682,6 @@ make_long <- function(
   }
 
   # ---- Order columns ----
-  const_cols <- intersect(final_constant, names(long))
   long <- long[, c(entity_col, time_col, const_cols, v.names), drop = FALSE]
 
   # ---- Sort ----
@@ -630,7 +767,37 @@ make_long <- function(
   prefix_reshaped <- "Reshaped variables: "
   cont_indent <- paste0(rep(" ", nchar(prefix_reshaped)), collapse = "")
 
-  static_line <- wrap_vars(final_constant, prefix_static, cont_indent)
+  # Prepare display names for static variables
+  auto_static <- setdiff(final_constant, static_names)
+  user_static <- static_names # may be empty
+
+  if (!is.null(static) && length(auto_static) > 0) {
+    # Annotate user-defined and auto-detected
+    display_static <- character(length(final_constant))
+    for (i in seq_along(final_constant)) {
+      v <- final_constant[i]
+      if (v %in% user_static) {
+        display_static[i] <- paste0(v, " (user-defined)")
+      } else {
+        display_static[i] <- paste0(v, " (auto-detected)")
+      }
+    }
+    # Ensure user-defined appear first (already in original order: static first
+    # because we didn't reorder final_constant; static_names precede others?
+    # final_constant order is as in names(data): static_names come wherever they are.
+    # To guarantee user-defined first, we can sort display_static accordingly.
+    reorder <- order(match(
+      final_constant,
+      static_names,
+      nomatch = length(final_constant)
+    ))
+    display_static <- display_static[reorder]
+  } else {
+    # No annotation: plain names (works for NULL static or no auto-detected)
+    display_static <- final_constant
+  }
+
+  static_line <- wrap_vars(display_static, prefix_static, cont_indent)
   cat(static_line, "\n")
   reshaped_line <- wrap_vars(v.names, prefix_reshaped, cont_indent)
   cat(reshaped_line, "\n\n")

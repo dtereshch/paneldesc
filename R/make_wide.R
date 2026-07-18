@@ -13,6 +13,11 @@
 #'        entity and time variables.
 #'        If not specified and data is a `panel_data` object, the entity and time values
 #'        will be extracted from the data.frame attributes.
+#' @param static An optional character vector of names of time‑invariant variables.
+#'        When provided, these columns are explicitly treated as static (not reshaped)
+#'        and must be present in `data`. If `NULL` (default), the function behaves as
+#'        before: all columns not in `select` or `index` are considered static.
+#'        This argument is never taken from the attributes of a `panel_data` object.
 #' @param spacer A character string to insert between variable names and time
 #'        values in the wide format column names. Default = `"_"`.
 #' @param invert A logical flag indicating whether to put time values before
@@ -60,6 +65,10 @@
 #' Upon successful reshaping, a summary message is printed with aligned headers:
 #' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
 #' - `Reshaped variables:` (each variable stub on a new line, grouped)
+#'
+#' If `static` is explicitly provided and there are also auto‑detected static
+#' variables, the summary distinguishes them with `(user-defined)` and
+#' `(auto-detected)` annotations.
 #'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
@@ -122,6 +131,11 @@
 #' panel <- make_panel(production, index = c("firm", "year"))
 #' wide4 <- make_wide(panel, select = vars)
 #'
+#' # Using `static` to explicitly mark a time‑invariant variable
+#' # The `production` dataset contains `region`, which is constant over time.
+#' wide_region <- make_wide(production, select = vars,
+#'                          index = c("firm", "year"), static = "region")
+#'
 #' # Accessing attributes
 #' attr(wide, "metadata")
 #' attr(wide, "details")
@@ -133,6 +147,7 @@ make_wide <- function(
   data,
   select,
   index = NULL,
+  static = NULL,
   spacer = "_",
   invert = FALSE
 ) {
@@ -198,7 +213,7 @@ make_wide <- function(
     time_var <- index[2]
   }
 
-  # Validate existence
+  # Validate existence of index variables
   if (!entity_var %in% names(data)) {
     stop('entity variable "', entity_var, '" not found in data', call. = FALSE)
   }
@@ -207,6 +222,62 @@ make_wide <- function(
   }
   if (time_var == entity_var) {
     stop("entity and time variables cannot be the same", call. = FALSE)
+  }
+
+  # ---- Validate static ----
+  if (!is.null(static)) {
+    if (!is.character(static) || length(static) == 0) {
+      stop(
+        "'static' must be a non-empty character vector or NULL",
+        call. = FALSE
+      )
+    }
+    if (any(static == "")) {
+      stop("'static' cannot contain empty strings", call. = FALSE)
+    }
+    if (anyDuplicated(static)) {
+      dup_static <- unique(static[duplicated(static)])
+      stop(
+        "'static' must contain unique variable names. Duplicates found: ",
+        paste(dup_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Check existence in data
+    missing_static <- setdiff(static, names(data))
+    if (length(missing_static) > 0) {
+      stop(
+        "The following variables in 'static' were not found in 'data': ",
+        paste(missing_static, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Check no overlap with select
+    overlap_select <- intersect(static, select)
+    if (length(overlap_select) > 0) {
+      stop(
+        "'static' and 'select' must not intersect. Overlapping variables: ",
+        paste(overlap_select, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    # Must not contain index variables
+    if (entity_var %in% static) {
+      stop(
+        "'static' cannot contain the entity variable '",
+        entity_var,
+        "'",
+        call. = FALSE
+      )
+    }
+    if (time_var %in% static) {
+      stop(
+        "'static' cannot contain the time variable '",
+        time_var,
+        "'",
+        call. = FALSE
+      )
+    }
   }
 
   # Validate select
@@ -296,11 +367,11 @@ make_wide <- function(
     return(!any_multiple)
   }
 
-  # Determine static variables
+  # Determine static variables (all non‑index, non‑select columns)
   all_vars <- names(data)
   static_vars <- setdiff(all_vars, c(entity_var, time_var, select))
 
-  # Check invariance
+  # Check invariance of all static variables
   if (length(static_vars) > 0) {
     invariant_check <- sapply(static_vars, function(v) {
       check_invariant(v, data, entity_var, all_na_invariant = TRUE)
@@ -327,7 +398,6 @@ make_wide <- function(
     for (v in static_vars) {
       vals_list <- split(data[[v]], data[[entity_var]])
       if (is.factor(data[[v]])) {
-        # factor handling unchanged
         first_vals <- lapply(entities_uniq, function(e) {
           vals <- vals_list[[as.character(e)]]
           non_na <- vals[!is.na(vals)]
@@ -339,7 +409,6 @@ make_wide <- function(
           ordered = is.ordered(data[[v]])
         )
       } else {
-        # Preserve class by starting with a correctly classed vector of the right length
         static_data[[v]] <- data[[v]][1:length(entities_uniq)]
         for (i in seq_along(entities_uniq)) {
           vals <- vals_list[[as.character(entities_uniq[i])]]
@@ -350,7 +419,6 @@ make_wide <- function(
             static_data[[v]][i] <- non_na[1]
           }
         }
-        # Warn if class was not preserved
         if (!identical(class(static_data[[v]]), class(data[[v]]))) {
           warning(
             "Static variable '",
@@ -422,13 +490,11 @@ make_wide <- function(
   rownames(wide) <- NULL
 
   # ---- Restore factor attributes for reshaped variables ----
-  # (base::reshape turns factors into integer codes)
   factor_select <- select[sapply(data[select], is.factor)]
   if (length(factor_select) > 0) {
     for (var in factor_select) {
       orig_levels <- levels(data[[var]])
       orig_ordered <- is.ordered(data[[var]])
-      # Build column names for this variable across all time points
       if (invert) {
         cols <- paste0(time_values, spacer, var)
       } else {
@@ -436,7 +502,6 @@ make_wide <- function(
       }
       cols <- intersect(cols, names(wide))
       for (col in cols) {
-        # Map integer codes back to factor labels
         wide[[col]] <- factor(
           orig_levels[wide[[col]]],
           levels = orig_levels,
@@ -570,8 +635,33 @@ make_wide <- function(
   prefix_reshaped <- "Reshaped variables: "
   cont_indent <- paste0(rep(" ", nchar(prefix_reshaped)), collapse = "")
 
-  # Static
-  static_line <- wrap_vars(static_vars, prefix_static, cont_indent)
+  # Prepare annotated static variable display if needed
+  user_static <- if (is.null(static)) character(0) else static
+  auto_static <- setdiff(static_vars, user_static)
+
+  if (!is.null(static) && length(auto_static) > 0) {
+    # Distinguish user-defined and auto-detected
+    display_static <- character(length(static_vars))
+    for (i in seq_along(static_vars)) {
+      v <- static_vars[i]
+      if (v %in% user_static) {
+        display_static[i] <- paste0(v, " (user-defined)")
+      } else {
+        display_static[i] <- paste0(v, " (auto-detected)")
+      }
+    }
+    # Put user-defined first
+    reorder <- order(match(
+      static_vars,
+      user_static,
+      nomatch = length(static_vars)
+    ))
+    display_static <- display_static[reorder]
+  } else {
+    display_static <- static_vars
+  }
+
+  static_line <- wrap_vars(display_static, prefix_static, cont_indent)
   cat(static_line, "\n")
 
   # Reshaped groups
