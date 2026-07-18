@@ -43,7 +43,7 @@ Depending on the value of \code{group}, the function uses different demeaning pr
 \describe{
 \item{No grouping variable (and \code{data} is not a \code{panel_data} object)}{
 Simple overall demeaning is performed: for each numeric variable, the
-overall mean (ignoring \code{NA}s) is subtracted.}
+overall mean (ignoring NAs) is subtracted.}
 \item{One group variable specified}{
 The exact calculation is used: the group mean is subtracted from each observation.}
 \item{Two or more groups specified}{

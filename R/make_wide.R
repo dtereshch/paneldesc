@@ -1,32 +1,23 @@
 #' Convert Panel Data from Long to Wide Format
 #'
-#' This function reshapes panel data from long format to wide format,
-#' creating separate columns for each time period for a selected set of
-#' time‑varying variables. All other variables (except the entity and time
-#' identifiers) are treated as time‑invariant and are verified as such.
+#' This function reshapes panel data from long format to wide format.
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param select A character vector specifying the names of the time‑varying
-#'        variables to reshape into wide format. This argument has no default
-#'        and must be provided explicitly.
+#'        variables to reshape.
 #' @param index A character vector of length 2 specifying the names of the
 #'        entity and time variables.
 #'        If not specified and data is a `panel_data` object, the entity and time values
 #'        will be extracted from the data.frame attributes.
 #' @param static An optional character vector of names of time‑invariant variables.
-#'        When provided, these columns are explicitly treated as static (not reshaped)
-#'        and must be present in `data`. If `NULL` (default), the function behaves as
-#'        before: all columns not in `select` or `index` are considered static.
-#'        This argument is never taken from the attributes of a `panel_data` object.
 #' @param spacer A character string to insert between variable names and time
 #'        values in the wide format column names. Default = `"_"`.
 #' @param invert A logical flag indicating whether to put time values before
-#'        variable names in column names. If `FALSE`, column names are
-#'        `"variable_spacer_time"`; if `TRUE`, they are `"time_spacer_variable"`.
+#'        variable names in column names. If FALSE, column names are
+#'        `variable + spacer + time`; if TRUE, they are `time + spacer + variable`.
 #'        Default = FALSE.
 #'
-#' @return A data.frame containing panel data in a wide format, with class
-#'         `"panel_wide"` and the attributes `metadata` and `details`.
+#' @return A data.frame containing panel data in a wide format.
 #'
 #' @details
 #' The function converts data from long to wide format. Below is an illustration
@@ -59,42 +50,22 @@
 #' (i.e., all time periods for the first variable, then all time periods for
 #' the second variable, and so on). Time periods are ordered by their natural
 #' order. For character or numeric time variables this means increasing order.
-#' For factor time variables the order follows the factor levels; this may not
-#' represent chronological order unless the levels are set appropriately.
-#'
-#' Upon successful reshaping, a summary message is printed with aligned headers:
-#' - `Static variables:` (indented to align the colon with `Reshaped variables:`)
-#' - `Reshaped variables:` (each variable stub on a new line, grouped)
-#'
-#' If `static` is explicitly provided and there are also auto‑detected static
-#' variables, the summary distinguishes them with `(user-defined)` and
-#' `(auto-detected)` annotations.
+#' For factor time variables the order follows the factor levels.
 #'
 #' The returned object has class `"panel_wide"` and two additional attributes:
 #' \describe{
 #'   \item{`metadata`}{List containing the function name and the arguments used.
 #'         If the input was a `panel_data` object, the original metadata elements
 #'         (entity, time, and delta) are preserved.}
-#'   \item{`details`}{List with components:
-#'         \describe{
-#'           \item{`reshaped_variables`}{character vector of all wide column names}
-#'           \item{`reshaped_groups`}{named list, each element is a character vector
-#'                 of wide column names for a given stub}
-#'           \item{`static_variables`}{character vector of time‑invariant variables}
-#'         }
-#'   }
+#'   \item{`details`}{List containing character vectors of reshaped variables names
+#'         and static variables names.}
 #' }
 #'
 #' @note
-#' The input long data must have exactly one row per entity–time combination;
-#' if duplicates are detected, the function stops with an error listing the
-#' offending pairs. Rows with missing values in the entity or time variables are
-#' automatically removed (with a message) before reshaping.
-#'
 #' The reshaping preserves standard atomic types and factors. When extracting
 #' static variables, the function attempts to preserve the original column class
 #' (e.g., `Date`, `POSIXct`). If the class cannot be maintained (for example
-#' because the column’s assignment method does not handle `NA` values as
+#' because the column’s assignment method does not handle NA values as
 #' expected), a warning is issued and you should consider converting the column
 #' to a simpler type before calling `make_wide()`.
 #'
@@ -132,7 +103,6 @@
 #' wide4 <- make_wide(panel, select = vars)
 #'
 #' # Using `static` to explicitly mark a time‑invariant variable
-#' # The `production` dataset contains `region`, which is constant over time.
 #' wide_region <- make_wide(production, select = vars,
 #'                          index = c("firm", "year"), static = "region")
 #'

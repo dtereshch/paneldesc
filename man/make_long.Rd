@@ -14,15 +14,10 @@ make_long(
 )
 }
 \arguments{
-\item{data}{A data.frame containing panel data in a wide format. If \code{data} has
-class \code{"panel_wide"} (from \code{\link[=make_wide]{make_wide()}}), the entity and time variables
-are taken from its metadata unless overridden by \code{index}.}
+\item{data}{A data.frame containing panel data in a wide format.}
 
-\item{select}{A character vector specifying the stubs (variable names) of the
-time‑varying columns to reshape. For example, if the wide data contains
-columns \code{x_2000}, \code{x_2001}, \code{y_2000}, \code{y_2001}, then \code{select = c("x", "y")}.
-The stubs must be unique (no duplicate entries). This argument has no
-default and must be provided explicitly.}
+\item{select}{A character vector specifying the stubs of the names of the
+time‑varying variables to reshape.}
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
@@ -30,40 +25,20 @@ column in the long format (second element).
 If not specified and \code{data} is a \code{panel_wide} object, the entity and time
 values are extracted from the metadata.}
 
-\item{static}{An optional character vector of names of time‑invariant variables.
-When provided, these columns are explicitly treated as static (not reshaped)
-and must be present in \code{data}. If \code{NULL} (default), the function behaves as
-before: all columns not matched by \code{select} (or the entity column) are
-considered static. This argument is never taken from the attributes of
-a \code{panel_wide} object – it must be supplied explicitly.}
+\item{static}{An optional character vector of names of time‑invariant variables.}
 
 \item{spacer}{A character string used to separate variable names and time
-values in the wide column names. Default = \code{"_"}. Use \code{""} (empty string)
-when no explicit separator exists. When \code{spacer} is not empty, the function
-splits column names on \strong{every} occurrence of the separator: if
-\code{invert = FALSE} the \strong{last} component is taken as the time value and the
-preceding components (re‑joined with the separator) form the variable stub;
-if \code{invert = TRUE} the \strong{first} component is the time value and the rest
-(re‑joined) is the stub. The stub is then matched against \code{select}.
-When \code{spacer} is empty, column names are matched to stubs using a
-\strong{longest‑prefix rule}: a column must \strong{start} (if \code{invert = FALSE})
-or \strong{end} (if \code{invert = TRUE}) with one of the stubs in \code{select}, and
-the remaining part becomes the time value. If multiple stubs could match,
-the \strong{longest} one is chosen automatically — this allows, for example,
-\code{select = c("gdp", "gdp_ppp")} to correctly assign \code{gdp_ppp2000} to the
-stub \code{"gdp_ppp"} and \code{gdp2000} to \code{"gdp"}.}
+values in the wide column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating the order of components in column
-names. If \code{FALSE}, column names are \code{"variable_spacer_time"}; if \code{TRUE},
-they are \code{"time_spacer_variable"}. Default = \code{FALSE}.}
+names. If FALSE, column names are \code{variable + spacer + time}; if TRUE,
+they are \code{time + spacer + variable}. Default = FALSE.}
 }
 \value{
-A data.frame containing panel data in a long format, with class
-\code{"panel_data"} and the attributes \code{metadata} and \code{details}.
+A data.frame containing panel data in a long format.
 }
 \description{
-This function reshapes panel data from wide format to long format,
-stacking selected time‑varying columns into rows based on the pattern of column names.
+This function reshapes panel data from wide format to long format.
 }
 \details{
 The function converts data from wide to long format. Below is an illustration
@@ -87,104 +62,42 @@ variables (\code{x}, \code{y}) plus a static variable \code{z}.
 
 
 All columns not in \code{select} (or the entity column) are treated as
-time‑invariant and are replicated for each time period. The function
-does \strong{not} verify invariance because wide data cannot be checked;
-it relies on the user's judgment.
+time‑invariant and are replicated for each time period.
 
 The reshaped columns are ordered as follows: the entity column appears first,
 then the time column, then any static (time‑invariant) columns, and finally
 all time‑varying variables in the order they appear in \code{select}.
 The time periods are sorted according to their natural order
 (numerically if all values are numeric, otherwise lexicographically).
-If numeric sorting would produce duplicate representations (e.g., \code{"01"} and
-\code{"1"} map to the same number), the function stops with an error.
-
-Only the time periods that appear in the columns of the selected stubs are
-used. Columns belonging to unselected stubs are ignored when determining the
-set of time points.
-
-If some variable‑time combinations are missing from the wide format, the
-function adds those columns filled with \code{NA} and prints a message.
-After reshaping, if a row has \code{NA} for \strong{all} reshaped variables,
-the static columns for that row are also set to \code{NA}.  This prevents
-a false impression that the entity had a valid observation at that time
-point (only time‑varying variables were missing).
 
 The resulting time column is converted to the most appropriate type:
-\itemize{
-\item If all time values are integers, the column becomes \code{integer}.
-\item If they are numeric but not integers, it becomes \code{double}.
-\item Otherwise, it remains \code{character}.
-}
-
-Upon successful reshaping, a summary message is printed with aligned headers:
-\itemize{
-\item \verb{Static variables:} (indented to align the colon with \verb{Reshaped variables:})
-\item \verb{Reshaped variables:} (the stubs)
-}
+if all time values are integers, the column becomes \code{integer};
+if they are numeric but not integers, it becomes \code{double};
+otherwise, it remains \code{character}.
 
 The returned object has class \code{"panel_data"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_wide} object, the original metadata elements
 for the entity and time variables are preserved.}
-\item{\code{details}}{List with components:
-\describe{
-\item{\code{reshaped_variables}}{character vector of the long‑form variable stubs}
-\item{\code{static_variables}}{character vector of time‑invariant columns}
-}
-}
+\item{\code{details}}{List containing character vectors of reshaped variables names
+and static variables names.}
 }
 }
 \note{
-\strong{Desirable input data} – The input wide data.frame should have one row per
-entity and column names that follow a consistent naming convention. Time‑varying
-columns must use the same separator (if \code{spacer} is not empty) or the same
-stub‑time pattern (if \code{spacer} is empty). The entity column must contain unique
-identifiers (no duplicates). Purely numeric column names (e.g., \code{"2000"},
-\code{"2001"}) are \strong{not} recognised as time‑varying; use a non‑empty \code{spacer} and
-explicit variable names in such cases.
+The input wide data.frame should have column names that follow a consistent
+naming convention. \strong{It highly recommended to use a non‑empty uniform \code{spacer}
+and explicit variable names.}
+Purely numeric column names (e.g., \code{"2000"}, \code{"2001"}) are not recognised
+as time‑varying.
 
-The input wide data must have unique entity values; duplicates cause an error.
+If no explicit separator exists and there is no better option, use \code{spacer = ""} (empty string).
+In this case, treat the results with caution, as the function may not work perfectly.
+
+In an attempt to avoid cases of ambiguity, when \code{spacer = ""} the function splits
+column names using the stubs given in \code{select} by matching the longest possible stub.
+The remainder of the column name after removing the matched stub is taken as the time value.
 }
-\section{Handling of \code{spacer = ""}}{
-
-When \code{spacer = ""} the function splits column names using the \strong{stubs given in
-\code{select}} by matching the longest possible stub. For each column:
-\itemize{
-\item If \code{invert = FALSE}, it checks whether the column \strong{starts with} one
-of the stubs; if multiple stubs match, the \strong{longest} one is used.
-\item If \code{invert = TRUE}, it checks whether the column \strong{ends with} one
-of the stubs, again choosing the longest match.
-}
-The remainder of the column name after removing the matched stub is taken as
-the time value. This approach works intuitively with stubs that share common
-prefixes (e.g., \code{"gdp"} and \code{"gdp_ppp"}): a column like \code{gdp_ppp2000} will
-correctly be assigned to \code{"gdp_ppp"} because it is longer than \code{"gdp"}, while
-\code{gdp2000} will be assigned to \code{"gdp"}. If you encounter a scenario where the
-longest‑match rule does not give the desired split, use a non‑empty \code{spacer}
-(e.g., \code{"_"}) to provide an explicit delimiter.
-}
-
-\section{Using the \code{static} argument}{
-
-In wide data, column names like \code{x_1}, \code{x_2}, \code{x_const} may cause ambiguity:
-with \code{select = "x"} and \code{spacer = "_"}, \code{x_const} would be interpreted as
-variable \code{x} at time \code{const}. To explicitly mark \code{x_const} as time‑invariant,
-supply \code{static = "x_const"}. This ensures it is never reshaped.
-
-When \code{static} is specified, the function:
-\itemize{
-\item Fixes the indicated columns as static.
-\item Searches for any other columns not matched by \code{select} (auto‑detected).
-\item Checks that \strong{all} static variables (user‑defined and auto‑detected)
-are actually constant within each entity; a warning is issued if any
-variable shows variation.
-}
-The summary message distinguishes between the two groups only when both are
-present; otherwise it appears as usual.
-}
-
 \examples{
 data(production)
 
@@ -219,7 +132,6 @@ wide_panel <- make_wide(panel, select = vars)
 long_panel <- make_long(wide_panel, select = vars)
 
 # Using the `static` argument to explicitly mark a time‑invariant variable
-# The `production` dataset contains `region`, which is constant over time.
 long_region <- make_long(wide, select = vars, index = c("firm", "year"),
                          static = "region")
 

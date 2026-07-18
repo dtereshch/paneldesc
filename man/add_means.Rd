@@ -25,7 +25,7 @@ within-group averages are needed.
 }
 \details{
 For each numeric variable (excluding the grouping variables) and for each
-grouping variable, the group mean is computed (ignoring \code{NA}s) and added
+grouping variable, the group mean is computed (ignoring NAs) and added
 as a new column.
 
 For a numeric variable \code{x} and a grouping variable \code{g}, the new column is

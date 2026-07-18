@@ -31,7 +31,7 @@
 #' \describe{
 #'   \item{No grouping variable (and `data` is not a `panel_data` object)}{
 #'         Simple overall demeaning is performed: for each numeric variable, the
-#'         overall mean (ignoring `NA`s) is subtracted.}
+#'         overall mean (ignoring NAs) is subtracted.}
 #'   \item{One group variable specified}{
 #'         The exact calculation is used: the group mean is subtracted from each observation.}
 #'   \item{Two or more groups specified}{

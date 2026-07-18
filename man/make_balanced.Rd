@@ -38,7 +38,7 @@ Depending on the value of \code{balance}, the balancing is performed using diffe
 \describe{
 \item{\code{balance = "rows"}}{Create a row for every entity-time combination.
 If \code{delta} is supplied, the full time sequence (including missing periods)
-is used. Missing combinations get \code{NA} in all other columns.}
+is used. Missing combinations get NA in all other columns.}
 \item{\code{balance = "entities"}}{Keep only entities present in all time periods.}
 \item{\code{balance = "periods"}}{Keep only time periods where all entities are present.}
 }

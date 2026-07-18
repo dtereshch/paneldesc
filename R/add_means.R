@@ -15,7 +15,7 @@
 #'
 #' @details
 #' For each numeric variable (excluding the grouping variables) and for each
-#' grouping variable, the group mean is computed (ignoring `NA`s) and added
+#' grouping variable, the group mean is computed (ignoring NAs) and added
 #' as a new column.
 #'
 #' For a numeric variable `x` and a grouping variable `g`, the new column is

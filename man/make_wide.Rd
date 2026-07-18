@@ -17,37 +17,28 @@ make_wide(
 \item{data}{A data.frame containing panel data in a long format.}
 
 \item{select}{A character vector specifying the names of the time‑varying
-variables to reshape into wide format. This argument has no default
-and must be provided explicitly.}
+variables to reshape.}
 
 \item{index}{A character vector of length 2 specifying the names of the
 entity and time variables.
 If not specified and data is a \code{panel_data} object, the entity and time values
 will be extracted from the data.frame attributes.}
 
-\item{static}{An optional character vector of names of time‑invariant variables.
-When provided, these columns are explicitly treated as static (not reshaped)
-and must be present in \code{data}. If \code{NULL} (default), the function behaves as
-before: all columns not in \code{select} or \code{index} are considered static.
-This argument is never taken from the attributes of a \code{panel_data} object.}
+\item{static}{An optional character vector of names of time‑invariant variables.}
 
 \item{spacer}{A character string to insert between variable names and time
 values in the wide format column names. Default = \code{"_"}.}
 
 \item{invert}{A logical flag indicating whether to put time values before
-variable names in column names. If \code{FALSE}, column names are
-\code{"variable_spacer_time"}; if \code{TRUE}, they are \code{"time_spacer_variable"}.
+variable names in column names. If FALSE, column names are
+\code{variable + spacer + time}; if TRUE, they are \code{time + spacer + variable}.
 Default = FALSE.}
 }
 \value{
-A data.frame containing panel data in a wide format, with class
-\code{"panel_wide"} and the attributes \code{metadata} and \code{details}.
+A data.frame containing panel data in a wide format.
 }
 \description{
-This function reshapes panel data from long format to wide format,
-creating separate columns for each time period for a selected set of
-time‑varying variables. All other variables (except the entity and time
-identifiers) are treated as time‑invariant and are verified as such.
+This function reshapes panel data from long format to wide format.
 }
 \details{
 The function converts data from long to wide format. Below is an illustration
@@ -80,44 +71,22 @@ and finally the selected time‑varying variables, grouped by variable
 (i.e., all time periods for the first variable, then all time periods for
 the second variable, and so on). Time periods are ordered by their natural
 order. For character or numeric time variables this means increasing order.
-For factor time variables the order follows the factor levels; this may not
-represent chronological order unless the levels are set appropriately.
-
-Upon successful reshaping, a summary message is printed with aligned headers:
-\itemize{
-\item \verb{Static variables:} (indented to align the colon with \verb{Reshaped variables:})
-\item \verb{Reshaped variables:} (each variable stub on a new line, grouped)
-}
-
-If \code{static} is explicitly provided and there are also auto‑detected static
-variables, the summary distinguishes them with \code{(user-defined)} and
-\code{(auto-detected)} annotations.
+For factor time variables the order follows the factor levels.
 
 The returned object has class \code{"panel_wide"} and two additional attributes:
 \describe{
 \item{\code{metadata}}{List containing the function name and the arguments used.
 If the input was a \code{panel_data} object, the original metadata elements
 (entity, time, and delta) are preserved.}
-\item{\code{details}}{List with components:
-\describe{
-\item{\code{reshaped_variables}}{character vector of all wide column names}
-\item{\code{reshaped_groups}}{named list, each element is a character vector
-of wide column names for a given stub}
-\item{\code{static_variables}}{character vector of time‑invariant variables}
-}
-}
+\item{\code{details}}{List containing character vectors of reshaped variables names
+and static variables names.}
 }
 }
 \note{
-The input long data must have exactly one row per entity–time combination;
-if duplicates are detected, the function stops with an error listing the
-offending pairs. Rows with missing values in the entity or time variables are
-automatically removed (with a message) before reshaping.
-
 The reshaping preserves standard atomic types and factors. When extracting
 static variables, the function attempts to preserve the original column class
 (e.g., \code{Date}, \code{POSIXct}). If the class cannot be maintained (for example
-because the column’s assignment method does not handle \code{NA} values as
+because the column’s assignment method does not handle NA values as
 expected), a warning is issued and you should consider converting the column
 to a simpler type before calling \code{make_wide()}.
 
@@ -152,7 +121,6 @@ panel <- make_panel(production, index = c("firm", "year"))
 wide4 <- make_wide(panel, select = vars)
 
 # Using `static` to explicitly mark a time‑invariant variable
-# The `production` dataset contains `region`, which is constant over time.
 wide_region <- make_wide(production, select = vars,
                          index = c("firm", "year"), static = "region")
 
