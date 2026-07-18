@@ -49,6 +49,11 @@
 #' The time periods are sorted according to their natural order
 #' (numerically if all values are numeric, otherwise lexicographically).
 #'
+#' After reshaping, if a row has NA for all reshaped variables,
+#' the static columns for that row are also set to NA.  This prevents
+#' a false impression that the entity had a valid observation at that time
+#' point (only time‑varying variables were missing).
+#'
 #' The resulting time column is converted to the most appropriate type:
 #' if all time values are integers, the column becomes `integer`;
 #' if they are numeric but not integers, it becomes `double`;
