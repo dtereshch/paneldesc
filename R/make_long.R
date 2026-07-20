@@ -183,7 +183,6 @@ make_long <- function(
         call. = FALSE
       )
     }
-    # Check existence in data (early, before further processing)
     missing_static <- setdiff(static, names(data))
     if (length(missing_static) > 0) {
       stop(
@@ -192,7 +191,6 @@ make_long <- function(
         call. = FALSE
       )
     }
-    # Check no overlap with select
     overlap_select <- intersect(static, select)
     if (length(overlap_select) > 0) {
       stop(
@@ -267,7 +265,6 @@ make_long <- function(
     )
   }
 
-  # Static must not contain entity or time column
   if (!is.null(static)) {
     if (entity_col %in% static) {
       stop(
@@ -304,24 +301,18 @@ make_long <- function(
   all_cols <- names(data)
   candidates <- setdiff(all_cols, entity_col)
 
-  # ---- Parse columns (FIXED: prefix/suffix match for non‑empty spacer) ----
+  # ---- Parse columns ----
   parsed <- list()
   time_values <- c()
-
-  # Prepare static column names to be skipped during parsing
   static_names <- if (is.null(static)) character(0) else static
-
-  # Sort stubs by decreasing length so the longest match is tried first
   stubs_sorted <- select[order(nchar(select), decreasing = TRUE)]
 
   for (col in candidates) {
-    # Skip columns explicitly declared as static
     if (col %in% static_names) {
       next
     }
 
     if (spacer != "") {
-      # Prefix/suffix match
       matched <- FALSE
       for (stub in stubs_sorted) {
         if (!invert) {
@@ -344,9 +335,8 @@ make_long <- function(
           }
         }
       }
-      if (matched) next # column already handled
+      if (matched) next
     } else {
-      # spacer == "" : longest‑prefix (or suffix) match (unchanged)
       for (stub in stubs_sorted) {
         if (!invert) {
           if (startsWith(col, stub) && nchar(col) > nchar(stub)) {
@@ -378,6 +368,28 @@ make_long <- function(
   present_stubs <- unique(sapply(parsed, `[[`, "var"))
   missing_stubs <- setdiff(select, present_stubs)
   if (length(missing_stubs) > 0) {
+    if (spacer != "") {
+      different_sep_found <- FALSE
+      for (stub in missing_stubs) {
+        candidates_cols <- grep(
+          paste0("^", stub, "."),
+          names(data),
+          value = TRUE
+        )
+        if (length(candidates_cols) > 0) {
+          different_sep_found <- TRUE
+          break
+        }
+      }
+      if (different_sep_found) {
+        stop(
+          "The following stubs in 'select' were not found: ",
+          paste(missing_stubs, collapse = ", "),
+          ". Different separators are detected. Check and fix variable names.",
+          call. = FALSE
+        )
+      }
+    }
     stop(
       "The following stubs in 'select' were not found in any column: ",
       paste(missing_stubs, collapse = ", "),
@@ -385,26 +397,62 @@ make_long <- function(
     )
   }
 
-  # ---- Optional invert‑warning ----
-  var_names <- sapply(parsed, `[[`, "var", USE.NAMES = FALSE)
-  time_vals <- sapply(parsed, `[[`, "time", USE.NAMES = FALSE)
-  time_numeric <- suppressWarnings(as.numeric(time_vals))
-  var_numeric <- suppressWarnings(as.numeric(var_names))
-  prop_time_numeric <- sum(!is.na(time_numeric)) / length(time_vals)
-  prop_var_numeric <- sum(!is.na(var_numeric)) / length(var_names)
-  if (prop_time_numeric < 0.5 && prop_var_numeric > 0.5) {
-    suggested <- ifelse(invert, "FALSE", "TRUE")
-    warning(
-      "It appears that 'invert' may be incorrectly specified.\n",
-      "Most extracted time values are non‑numeric (",
-      round((1 - prop_time_numeric) * 100),
-      "%) while most variable names are numeric (",
-      round(prop_var_numeric * 100),
-      "%).\nConsider setting 'invert = ",
-      suggested,
-      "'.",
-      call. = FALSE
-    )
+  # ---- Warn and rename static columns that match time‑varying patterns ----
+  static_rename_map <- list()
+  if (length(static_names) > 0) {
+    maybe_varying <- character(0)
+    for (col in static_names) {
+      if (spacer != "") {
+        for (stub in stubs_sorted) {
+          if (!invert) {
+            pattern <- paste0(stub, spacer)
+            if (startsWith(col, pattern) && nchar(col) > nchar(pattern)) {
+              maybe_varying <- c(maybe_varying, col)
+              break
+            }
+          } else {
+            pattern <- paste0(spacer, stub)
+            if (endsWith(col, pattern) && nchar(col) > nchar(pattern)) {
+              maybe_varying <- c(maybe_varying, col)
+              break
+            }
+          }
+        }
+      } else {
+        for (stub in stubs_sorted) {
+          if (!invert) {
+            if (startsWith(col, stub) && nchar(col) > nchar(stub)) {
+              maybe_varying <- c(maybe_varying, col)
+              break
+            }
+          } else {
+            if (endsWith(col, stub) && nchar(col) > nchar(stub)) {
+              maybe_varying <- c(maybe_varying, col)
+              break
+            }
+          }
+        }
+      }
+    }
+    if (length(maybe_varying) > 0) {
+      warning(
+        "The following static variables have names that match time‑varying patterns: ",
+        paste(maybe_varying, collapse = ", "),
+        ". They will be treated as static (temporarily renamed for reshaping). Ensure this is intentional.",
+        call. = FALSE
+      )
+      # Rename them to temporary names
+      for (col in maybe_varying) {
+        tmpname <- paste0(".static_", col)
+        while (tmpname %in% names(data)) {
+          tmpname <- paste0(tmpname, "_")
+        }
+        names(data)[names(data) == col] <- tmpname
+        static_rename_map[[col]] <- tmpname
+        # Update static_names so that subsequent checks treat the new name as static
+        static_names[static_names == col] <- tmpname
+      }
+    }
   }
 
   # ---- Sort time values ----
@@ -442,7 +490,9 @@ make_long <- function(
     }
   }
 
-  # ---- Build expected column names and detect conflicts ----
+  # ---- Build expected column names ----
+  # (Static columns that were renamed are now absent under their original names,
+  #  so they will be added as NA placeholders.)
   varying_list <- list()
   v.names <- c()
   varying_cols <- c()
@@ -455,6 +505,7 @@ make_long <- function(
     varying_cols <- c(varying_cols, cols_for_var)
   }
 
+  # ---- Conflict detection ----
   existing_tv_cols <- names(parsed)
   non_tv_cols <- setdiff(names(data), c(entity_col, existing_tv_cols))
   conflict_cols <- intersect(varying_cols, non_tv_cols)
@@ -474,38 +525,39 @@ make_long <- function(
     first_col <- if (length(existing_cols) > 0) existing_cols[1] else NULL
     for (t in unique_times) {
       colname <- generate_colname(var, t, spacer, invert)
-      if (!colname %in% names(data)) {
-        if (!is.null(first_col)) {
-          template <- data[[first_col]]
-          if (is.factor(template)) {
-            new_col <- factor(
-              rep(NA, nrow(data)),
-              levels = levels(template),
-              ordered = is.ordered(template)
-            )
-            attrs <- attributes(template)
-            attrs_to_copy <- attrs[setdiff(names(attrs), c("class", "levels"))]
-            if (length(attrs_to_copy) > 0) {
-              attributes(new_col) <- c(attributes(new_col), attrs_to_copy)
-            }
-          } else {
-            template_val <- template
-            if (any(!is.na(template))) {
-              valid_idx <- which(!is.na(template))[1]
-              template_val <- template[valid_idx]
-            }
-            template_val[1] <- NA
-            new_col <- rep(template_val, nrow(data))
-            attrs <- attributes(template)
-            if (!is.null(attrs)) attributes(new_col) <- attrs
+      if (colname %in% names(data) || colname %in% static_names) {
+        next
+      }
+      if (!is.null(first_col)) {
+        template <- data[[first_col]]
+        if (is.factor(template)) {
+          new_col <- factor(
+            rep(NA, nrow(data)),
+            levels = levels(template),
+            ordered = is.ordered(template)
+          )
+          attrs <- attributes(template)
+          attrs_to_copy <- attrs[setdiff(names(attrs), c("class", "levels"))]
+          if (length(attrs_to_copy) > 0) {
+            attributes(new_col) <- c(attributes(new_col), attrs_to_copy)
           }
         } else {
-          new_col <- rep(NA, nrow(data))
+          template_val <- template
+          if (any(!is.na(template))) {
+            valid_idx <- which(!is.na(template))[1]
+            template_val <- template[valid_idx]
+          }
+          template_val[1] <- NA
+          new_col <- rep(template_val, nrow(data))
+          attrs <- attributes(template)
+          if (!is.null(attrs)) attributes(new_col) <- attrs
         }
-        data[[colname]] <- new_col
-        added_cols <- c(added_cols, colname)
-        var_to_cols[[var]] <- c(var_to_cols[[var]], colname)
+      } else {
+        new_col <- rep(NA, nrow(data))
       }
+      data[[colname]] <- new_col
+      added_cols <- c(added_cols, colname)
+      var_to_cols[[var]] <- c(var_to_cols[[var]], colname)
     }
   }
   if (length(added_cols) > 0) {
@@ -516,10 +568,8 @@ make_long <- function(
   }
 
   # ---- Detect constant columns ----
-  # All columns not entity and not varying are considered static.
   final_constant <- setdiff(names(data), c(entity_col, varying_cols))
 
-  # ---- Time column name conflict ----
   if (time_col %in% c(entity_col, final_constant, varying_cols)) {
     stop(
       "The chosen time column name '",
@@ -556,11 +606,22 @@ make_long <- function(
   )
   rownames(long) <- NULL
 
+  # ---- Restore original names for temporarily renamed static columns ----
+  if (length(static_rename_map) > 0) {
+    for (orig in names(static_rename_map)) {
+      tmp <- static_rename_map[[orig]]
+      if (tmp %in% names(long)) {
+        names(long)[names(long) == tmp] <- orig
+      }
+    }
+    # Update constant column names accordingly
+    final_constant <- setdiff(names(long), c(entity_col, time_col, v.names))
+  }
+
   # ---- Check time‑invariance of static variables ----
   const_cols <- intersect(final_constant, names(long))
   if (length(const_cols) > 0) {
     violation_list <- list()
-    # Group by entity and check uniqueness
     entity_groups <- split(long, long[[entity_col]])
     for (var in const_cols) {
       bad_entities <- character(0)
@@ -694,12 +755,11 @@ make_long <- function(
   prefix_reshaped <- "Reshaped variables: "
   cont_indent <- paste0(rep(" ", nchar(prefix_reshaped)), collapse = "")
 
-  # Prepare display names for static variables
-  auto_static <- setdiff(final_constant, static_names)
-  user_static <- static_names # may be empty
+  # Prepare display names for static variables (using original names)
+  user_static <- static # original user input
+  auto_static <- setdiff(final_constant, user_static)
 
   if (!is.null(static) && length(auto_static) > 0) {
-    # Annotate user-defined and auto-detected
     display_static <- character(length(final_constant))
     for (i in seq_along(final_constant)) {
       v <- final_constant[i]
@@ -709,18 +769,13 @@ make_long <- function(
         display_static[i] <- paste0(v, " (auto-detected)")
       }
     }
-    # Ensure user-defined appear first (already in original order: static first
-    # because we didn't reorder final_constant; static_names precede others?
-    # final_constant order is as in names(data): static_names come wherever they are.
-    # To guarantee user-defined first, we can sort display_static accordingly.
     reorder <- order(match(
       final_constant,
-      static_names,
+      user_static,
       nomatch = length(final_constant)
     ))
     display_static <- display_static[reorder]
   } else {
-    # No annotation: plain names (works for NULL static or no auto-detected)
     display_static <- final_constant
   }
 
