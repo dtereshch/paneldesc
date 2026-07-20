@@ -304,19 +304,15 @@ make_long <- function(
   all_cols <- names(data)
   candidates <- setdiff(all_cols, entity_col)
 
-  # ---- Parse columns (SIMPLIFIED, longest‑match for spacer == "") ----
+  # ---- Parse columns (FIXED: prefix/suffix match for non‑empty spacer) ----
   parsed <- list()
   time_values <- c()
 
   # Prepare static column names to be skipped during parsing
   static_names <- if (is.null(static)) character(0) else static
 
-  # For empty spacer, sort stubs by decreasing length so longest matches first
-  stubs_sorted <- if (spacer == "") {
-    select[order(nchar(select), decreasing = TRUE)]
-  } else {
-    select
-  }
+  # Sort stubs by decreasing length so the longest match is tried first
+  stubs_sorted <- select[order(nchar(select), decreasing = TRUE)]
 
   for (col in candidates) {
     # Skip columns explicitly declared as static
@@ -325,26 +321,32 @@ make_long <- function(
     }
 
     if (spacer != "") {
-      if (!grepl(spacer, col, fixed = TRUE)) {
-        next
+      # Prefix/suffix match
+      matched <- FALSE
+      for (stub in stubs_sorted) {
+        if (!invert) {
+          pattern <- paste0(stub, spacer)
+          if (startsWith(col, pattern) && nchar(col) > nchar(pattern)) {
+            time_val <- substr(col, nchar(pattern) + 1, nchar(col))
+            parsed[[col]] <- list(var = stub, time = time_val)
+            time_values <- c(time_values, time_val)
+            matched <- TRUE
+            break
+          }
+        } else {
+          pattern <- paste0(spacer, stub)
+          if (endsWith(col, pattern) && nchar(col) > nchar(pattern)) {
+            time_val <- substr(col, 1, nchar(col) - nchar(pattern))
+            parsed[[col]] <- list(var = stub, time = time_val)
+            time_values <- c(time_values, time_val)
+            matched <- TRUE
+            break
+          }
+        }
       }
-      parts <- strsplit(col, spacer, fixed = TRUE)[[1]]
-      if (length(parts) < 2) {
-        next
-      }
-      if (invert) {
-        time_val <- parts[1]
-        var_name <- paste(parts[-1], collapse = spacer)
-      } else {
-        time_val <- parts[length(parts)]
-        var_name <- paste(parts[-length(parts)], collapse = spacer)
-      }
-      if (var_name != "" && var_name %in% select) {
-        parsed[[col]] <- list(var = var_name, time = time_val)
-        time_values <- c(time_values, time_val)
-      }
+      if (matched) next # column already handled
     } else {
-      # spacer == "" : longest‑prefix (or suffix) match
+      # spacer == "" : longest‑prefix (or suffix) match (unchanged)
       for (stub in stubs_sorted) {
         if (!invert) {
           if (startsWith(col, stub) && nchar(col) > nchar(stub)) {
