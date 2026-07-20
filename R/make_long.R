@@ -164,6 +164,15 @@ make_long <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
+  # ---- Check for wrong input type ----
+  if (inherits(data, "panel_data")) {
+    stop(
+      "'data' appears to be a panel_data object (long format). ",
+      "For converting panel_data to wide format, please use make_wide() instead.",
+      call. = FALSE
+    )
+  }
+
   # ---- Validate static ----
   if (!is.null(static)) {
     if (!is.character(static) || length(static) == 0) {

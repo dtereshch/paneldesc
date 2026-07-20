@@ -138,6 +138,15 @@ make_wide <- function(
     stop("'invert' must be a single logical value", call. = FALSE)
   }
 
+  # ---- Check for wrong input type ----
+  if (inherits(data, "panel_wide")) {
+    stop(
+      "'data' appears to be a panel_wide object (wide format). ",
+      "For converting panel_wide to long format, please use make_long() instead.",
+      call. = FALSE
+    )
+  }
+
   # ---- Extract index ----
   entity_var <- NULL
   time_var <- NULL
