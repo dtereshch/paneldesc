@@ -4,13 +4,13 @@
 #'
 #' @param data A data.frame containing panel data in a wide format.
 #' @param select A character vector specifying the stubs of the names of the
-#'        time‑varying variables to reshape.
+#'        time-varying variables to reshape.
 #' @param index A character vector of length 2 specifying the name of the
 #'        entity column (first element) and the name to give to the new time
 #'        column in the long format (second element).
 #'        If not specified and `data` is a `panel_wide` object, the entity and time
 #'        values are extracted from the metadata.
-#' @param static An optional character vector of names of time‑invariant variables.
+#' @param static An optional character vector of names of time-invariant variables.
 #' @param spacer A character string used to separate variable names and time
 #'        values in the wide column names. Default = `"_"`.
 #' @param invert A logical flag indicating the order of components in column
@@ -21,7 +21,7 @@
 #'
 #' @details
 #' The function converts data from wide to long format. Below is an illustration
-#' of the transformation for two time periods (t = 1, 2) and two time‑varying
+#' of the transformation for two time periods (t = 1, 2) and two time-varying
 #' variables (`x`, `y`) plus a static variable `z`.
 #'
 #' **Wide format (input):**
@@ -41,18 +41,18 @@
 #' | 2  | 2 | 8 | 6 | B |
 #'
 #' All columns not in `select` (or the entity column) are treated as
-#' time‑invariant and are replicated for each time period.
+#' time-invariant and are replicated for each time period.
 #'
 #' The reshaped columns are ordered as follows: the entity column appears first,
-#' then the time column, then any static (time‑invariant) columns, and finally
-#' all time‑varying variables in the order they appear in `select`.
+#' then the time column, then any static (time-invariant) columns, and finally
+#' all time-varying variables in the order they appear in `select`.
 #' The time periods are sorted according to their natural order
 #' (numerically if all values are numeric, otherwise lexicographically).
 #'
 #' After reshaping, if a row has NA for all reshaped variables,
 #' the static columns for that row are also set to NA.  This prevents
 #' a false impression that the entity had a valid observation at that time
-#' point (only time‑varying variables were missing).
+#' point (only time-varying variables were missing).
 #'
 #' The resulting time column is converted to the most appropriate type:
 #' if all time values are integers, the column becomes `integer`;
@@ -70,10 +70,10 @@
 #'
 #' @note
 #' The input wide data.frame should have column names that follow a consistent
-#' naming convention. **It highly recommended to use a non‑empty uniform `spacer`
+#' naming convention. **It highly recommended to use a non-empty uniform `spacer`
 #' and explicit variable names.**
 #' Purely numeric column names (e.g., `"2000"`, `"2001"`) are not recognised
-#' as time‑varying.
+#' as time-varying.
 #'
 #' If no explicit separator exists and there is no better option, use `spacer = ""` (empty string).
 #' In this case, treat the results with caution, as the function may not work perfectly.
@@ -118,7 +118,7 @@
 #' wide_panel <- make_wide(panel, select = vars)
 #' long_panel <- make_long(wide_panel, select = vars)
 #'
-#' # Using the `static` argument to explicitly mark a time‑invariant variable
+#' # Using the `static` argument to explicitly mark a time-invariant variable
 #' long_region <- make_long(wide, select = vars, index = c("firm", "year"),
 #'                          static = "region")
 #'
@@ -368,7 +368,7 @@ make_long <- function(
 
   if (length(parsed) == 0) {
     stop(
-      "No columns were identified as time‑varying. ",
+      "No columns were identified as time-varying. ",
       "Check 'select', 'spacer', and 'invert'.",
       call. = FALSE
     )
@@ -406,7 +406,7 @@ make_long <- function(
     )
   }
 
-  # ---- Warn and rename static columns that match time‑varying patterns ----
+  # ---- Warn and rename static columns that match time-varying patterns ----
   static_rename_map <- list()
   if (length(static_names) > 0) {
     maybe_varying <- character(0)
@@ -445,7 +445,7 @@ make_long <- function(
     }
     if (length(maybe_varying) > 0) {
       warning(
-        "The following static variables have names that match time‑varying patterns: ",
+        "The following static variables have names that match time-varying patterns: ",
         paste(maybe_varying, collapse = ", "),
         ". They will be treated as static (temporarily renamed for reshaping). Ensure this is intentional.",
         call. = FALSE
@@ -520,7 +520,7 @@ make_long <- function(
   conflict_cols <- intersect(varying_cols, non_tv_cols)
   if (length(conflict_cols) > 0) {
     stop(
-      "The following columns appear to be time‑varying but do not match the expected pattern:\n",
+      "The following columns appear to be time-varying but do not match the expected pattern:\n",
       paste(conflict_cols, collapse = ", "),
       "\nCheck 'select', 'spacer', and 'invert'.",
       call. = FALSE
@@ -627,7 +627,7 @@ make_long <- function(
     final_constant <- setdiff(names(long), c(entity_col, time_col, v.names))
   }
 
-  # ---- Check time‑invariance of static variables ----
+  # ---- Check time-invariance of static variables ----
   const_cols <- intersect(final_constant, names(long))
   if (length(const_cols) > 0) {
     violation_list <- list()
@@ -645,7 +645,7 @@ make_long <- function(
       }
     }
     if (length(violation_list) > 0) {
-      msg_lines <- "The following static variables are not time‑invariant for some entities:"
+      msg_lines <- "The following static variables are not time-invariant for some entities:"
       for (v in names(violation_list)) {
         ents <- violation_list[[v]]
         msg_lines <- c(

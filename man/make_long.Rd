@@ -17,7 +17,7 @@ make_long(
 \item{data}{A data.frame containing panel data in a wide format.}
 
 \item{select}{A character vector specifying the stubs of the names of the
-time‑varying variables to reshape.}
+time-varying variables to reshape.}
 
 \item{index}{A character vector of length 2 specifying the name of the
 entity column (first element) and the name to give to the new time
@@ -25,7 +25,7 @@ column in the long format (second element).
 If not specified and \code{data} is a \code{panel_wide} object, the entity and time
 values are extracted from the metadata.}
 
-\item{static}{An optional character vector of names of time‑invariant variables.}
+\item{static}{An optional character vector of names of time-invariant variables.}
 
 \item{spacer}{A character string used to separate variable names and time
 values in the wide column names. Default = \code{"_"}.}
@@ -42,7 +42,7 @@ This function reshapes panel data from wide format to long format.
 }
 \details{
 The function converts data from wide to long format. Below is an illustration
-of the transformation for two time periods (t = 1, 2) and two time‑varying
+of the transformation for two time periods (t = 1, 2) and two time-varying
 variables (\code{x}, \code{y}) plus a static variable \code{z}.
 
 \strong{Wide format (input):}\tabular{llllll}{
@@ -62,18 +62,18 @@ variables (\code{x}, \code{y}) plus a static variable \code{z}.
 
 
 All columns not in \code{select} (or the entity column) are treated as
-time‑invariant and are replicated for each time period.
+time-invariant and are replicated for each time period.
 
 The reshaped columns are ordered as follows: the entity column appears first,
-then the time column, then any static (time‑invariant) columns, and finally
-all time‑varying variables in the order they appear in \code{select}.
+then the time column, then any static (time-invariant) columns, and finally
+all time-varying variables in the order they appear in \code{select}.
 The time periods are sorted according to their natural order
 (numerically if all values are numeric, otherwise lexicographically).
 
 After reshaping, if a row has NA for all reshaped variables,
 the static columns for that row are also set to NA.  This prevents
 a false impression that the entity had a valid observation at that time
-point (only time‑varying variables were missing).
+point (only time-varying variables were missing).
 
 The resulting time column is converted to the most appropriate type:
 if all time values are integers, the column becomes \code{integer};
@@ -91,10 +91,10 @@ and static variables names.}
 }
 \note{
 The input wide data.frame should have column names that follow a consistent
-naming convention. \strong{It highly recommended to use a non‑empty uniform \code{spacer}
+naming convention. \strong{It highly recommended to use a non-empty uniform \code{spacer}
 and explicit variable names.}
 Purely numeric column names (e.g., \code{"2000"}, \code{"2001"}) are not recognised
-as time‑varying.
+as time-varying.
 
 If no explicit separator exists and there is no better option, use \code{spacer = ""} (empty string).
 In this case, treat the results with caution, as the function may not work perfectly.
@@ -136,7 +136,7 @@ panel <- make_panel(production, index = c("firm", "year"))
 wide_panel <- make_wide(panel, select = vars)
 long_panel <- make_long(wide_panel, select = vars)
 
-# Using the `static` argument to explicitly mark a time‑invariant variable
+# Using the `static` argument to explicitly mark a time-invariant variable
 long_region <- make_long(wide, select = vars, index = c("firm", "year"),
                          static = "region")
 
