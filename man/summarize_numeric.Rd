@@ -66,7 +66,7 @@ The returned object has class \code{"panel_summary"} and two additional attribut
 }
 \note{
 Unlike other functions in this package, this function does not access the values
-​​of panel attributes from a \code{panel_data} object.
+of panel attributes from a \code{panel_data} object.
 }
 \examples{
 data(production)
