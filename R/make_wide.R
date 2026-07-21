@@ -419,9 +419,16 @@ make_wide <- function(
   # ---- Store sorted unique time values for later use ----
   time_values <- sort(unique(data[[time_var]]))
 
+  # Sort data by entity and time (required by stats::reshape)
+  data_for_reshape <- data_for_reshape[
+    order(data_for_reshape[[entity_var]], data_for_reshape[[time_var]]),
+    ,
+    drop = FALSE
+  ]
+
   # Perform reshape
   temp_sep <- "._TEMP_."
-  if (any(grepl(temp_sep, names(data_for_reshape)))) {
+  if (any(grepl(temp_sep, names(data_for_reshape), fixed = TRUE))) {
     stop(
       "Column names contain the temporary separator '",
       temp_sep,
@@ -429,7 +436,13 @@ make_wide <- function(
       call. = FALSE
     )
   }
-  if (any(grepl(temp_sep, as.character(data_for_reshape[[time_var]])))) {
+  if (
+    any(grepl(
+      temp_sep,
+      as.character(data_for_reshape[[time_var]]),
+      fixed = TRUE
+    ))
+  ) {
     stop(
       "Time values contain the temporary separator '",
       temp_sep,
@@ -451,7 +464,7 @@ make_wide <- function(
   new_names <- names(wide)
   for (i in seq_along(new_names)) {
     nm <- new_names[i]
-    if (grepl(temp_sep, nm)) {
+    if (grepl(temp_sep, nm, fixed = TRUE)) {
       all_pos <- gregexpr(temp_sep, nm, fixed = TRUE)[[1]]
       if (length(all_pos) > 0) {
         last_pos <- all_pos[length(all_pos)]
