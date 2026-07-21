@@ -9,14 +9,14 @@ Provides a comprehensive set of tools for describing and visualizing panel data 
 ## Installation
 
 ```
-library(devtools)
-install_github("dtereshch/paneldesc")
+pak::pak("dtereshch/paneldesc")
 ```
 
 ## Usage
 ```
 library(paneldesc)
 
+?add_means
 ?decompose_factor
 ?decompose_numeric
 ?describe_balance
@@ -24,7 +24,12 @@ library(paneldesc)
 ?describe_incomplete
 ?describe_patterns
 ?describe_periods
+?make_balanced
+?make_demeaned
+?make_long
 ?make_panel
+?make_wide
+?plot_demeaned
 ?plot_heterogeneity
 ?plot_missing
 ?plot_patterns
