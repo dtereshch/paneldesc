@@ -16,14 +16,18 @@ make_panel(data, index, delta = NULL, ...)
 \item{...}{Additional arguments (not used, except to catch deprecated \code{balance}).}
 }
 \value{
-The input data.frame with additional attributes.
+The input data.frame sorted by the entity and time variables, with additional attributes.
 }
 \description{
 This function adds panel structure attributes to a data.frame, storing entity and time variable names,
-and optionally checks the expected interval between time periods.
+and optionally checks the expected interval between time periods. The returned data is sorted by
+the entity and time variables.
 }
 \details{
 This function adds attributes to a data.frame to mark it as panel data.
+
+Before returning, the data is sorted by the entity variable (first element of \code{index}) and then by
+the time variable (second element).
 
 If \code{delta} is supplied, the function checks that all observed time points are separated by multiples of \code{delta}.
 If gaps are detected, a message lists the missing periods and the full sequence is stored in \code{details$periods_restored}.

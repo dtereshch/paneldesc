@@ -1,17 +1,21 @@
 #' Panel Data Structure Setting
 #'
 #' This function adds panel structure attributes to a data.frame, storing entity and time variable names,
-#' and optionally checks the expected interval between time periods.
+#' and optionally checks the expected interval between time periods. The returned data is sorted by
+#' the entity and time variables.
 #'
 #' @param data A data.frame containing panel data in a long format.
 #' @param index A character vector of length 2 specifying the names of the entity and time variables.
 #' @param delta An optional integer giving the expected interval between time periods.
 #' @param ... Additional arguments (not used, except to catch deprecated `balance`).
 #'
-#' @return The input data.frame with additional attributes.
+#' @return The input data.frame sorted by the entity and time variables, with additional attributes.
 #'
 #' @details
 #' This function adds attributes to a data.frame to mark it as panel data.
+#'
+#' Before returning, the data is sorted by the entity variable (first element of `index`) and then by
+#' the time variable (second element).
 #'
 #' If `delta` is supplied, the function checks that all observed time points are separated by multiples of `delta`.
 #' If gaps are detected, a message lists the missing periods and the full sequence is stored in `details$periods_restored`.
@@ -142,6 +146,10 @@ make_panel <- function(data, index, delta = NULL, ...) {
       data[[time_var]] <- time_numeric
     }
   }
+
+  # --- Sort data by entity and time ---
+  data <- data[order(data[[entity_var]], data[[time_var]]), , drop = FALSE]
+  rownames(data) <- NULL
 
   # --- Build metadata and details ---
   entities <- sort_unique_preserve(data[[entity_var]])
